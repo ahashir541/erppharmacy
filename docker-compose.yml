@@ -1,0 +1,108 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-medical_erp}
+      POSTGRES_USER: ${POSTGRES_USER:-medical_erp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - medical_erp_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks: [internal]
+
+  init:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: "no"
+    environment: &api-environment
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-medical_erp}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-medical_erp}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+      ENVIRONMENT: production
+      BOOTSTRAP_PLATFORM_EMAIL: ${BOOTSTRAP_PLATFORM_EMAIL:?Set BOOTSTRAP_PLATFORM_EMAIL in .env}
+      BOOTSTRAP_PLATFORM_PASSWORD: ${BOOTSTRAP_PLATFORM_PASSWORD:?Set BOOTSTRAP_PLATFORM_PASSWORD in .env}
+      BOOTSTRAP_PLATFORM_NAME: ${BOOTSTRAP_PLATFORM_NAME:-Syed Hashir Ali}
+      TRUSTED_HOST_ORIGINS: ${DOMAIN:?Set DOMAIN in .env}
+      CORS_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}
+      ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-30}
+      BILLING_JAZZCASH_ACCOUNT_NAME: ${BILLING_JAZZCASH_ACCOUNT_NAME:-}
+      BILLING_JAZZCASH_ACCOUNT_NUMBER: ${BILLING_JAZZCASH_ACCOUNT_NUMBER:-}
+      BILLING_EASYPAISA_ACCOUNT_NAME: ${BILLING_EASYPAISA_ACCOUNT_NAME:-}
+      BILLING_EASYPAISA_ACCOUNT_NUMBER: ${BILLING_EASYPAISA_ACCOUNT_NUMBER:-}
+      BILLING_BANK_NAME: ${BILLING_BANK_NAME:-}
+      BILLING_BANK_ACCOUNT_TITLE: ${BILLING_BANK_ACCOUNT_TITLE:-}
+      BILLING_BANK_ACCOUNT_NUMBER: ${BILLING_BANK_ACCOUNT_NUMBER:-}
+      BILLING_BANK_IBAN: ${BILLING_BANK_IBAN:-}
+    command: ["sh", "-c", "python -m alembic upgrade head && python -m app.bootstrap"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment: *api-environment
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks: [internal]
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+    networks: [internal]
+
+  proxy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks: [internal]
+
+volumes:
+  medical_erp_postgres:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge

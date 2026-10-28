@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Phase 2 — Catalogue and stock (2026-10-28)
+
+- Product import (10,000 rows per call, idempotent, per-row errors, wrong
+  barcodes refused), CSV parsing and column mapping in `packages/core`.
+- Product edits, pack sizes, price history, bulk price change.
+- Opening stock, adjustments with daily limits and one-time approvals,
+  write-offs, batch blocks, blind stock counts.
+- Views: current prices, product stock with nearest expiry, expiry dashboard.
+- Balance self-check and repair. PC actions run as the signed-in staff
+  member (`app.rpc_actor`).
+- D16 revised (blank limit = no limit, 0 = always ask).
+
 ### Phase 1 — Foundation (2026-10-28)
 
 - Monorepo: pnpm workspaces + Turborepo; `packages/core`, `packages/db`,

@@ -74,7 +74,7 @@ To see a test catch a mistake, open
 |---|---|
 | pgTAP tests prove tenant A cannot read tenant B | **Passes locally** (PGlite + pgTAP stand-in) |
 | a salesman cannot read cost columns | **Passes locally** |
-| the same tests on real Supabase with real pgTAP | Written in CI. **Not run yet**: the branch has not been pushed to GitHub |
+| the same tests on real Supabase with real pgTAP | **Passes in CI** (131 tests, real pgTAP) |
 
 ## Not done in Phase 1 (on purpose, or blocked)
 

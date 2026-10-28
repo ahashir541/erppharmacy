@@ -5,3 +5,5 @@ export * from './invoice.ts';
 export * from './money.ts';
 export * from './permissions.ts';
 export * from './pin.ts';
+export * from './catalogue.ts';
+export * from './stock.ts';

@@ -72,6 +72,17 @@ try {
   await db.exec('rollback').catch(() => {});
 }
 
+// A CSV read by packages/core must be accepted by public.import_products.
+try {
+  const n = await csvRoundTrip(db);
+  passed += n;
+  console.log(`ok    CSV import round trip core -> SQL (${n} checks)`);
+} catch (err) {
+  failed++;
+  console.log(`FAIL  CSV import round trip\n      ${err.message}`);
+  await db.exec('rollback').catch(() => {});
+}
+
 console.log(`\n${passed} assertions passed, ${failed} file(s) failed`);
 process.exit(failed ? 1 : 0);
 
@@ -163,4 +174,35 @@ async function permissionParity(db) {
   }
   await db.exec('rollback');
   return checked;
+}
+
+async function csvRoundTrip(db) {
+  const { parseCsv, suggestMapping, buildImportRows } = await import('../../core/src/catalogue.ts');
+  const csv = [
+    'Item Name,Salt,Strength,Company,Tabs per strip,Strips per box,MRP,Bar Code,Controlled',
+    '"Augmentin 625mg",Co-amoxiclav,625 mg,GSK,6,2,"Rs 1,050.00",8964000123456,no',
+    'Xanax 0.5mg,Alprazolam,0.5 mg,Pfizer,10,3,450.50,8964000654321,yes',
+  ].join('\r\n');
+  const [header, ...data] = parseCsv(csv);
+  const { rows, problems } = buildImportRows(data, suggestMapping(header), { priceIsPer: 'strip' });
+  if (problems.length) throw new Error(`core rejected rows: ${JSON.stringify(problems)}`);
+  await db.exec(`begin; select tests.fixture();
+                 select tests.as_owner(tests.id('auth_owner_a'), tests.id('tenant_a'));`);
+  const res = (await db.query('select public.import_products($1::jsonb) as r', [JSON.stringify(rows)])).rows[0].r;
+  await db.exec('reset role');
+  const check = (cond, msg) => { if (!cond) throw new Error(`${msg}: ${JSON.stringify(res)}`); };
+  check(res.created === 2 && res.error_count === 0, 'both rows created without errors');
+  const [aug] = (await db.query(`
+    select pp.amount, u.code as unit, (select count(*) from product_units x where x.product_id = p.id)::int as sizes,
+           (select factor_to_base from product_units x join units y on y.id = x.unit_id
+            where x.product_id = p.id and y.code = 'box')::int as box
+    from products p join product_prices pp on pp.product_id = p.id
+    join product_units pu on pu.id = pp.product_unit_id join units u on u.id = pu.unit_id
+    where p.brand_name = 'Augmentin 625mg'`)).rows;
+  check(aug && Number(aug.amount) === 105000 && aug.unit === 'strip', 'Rs 1,050.00 per strip stored as 105000 paisa');
+  check(aug.sizes === 3 && aug.box === 12, 'tablet / strip of 6 / box of 2 strips = 12 tablets');
+  const [xanax] = (await db.query(`select is_controlled from products where brand_name = 'Xanax 0.5mg'`)).rows;
+  check(xanax?.is_controlled === true, 'controlled flag carried through');
+  await db.exec('rollback');
+  return 4;
 }

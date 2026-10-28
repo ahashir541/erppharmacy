@@ -50,6 +50,11 @@ alter table products add column match_key text generated always as (
 ) stored;
 create index products_match_key on products (tenant_id, match_key) where archived_at is null;
 
+-- Price history is ordered by time; several changes inside one transaction
+-- (e.g. import then bulk change) must still get increasing times.
+alter table product_prices alter column effective_from set default clock_timestamp();
+alter table product_prices alter column created_at set default clock_timestamp();
+
 -- ---- Who is acting -------------------------------------------------------
 -- Owner session: the owner. Pharmacy PC: the staff member of the open
 -- session on this PC. Sets the audit context either way.
@@ -242,6 +247,10 @@ begin
   from barcodes b join products p on p.id = b.product_id and p.archived_at is null
   where i.error is null and i.barcode is not null
     and b.tenant_id = tid and b.code = i.barcode and b.archived_at is null;
+  -- a barcode match with a different name is a wrong barcode, not the same product
+  update _imp i set error = 'barcode ' || i.barcode || ' belongs to ' || p.brand_name, product_id = null
+  from products p
+  where i.error is null and i.product_id = p.id and lower(p.brand_name) <> lower(i.brand_name);
   update _imp i set product_id = p.id
   from products p
   where i.error is null and i.product_id is null
@@ -334,8 +343,8 @@ begin
     and i.retail_price is distinct from (
       select pp.amount from product_prices pp
       where pp.product_unit_id = pu.id and pp.price_kind = 'retail' and pp.branch_id is null
-        and pp.effective_from <= now()
-      order by pp.effective_from desc, pp.created_at desc limit 1);
+        and pp.effective_from <= clock_timestamp()
+      order by pp.effective_from desc, pp.created_at desc, pp.id desc limit 1);
   get diagnostics n_prices = row_count;
 
   select count(*), coalesce(jsonb_agg(jsonb_build_object('row', row_no, 'error', error) order by row_no)
@@ -505,10 +514,10 @@ begin
     from product_prices pp
     join products p on p.id = pp.product_id
     where pp.tenant_id = tid and pp.price_kind = 'retail' and pp.branch_id is null
-      and pp.effective_from <= now() and p.archived_at is null
+      and pp.effective_from <= clock_timestamp() and p.archived_at is null
       and (p_manufacturer is null or p.manufacturer_id = p_manufacturer)
       and (p_category is null or p.category_id = p_category)
-    order by pp.product_unit_id, pp.effective_from desc, pp.created_at desc
+    order by pp.product_unit_id, pp.effective_from desc, pp.created_at desc, pp.id desc
   ) cur;
   get diagnostics n = row_count;
   perform app.log_event('price.bulk_change', 'product_prices', change_id,
@@ -521,9 +530,9 @@ create view current_product_prices with (security_invoker = true) as
 select distinct on (pp.tenant_id, pp.product_unit_id, pp.price_kind, coalesce(pp.branch_id, '00000000-0000-0000-0000-000000000000'::uuid))
        pp.tenant_id, pp.product_id, pp.product_unit_id, pp.branch_id, pp.price_kind, pp.amount, pp.effective_from
 from product_prices pp
-where pp.effective_from <= now()
+where pp.effective_from <= clock_timestamp()
 order by pp.tenant_id, pp.product_unit_id, pp.price_kind,
-         coalesce(pp.branch_id, '00000000-0000-0000-0000-000000000000'::uuid), pp.effective_from desc, pp.created_at desc;
+         coalesce(pp.branch_id, '00000000-0000-0000-0000-000000000000'::uuid), pp.effective_from desc, pp.created_at desc, pp.id desc;
 
 -- ---- Stock ----------------------------------------------------------------
 create or replace function app.get_or_create_batch(p_tenant uuid, p_product uuid, p_batch_number text,

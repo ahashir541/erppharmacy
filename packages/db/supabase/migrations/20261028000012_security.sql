@@ -14,13 +14,16 @@
 --   * Policies wrap helpers in (select ...) so Postgres evaluates them once
 --     per query, not once per row.
 
+-- Cloud sign-in is for owners only (D11) and always needs 2FA (aal2).
 create or replace function app.current_user_id() returns uuid
 language sql stable security definer set search_path = public, app as $$
   select u.id
   from users u
   join tenants t on t.id = u.tenant_id
   where u.auth_user_id = auth.uid()
+    and u.kind = 'owner'
     and u.tenant_id = nullif(auth.jwt() ->> 'tenant_id', '')::uuid
+    and coalesce(auth.jwt() ->> 'aal', '') = 'aal2'
     and u.status = 'active' and u.archived_at is null
     and t.status <> 'cancelled'
 $$;
@@ -64,47 +67,82 @@ language sql stable security definer set search_path = public, app as $$
      and coalesce(auth.jwt() ->> 'aal', '') = 'aal2'   -- 2FA required
 $$;
 
--- Branches where the caller holds a permission. Primary owner: all. Device:
--- its own branch, for counter-safe non-sensitive permissions only. Staff:
--- role grants (branch null = every branch) plus per-user overrides, minus
--- per-user denials.
+-- The permissions engine. Same rules as packages/core/src/permissions.ts:
+--   1. primary owner: everything, no approval, no limit
+--   2. disabled or archived user: nothing
+--   3. a per-user override for this branch, else for all branches, decides
+--   4. otherwise the user's roles on this branch (or all branches): allowed if
+--      any role allows; needs approval only if every allowing role needs it;
+--      limit = the highest limit among allowing roles (null = no limit set)
+create or replace function app.effective_permission(p_user uuid, p_code text, p_branch uuid)
+returns table (allowed boolean, needs_approval boolean, limit_value bigint)
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  o record;
+begin
+  if exists (select 1 from users where id = p_user and is_primary_owner and status = 'active') then
+    return query select true, false, null::bigint;
+    return;
+  end if;
+  if not exists (select 1 from users where id = p_user and status = 'active' and archived_at is null) then
+    return query select false, false, null::bigint;
+    return;
+  end if;
+  select x.allowed, x.needs_approval, x.limit_value into o
+  from user_permission_overrides x
+  where x.user_id = p_user and x.permission_code = p_code
+    and (x.branch_id = p_branch or x.branch_id is null)
+  order by x.branch_id nulls last
+  limit 1;
+  if found then
+    return query select o.allowed, o.allowed and o.needs_approval,
+                        case when o.allowed then o.limit_value end;
+    return;
+  end if;
+  return query
+  select coalesce(bool_or(rp.allowed), false),
+         coalesce(bool_and(rp.needs_approval) filter (where rp.allowed), false),
+         max(rp.limit_value) filter (where rp.allowed)
+  from user_roles ur
+  join roles r on r.id = ur.role_id and r.archived_at is null
+  join role_permissions rp on rp.role_id = ur.role_id and rp.permission_code = p_code
+  where ur.user_id = p_user and ur.archived_at is null
+    and (ur.branch_id is null or ur.branch_id = p_branch);
+end $$;
+
+-- 'allow' | 'needs_approval' | 'deny' for one action. A limited permission
+-- with no limit set needs approval (fail closed, D16).
+create or replace function app.permission_decision(p_user uuid, p_code text, p_branch uuid, p_amount bigint default null)
+returns text
+language sql stable security definer set search_path = public, app as $$
+  select case
+    when exists (select 1 from users where id = p_user and is_primary_owner and status = 'active') then 'allow'
+    when not e.allowed then 'deny'
+    when e.needs_approval then 'needs_approval'
+    when p.limit_kind is not null and p_amount is not null
+         and (e.limit_value is null or p_amount > e.limit_value) then 'needs_approval'
+    else 'allow'
+  end
+  from app.effective_permission(p_user, p_code, p_branch) e
+  join permissions p on p.code = p_code
+$$;
+
+-- Branches where the caller holds a permission. Owner session: the engine
+-- above, per branch. Counter device: its own branch, for counter-safe,
+-- non-sensitive permissions only.
 create or replace function app.branches_with(p_code text) returns uuid[]
 language sql stable security definer set search_path = public, app as $$
-  with me as (
-    select app.current_user_id() as uid, app.current_device_id() as did, app.tenant_id() as tid
-  ),
-  all_branches as (
-    select b.id from branches b, me where b.tenant_id = me.tid and b.archived_at is null
-  ),
-  granted as (
-    select a.id from all_branches a where app.is_primary_owner()
-    union
-    select d.branch_id from devices d, me
-    where me.uid is null and d.id = me.did
-      and exists (select 1 from permissions p
-                  where p.code = p_code and p.counter_safe and not p.is_sensitive)
-    union
-    select coalesce(ur.branch_id, a.id)
-    from me
-    join user_roles ur on ur.user_id = me.uid and ur.archived_at is null
-    join roles r on r.id = ur.role_id and r.archived_at is null
-    join role_permissions rp on rp.role_id = ur.role_id and rp.permission_code = p_code and rp.allowed
-    left join all_branches a on ur.branch_id is null
-    union
-    select coalesce(o.branch_id, a.id)
-    from me
-    join user_permission_overrides o on o.user_id = me.uid and o.permission_code = p_code and o.allowed
-    left join all_branches a on o.branch_id is null
-  ),
-  denied as (
-    select coalesce(o.branch_id, a.id)
-    from me
-    join user_permission_overrides o on o.user_id = me.uid and o.permission_code = p_code and not o.allowed
-    left join all_branches a on o.branch_id is null
-    where not app.is_primary_owner()
-  )
-  select coalesce(array_agg(id), '{}')
-  from (select id from granted where id is not null except select * from denied) x
+  select case
+    when app.current_user_id() is not null then
+      (select coalesce(array_agg(b.id), '{}')
+       from branches b
+       where b.tenant_id = app.tenant_id() and b.archived_at is null
+         and (select e.allowed from app.effective_permission(app.current_user_id(), p_code, b.id) e))
+    when app.current_device_id() is not null
+         and exists (select 1 from permissions p where p.code = p_code and p.counter_safe and not p.is_sensitive)
+      then array[app.device_branch_id()]
+    else '{}'::uuid[]
+  end
 $$;
 
 create or replace function app.has_perm(p_code text) returns boolean
@@ -131,7 +169,8 @@ grant usage on schema app to authenticated;
 grant execute on function
   app.current_user_id(), app.current_device_id(), app.is_device(), app.device_branch_id(),
   app.tenant_id(), app.is_primary_owner(), app.is_platform_admin(),
-  app.branches_with(text), app.has_perm(text), app.visible_branches()
+  app.effective_permission(uuid, text, uuid), app.branches_with(text), app.has_perm(text),
+  app.visible_branches()
   to authenticated;
 
 -- Clients read via RLS and write via RPCs only.
@@ -379,8 +418,16 @@ alter table message_templates enable row level security;
 create policy read on message_templates for select to authenticated
   using (tenant_id is null or tenant_id = (select app.tenant_id()));
 
+-- Tables created by later migrations: read-only for signed-in clients,
+-- nothing for anonymous visitors (overrides Supabase's default grants).
+alter default privileges in schema public revoke all on tables from anon;
+alter default privileges in schema public revoke insert, update, delete, truncate, references, trigger
+  on tables from authenticated;
+
 -- Fail closed: any public table left without RLS stops the migration.
-do $$
+-- Every later migration that adds tables must end with this call.
+create or replace function app.assert_rls_everywhere() returns void
+language plpgsql as $$
 declare missing text;
 begin
   select string_agg(c.relname, ', ') into missing
@@ -390,3 +437,4 @@ begin
     raise exception 'RLS not enabled on: %', missing;
   end if;
 end $$;
+select app.assert_rls_everywhere();

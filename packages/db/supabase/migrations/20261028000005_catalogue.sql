@@ -134,7 +134,7 @@ create table products (
   foreign key (tenant_id, base_unit_id) references units (tenant_id, id)
 );
 create index on products (tenant_id, generic_id, strength);         -- substitute lookup
-create index on products using gin (brand_name gin_trgm_ops);
+create index on products using gin (brand_name extensions.gin_trgm_ops);
 select app.standardize('products', 'master');
 
 -- Pack ladder: 1 box = 10 strips = 100 tablets -> factors 100, 10, 1.

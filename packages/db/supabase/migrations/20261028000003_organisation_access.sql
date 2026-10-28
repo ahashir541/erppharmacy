@@ -2,8 +2,8 @@
 -- sessions and the append-only audit log.
 
 -- A user is one person's membership in one tenant. Owners sign in with
--- Supabase Auth (email + TOTP 2FA). Counter-only staff may have no auth user
--- and unlock a counter with a PIN (see user_pins and Question 1 in docs/PHASE0_REVIEW.md).
+-- Supabase Auth (email + TOTP 2FA) from anywhere. All other staff have no
+-- cloud account and unlock a registered pharmacy PC with a PIN (D11).
 create table users (
   id                  uuid primary key default app.uuid_v7(),
   tenant_id           uuid not null references tenants (id),
@@ -28,12 +28,14 @@ create table users (
   device_id           uuid,           -- FK added after devices
   unique (tenant_id, id),
   unique (tenant_id, auth_user_id),
-  check (not is_primary_owner or kind = 'owner')
+  check (not is_primary_owner or kind = 'owner'),
+  -- D11: only owners sign in to the cloud; other staff work on pharmacy PCs by PIN.
+  check (auth_user_id is null or kind = 'owner')
 );
 -- Exactly one primary owner per tenant; they can never be disabled.
 create unique index users_one_primary_owner on users (tenant_id) where is_primary_owner;
 alter table users add constraint primary_owner_always_active
-  check (not is_primary_owner or (status = 'active' and archived_at is null));
+  check (not is_primary_owner or (status in ('invited', 'active') and archived_at is null));
 select app.standardize('users', 'master');
 
 -- PIN hashes are kept apart from users so they sync only to counter devices

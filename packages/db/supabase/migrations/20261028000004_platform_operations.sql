@@ -130,7 +130,7 @@ create table global_catalogue (
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
-create index on global_catalogue using gin (brand_name gin_trgm_ops);
+create index on global_catalogue using gin (brand_name extensions.gin_trgm_ops);
 
 -- Banned / recalled batches pushed to every tenant; matching batches are
 -- frozen by trigger in 0006 (batch_blocks).

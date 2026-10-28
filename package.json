@@ -1,0 +1,19 @@
+{
+  "name": "medflow",
+  "private": true,
+  "packageManager": "pnpm@10.18.3",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:db": "pnpm --filter @medflow/db test",
+    "check": "turbo run typecheck test"
+  },
+  "devDependencies": {
+    "turbo": "2.5.8",
+    "typescript": "5.9.3"
+  }
+}

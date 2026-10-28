@@ -1,8 +1,12 @@
 # Phase 0 review — what to keep, structure, schema, questions
 
+> **Status (2026-10-28):** the questions below have been answered. See
+> decisions D11–D23 in [DECISIONS.md](DECISIONS.md). Migrations now live in
+> `packages/db/supabase/migrations`. Phase 1 is described in [PHASE1.md](PHASE1.md).
+
 This answers the "First task" in [MASTER_PROMPT.md](MASTER_PROMPT.md). No
 feature code has been written. The schema is a **draft for your review** in
-[packages/db/migrations](../packages/db/migrations). It has not been applied to
+[packages/db/migrations](../packages/db/supabase/migrations). It has not been applied to
 any Supabase project.
 
 ## (a) What in the current code can be kept
@@ -75,19 +79,19 @@ Supabase CLI.
 
 | File | Contents |
 |---|---|
-| [0001_foundation](../packages/db/migrations/0001_foundation.sql) | UUIDv7, generic triggers: `updated_at`, **no hard delete**, **append-only**, **audit** |
-| [0002_tenancy](../packages/db/migrations/0002_tenancy.sql) | platform admins, features, plans, plan_features, tenants (full lifecycle), overrides, rollouts, platform audit log |
-| [0003_organisation_access](../packages/db/migrations/0003_organisation_access.sql) | users, user_pins, branches (+ `warehouses` view), devices, device licences, settings, permissions, role templates, roles, user_roles per branch, per-user overrides, approvals, sessions, **audit_log**, API keys |
-| [0004_platform_operations](../packages/db/migrations/0004_platform_operations.sql) | subscriptions, platform invoices/payments, app releases, announcements, global catalogue, global recalls, support tickets, consent grants, backups |
-| [0005_catalogue](../packages/db/migrations/0005_catalogue.sql) | tax categories + rate history, generics, manufacturers, categories, units, products, pack ladder, barcodes, price history |
-| [0006_parties](../packages/db/migrations/0006_parties.sql) | customer accounts (family/company), customers, credit-limit history, doctors, suppliers |
-| [0007_stock](../packages/db/migrations/0007_stock.sql) | batches, cost layers, batch blocks (recall/owner), **stock_movements** ledger + trigger-cached **stock_balances**, counts (blind), transfers |
-| [0008_sales_tax](../packages/db/migrations/0008_sales_tax.sql) | prescriptions, sales, sale_lines (per batch), owner-only line costs, payments, returns, held bills, sync flags, tax profiles, ordered tax queue |
-| [0009_purchasing](../packages/db/migrations/0009_purchasing.sql) | POs, GRNs with bonus qty (cost kept apart in `grn_line_costs`), purchase invoices/returns, supplier claims |
-| [0010_ledgers_money](../packages/db/migrations/0010_ledgers_money.sql) | **ledger_entries** for customers and suppliers, allocations, cached balances, counter-safe credit status, cheques, reconciliation, drawers, blind closing, **cash_movements**, expenses, payroll, GL with a balanced-journal check |
-| [0011_compliance_engagement](../packages/db/migrations/0011_compliance_engagement.sql) | licences, **controlled drugs register view**, loyalty, message templates/outbox, reminders, refill list, alert rules, notifications, receipt templates, data exports |
-| [0012_security](../packages/db/migrations/0012_security.sql) | identity helpers, **RLS on every table** (the migration fails if any table is missed), table → permission map, grants (clients cannot write tables directly) |
-| [0013_seed_reference](../packages/db/migrations/0013_seed_reference.sql) | 88 permission switches, the brief's default role matrix, feature catalogue |
+| [0001_foundation](../packages/db/supabase/migrations/202610280001_foundation.sql) | UUIDv7, generic triggers: `updated_at`, **no hard delete**, **append-only**, **audit** |
+| [0002_tenancy](../packages/db/supabase/migrations/202610280002_tenancy.sql) | platform admins, features, plans, plan_features, tenants (full lifecycle), overrides, rollouts, platform audit log |
+| [0003_organisation_access](../packages/db/supabase/migrations/202610280003_organisation_access.sql) | users, user_pins, branches (+ `warehouses` view), devices, device licences, settings, permissions, role templates, roles, user_roles per branch, per-user overrides, approvals, sessions, **audit_log**, API keys |
+| [0004_platform_operations](../packages/db/supabase/migrations/202610280004_platform_operations.sql) | subscriptions, platform invoices/payments, app releases, announcements, global catalogue, global recalls, support tickets, consent grants, backups |
+| [0005_catalogue](../packages/db/supabase/migrations/202610280005_catalogue.sql) | tax categories + rate history, generics, manufacturers, categories, units, products, pack ladder, barcodes, price history |
+| [0006_parties](../packages/db/supabase/migrations/202610280006_parties.sql) | customer accounts (family/company), customers, credit-limit history, doctors, suppliers |
+| [0007_stock](../packages/db/supabase/migrations/202610280007_stock.sql) | batches, cost layers, batch blocks (recall/owner), **stock_movements** ledger + trigger-cached **stock_balances**, counts (blind), transfers |
+| [0008_sales_tax](../packages/db/supabase/migrations/202610280008_sales_tax.sql) | prescriptions, sales, sale_lines (per batch), owner-only line costs, payments, returns, held bills, sync flags, tax profiles, ordered tax queue |
+| [0009_purchasing](../packages/db/supabase/migrations/202610280009_purchasing.sql) | POs, GRNs with bonus qty (cost kept apart in `grn_line_costs`), purchase invoices/returns, supplier claims |
+| [0010_ledgers_money](../packages/db/supabase/migrations/202610280010_ledgers_money.sql) | **ledger_entries** for customers and suppliers, allocations, cached balances, counter-safe credit status, cheques, reconciliation, drawers, blind closing, **cash_movements**, expenses, payroll, GL with a balanced-journal check |
+| [0011_compliance_engagement](../packages/db/supabase/migrations/202610280011_compliance_engagement.sql) | licences, **controlled drugs register view**, loyalty, message templates/outbox, reminders, refill list, alert rules, notifications, receipt templates, data exports |
+| [0012_security](../packages/db/supabase/migrations/202610280012_security.sql) | identity helpers, **RLS on every table** (the migration fails if any table is missed), table → permission map, grants (clients cannot write tables directly) |
+| [0013_seed_reference](../packages/db/supabase/migrations/202610280013_seed_reference.sql) | 88 permission switches, the brief's default role matrix, feature catalogue |
 
 **Main design choices** (also logged in [DECISIONS.md](DECISIONS.md)):
 
@@ -117,7 +121,7 @@ Supabase CLI.
 
 **How it was checked.** All 13 migrations run in a real Postgres engine
 (PGlite 0.2.17, with stand-ins for Supabase's `auth.uid()`/`auth.jwt()`). The
-scenario test [packages/db/tests/phase0/scenario.sql](../packages/db/tests/phase0/scenario.sql)
+scenario test the Phase 0 smoke test (since replaced by the pgTAP suite in `packages/db/supabase/tests`)
 then passes:
 
 - Tenant B cannot read tenant A, even with a forged `tenant_id` claim.

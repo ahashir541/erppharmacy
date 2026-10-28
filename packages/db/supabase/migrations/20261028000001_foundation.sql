@@ -16,7 +16,8 @@
 --     writes go through SECURITY DEFINER RPCs / the PowerSync upload handler,
 --     which set app.device_id / app.user_id for the audit trigger.
 
-create extension if not exists pg_trgm;   -- product name search (web app)
+create schema if not exists extensions;
+create extension if not exists pg_trgm with schema extensions;   -- product name search (web app)
 
 create schema if not exists app;      -- helper functions, never exposed by the API
 create schema if not exists private;  -- secrets (recovery codes, API key hashes)

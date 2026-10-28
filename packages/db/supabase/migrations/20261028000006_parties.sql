@@ -48,7 +48,7 @@ create table customers (
   foreign key (tenant_id, account_id) references customer_accounts (tenant_id, id)
 );
 create index on customers (tenant_id, phone);
-create index on customers using gin (name gin_trgm_ops);
+create index on customers using gin (name extensions.gin_trgm_ops);
 select app.standardize('customers', 'master');
 
 -- Credit limit history (append-only); the latest row is in force.

@@ -15,7 +15,7 @@ select is(app.permission_decision(tests.id('salesman_a'), 'sales.discount', test
 select is(app.permission_decision(tests.id('salesman_a'), 'sales.void', tests.id('branch_a1')), 'needs_approval',
           'salesman void needs approval');
 select is(app.permission_decision(tests.id('manager_a'), 'sales.discount', tests.id('branch_a1'), 500), 'needs_approval',
-          'manager discount with no limit set needs approval (fail closed)');
+          'manager discount: limit starts at 0, so it needs approval until the owner sets one');
 select is(app.permission_decision(tests.id('manager_a'), 'sales.view_totals', tests.id('branch_a1')), 'deny',
           'manager: sales totals off by default');
 select is(app.permission_decision(tests.id('storekeeper_a'), 'sales.create', tests.id('branch_a1')), 'deny',

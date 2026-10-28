@@ -109,8 +109,9 @@ insert into role_template_permissions (template_code, permission_code, allowed)
 select 'owner', code, true from permissions;
 
 -- Other templates follow the brief's matrix. allowed = false rows are the
--- "off by default" switches the owner sees. Limits are left null: the owner
--- sets them (see Question 6 for what null means).
+-- "off by default" switches the owner sees. A null limit means no limit.
+-- Where the brief says "up to the limit set by the owner", the limit starts
+-- at 0 (every use needs approval) until the owner sets one (D16).
 insert into role_template_permissions (template_code, permission_code, allowed, needs_approval) values
   ('manager', 'sales.create', true, false), ('manager', 'sales.hold', true, false),
   ('manager', 'sales.reprint', true, false), ('manager', 'sales.lookup_recent', true, false),
@@ -152,6 +153,10 @@ insert into role_template_permissions (template_code, permission_code, allowed, 
   ('accountant', 'sales.view_totals', false, false), ('accountant', 'sales.view_profit', false, false),
   ('accountant', 'product.view_cost', false, false),
   ('accountant', 'payables.pay', false, false), ('accountant', 'expenses.create', false, false);
+
+update role_template_permissions set limit_value = 0
+where (template_code, permission_code) in (('manager', 'sales.discount'), ('pharmacist', 'sales.discount'),
+                                           ('manager', 'udhaar.give'), ('salesman', 'udhaar.give'));
 
 insert into features (code, module, name, kind) values
   ('max_branches',     'limits',     'Branches',                      'limit'),

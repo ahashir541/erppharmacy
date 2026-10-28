@@ -73,7 +73,8 @@ $$;
 --   3. a per-user override for this branch, else for all branches, decides
 --   4. otherwise the user's roles on this branch (or all branches): allowed if
 --      any role allows; needs approval only if every allowing role needs it;
---      limit = the highest limit among allowing roles (null = no limit set)
+--      limit = the highest limit among allowing roles; any role without a
+--      limit means no limit
 create or replace function app.effective_permission(p_user uuid, p_code text, p_branch uuid)
 returns table (allowed boolean, needs_approval boolean, limit_value bigint)
 language plpgsql stable security definer set search_path = public, app as $$
@@ -102,7 +103,8 @@ begin
   return query
   select coalesce(bool_or(rp.allowed), false),
          coalesce(bool_and(rp.needs_approval) filter (where rp.allowed), false),
-         max(rp.limit_value) filter (where rp.allowed)
+         case when bool_or(rp.limit_value is null) filter (where rp.allowed) then null
+              else max(rp.limit_value) filter (where rp.allowed) end
   from user_roles ur
   join roles r on r.id = ur.role_id and r.archived_at is null
   join role_permissions rp on rp.role_id = ur.role_id and rp.permission_code = p_code
@@ -110,8 +112,9 @@ begin
     and (ur.branch_id is null or ur.branch_id = p_branch);
 end $$;
 
--- 'allow' | 'needs_approval' | 'deny' for one action. A limited permission
--- with no limit set needs approval (fail closed, D16).
+-- 'allow' | 'needs_approval' | 'deny' for one action. For a limited
+-- permission, an amount over the limit needs approval. A blank limit means
+-- no limit; a limit of 0 means every use needs approval (D16).
 create or replace function app.permission_decision(p_user uuid, p_code text, p_branch uuid, p_amount bigint default null)
 returns text
 language sql stable security definer set search_path = public, app as $$
@@ -120,7 +123,7 @@ language sql stable security definer set search_path = public, app as $$
     when not e.allowed then 'deny'
     when e.needs_approval then 'needs_approval'
     when p.limit_kind is not null and p_amount is not null
-         and (e.limit_value is null or p_amount > e.limit_value) then 'needs_approval'
+         and e.limit_value is not null and p_amount > e.limit_value then 'needs_approval'
     else 'allow'
   end
   from app.effective_permission(p_user, p_code, p_branch) e

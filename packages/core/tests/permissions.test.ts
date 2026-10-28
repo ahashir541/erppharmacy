@@ -17,7 +17,7 @@ function staff(overrides: Partial<UserAccess> = {}): UserAccess {
     rolePermissions: {
       salesman: [
         { permissionCode: 'sales.create', allowed: true, needsApproval: false, limitValue: null },
-        { permissionCode: 'sales.discount', allowed: true, needsApproval: true, limitValue: null },
+        { permissionCode: 'sales.discount', allowed: true, needsApproval: true, limitValue: 0 },
       ],
       manager: [{ permissionCode: 'sales.discount', allowed: true, needsApproval: false, limitValue: 1000 }],
     },
@@ -58,13 +58,27 @@ describe('permissions engine', () => {
     expect(decide(user, discount, A1, 1001)).toBe('needs_approval');
   });
 
-  it('a limited permission with no limit set needs approval (fail closed)', () => {
+  it('a role with no limit beats a role with a limit', () => {
     const user = staff({
-      roles: [{ roleId: 'x', branchId: null }],
-      rolePermissions: { x: [{ permissionCode: 'sales.discount', allowed: true, needsApproval: false, limitValue: null }] },
+      roles: [{ roleId: 'manager', branchId: null }, { roleId: 'x', branchId: null }],
+      rolePermissions: {
+        manager: [{ permissionCode: 'sales.discount', allowed: true, needsApproval: false, limitValue: 1000 }],
+        x: [{ permissionCode: 'sales.discount', allowed: true, needsApproval: false, limitValue: null }],
+      },
     });
-    expect(decide(user, discount, A1, 1)).toBe('needs_approval');
-    expect(decide(user, discount, A1)).toBe('allow'); // no amount = just "may they discount at all"
+    expect(decide(user, discount, A1, 5000)).toBe('allow');
+  });
+
+  it('a blank limit means no limit; a limit of 0 means always ask (D16)', () => {
+    const withLimit = (limitValue: number | null) =>
+      staff({
+        roles: [{ roleId: 'x', branchId: null }],
+        rolePermissions: { x: [{ permissionCode: 'sales.discount', allowed: true, needsApproval: false, limitValue }] },
+      });
+    expect(decide(withLimit(null), discount, A1, 5000)).toBe('allow');
+    expect(decide(withLimit(0), discount, A1, 1)).toBe('needs_approval');
+    expect(decide(withLimit(0), discount, A1, 0)).toBe('allow');
+    expect(decide(withLimit(0), discount, A1)).toBe('allow'); // no amount = just "may they discount at all"
   });
 
   it('branch-specific override beats all-branch override, which beats roles', () => {

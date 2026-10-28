@@ -42,7 +42,7 @@ export interface UserAccess {
 export interface Effective {
   allowed: boolean;
   needsApproval: boolean;
-  limitValue: number | null;    // null = no limit set
+  limitValue: number | null;    // null = no limit; 0 = always needs approval
 }
 
 const DENY: Effective = { allowed: false, needsApproval: false, limitValue: null };
@@ -53,7 +53,7 @@ const DENY: Effective = { allowed: false, needsApproval: false, limitValue: null
  * 3. a per-person override for this branch, else for all branches, decides
  * 4. otherwise roles held at this branch (or all branches): allowed if any
  *    role allows; needs approval only if every allowing role needs it; the
- *    limit is the highest limit among allowing roles
+ *    limit is the highest among allowing roles, and none if any role has none
  */
 export function effectivePermission(user: UserAccess, code: string, branchId: string | null): Effective {
   if (user.isPrimaryOwner && user.status === 'active') {
@@ -76,24 +76,25 @@ export function effectivePermission(user: UserAccess, code: string, branchId: st
     .filter((g) => g.permissionCode === code && g.allowed);
   if (grants.length === 0) return DENY;
 
-  const limits = grants.map((g) => g.limitValue).filter((v): v is number => v !== null);
+  const unlimited = grants.some((g) => g.limitValue === null);
   return {
     allowed: true,
     needsApproval: grants.every((g) => g.needsApproval),
-    limitValue: limits.length ? Math.max(...limits) : null,
+    limitValue: unlimited ? null : Math.max(...grants.map((g) => g.limitValue as number)),
   };
 }
 
 /**
- * One action. For a limited permission, an amount over the limit — or any
- * amount when no limit has been set — needs approval (fail closed, D16).
+ * One action. For a limited permission, an amount over the limit needs
+ * approval. A blank (null) limit means no limit; a limit of 0 means every
+ * use needs approval (D16).
  */
 export function decide(user: UserAccess, def: PermissionDef, branchId: string | null, amount?: number): Decision {
   if (user.isPrimaryOwner && user.status === 'active') return 'allow';
   const e = effectivePermission(user, def.code, branchId);
   if (!e.allowed) return 'deny';
   if (e.needsApproval) return 'needs_approval';
-  if (def.limitKind !== null && amount !== undefined && (e.limitValue === null || amount > e.limitValue)) {
+  if (def.limitKind !== null && amount !== undefined && e.limitValue !== null && amount > e.limitValue) {
     return 'needs_approval';
   }
   return 'allow';

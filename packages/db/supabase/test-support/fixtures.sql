@@ -66,6 +66,34 @@ begin
   return n;
 end $$;
 
+-- The Phase 2 import test file: 10,000 product rows as the import screen sends them.
+create or replace function tests.import_file() returns jsonb
+language sql immutable as $$
+  select jsonb_agg(jsonb_build_object(
+           'brand_name', 'Medicine ' || g,
+           'generic', 'Generic ' || (g % 300),
+           'strength', ((g % 5) * 100 + 100) || ' mg',
+           'dosage_form', 'tablet',
+           'manufacturer', 'Maker ' || (g % 40),
+           'category', 'Category ' || (g % 12),
+           'barcode', '899' || lpad(g::text, 9, '0'),
+           'base_unit', 'tablet',
+           'units', jsonb_build_array(jsonb_build_object('unit', 'strip', 'factor', 10),
+                                      jsonb_build_object('unit', 'box', 'factor', 100)),
+           'retail_price', g * 10 + 500,
+           'retail_unit', 'strip',
+           'reorder_level', 20,
+           'is_controlled', case when g % 500 = 0 then 'yes' else 'no' end) order by g)
+  from generate_series(1, 10000) g
+$$;
+
+-- Keep a jsonb result for later assertions (temp tables are not usable
+-- after switching to the client role).
+create or replace function tests.keep(p_name text, p_value jsonb) returns jsonb
+language sql as $$ select set_config('tests.' || p_name, p_value::text, true)::jsonb $$;
+create or replace function tests.kept(p_name text) returns jsonb
+language sql stable as $$ select current_setting('tests.' || p_name)::jsonb $$;
+
 grant execute on all functions in schema tests to authenticated, service_role;
 
 create or replace function tests.fixture() returns void

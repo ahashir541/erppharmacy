@@ -69,10 +69,15 @@ before go-live.
 - **D15. Bills on a counter (Q5, Delegated).** A counter can see its branch's
   bills from the last N days for reprints and offline returns. Setting
   `pos.recent_bills_days`, default 7. Older bills are looked up online.
-- **D16. Permission limits (Q6, Delegated).** Fail closed: a limited
-  permission with no limit set needs approval. Discount limits are a
-  percentage of the whole bill. Daily limits reset at midnight in the
-  branch's time zone.
+- **D16. Permission limits (Q6, Delegated; revised in Phase 2).** A blank
+  limit means no limit. A limit of 0 means every use needs approval. Where
+  the brief says "up to the limit set by the owner" (manager and pharmacist
+  discounts, manager and salesman udhaar), the default role starts at 0, so
+  nothing is given without approval until the owner sets a limit. *Why the
+  revision:* "blank = approval" also blocked plain "Yes" permissions that
+  carry a daily count, such as the store keeper's stock adjustments.
+  Discount limits are a percentage of the whole bill. Daily limits reset at
+  midnight in the branch's time zone.
 - **D17. Loose units and rounding (Q7, Delegated).** The loose-unit price is
   the pack price ÷ pack factor, rounded half-up to the paisa, unless the
   owner sets an explicit price for that unit. Bill grand total is rounded to

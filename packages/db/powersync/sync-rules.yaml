@@ -1,0 +1,90 @@
+# PowerSync sync rules: what each counter PC downloads into its local SQLite database.
+#
+# A counter signs in as itself (D6, D11); its token carries tenant_id, device_id and branch_id
+# (public.custom_access_token_hook). It downloads only its own pharmacy, its own branch, and
+# never money: no cost, trade price, profit, cash totals, udhaar balances, ledgers or audit log
+# (brief, sync rule 6). Columns are listed one by one on purpose, so a new sensitive column can
+# never slip in with "select *". packages/db/scripts/test-db.mjs checks this file against the
+# list of sensitive tables and columns on every test run.
+#
+# Owners do not use these rules: the web and phone apps read the cloud database directly,
+# through Row Level Security, and never store money data on a counter PC.
+
+bucket_definitions:
+  # Shared by every PC of the pharmacy: the catalogue, staff and settings.
+  pharmacy:
+    parameters: >
+      select tenant_id from devices
+      where id = request.jwt() ->> 'device_id' and auth_user_id = request.user_id() and status = 'active'
+    data:
+      - select id, tenant_id, code, name, name_ur, kind, time_zone, closing_time from branches where tenant_id = bucket.tenant_id
+      - select id, tenant_id, code, name, name_ur from units where tenant_id = bucket.tenant_id
+      - select id, tenant_id, name, name_ur from generics where tenant_id = bucket.tenant_id
+      - select id, tenant_id, name from manufacturers where tenant_id = bucket.tenant_id
+      - select id, tenant_id, parent_id, name, name_ur, tax_category_id from categories where tenant_id = bucket.tenant_id
+      - select id, tenant_id, code, name, is_exempt from tax_categories where tenant_id = bucket.tenant_id
+      - select id, tenant_id, tax_category_id, authority, rate_bp, effective_from from tax_category_rates where tenant_id = bucket.tenant_id
+      - >
+        select id, tenant_id, brand_name, brand_name_ur, generic_id, strength, dosage_form, manufacturer_id, category_id,
+               tax_category_id, base_unit_id, is_controlled, rx_required, max_qty_per_sale, rack_location, is_active, archived_at
+        from products where tenant_id = bucket.tenant_id
+      - select id, tenant_id, product_id, unit_id, factor_to_base, is_sellable, sort_order, archived_at from product_units where tenant_id = bucket.tenant_id
+      - select id, tenant_id, product_id, product_unit_id, code, archived_at from barcodes where tenant_id = bucket.tenant_id
+      # Retail and minimum prices only: trade price reveals cost.
+      - >
+        select id, tenant_id, product_id, product_unit_id, branch_id, price_kind, amount, effective_from
+        from product_prices where tenant_id = bucket.tenant_id and price_kind in ('retail', 'min_sale')
+      - select id, tenant_id, product_id, batch_number, expiry_date, price_unit_id, mrp, retail_price from batches where tenant_id = bucket.tenant_id
+      - select id, tenant_id, batch_id, branch_id, source, reason, lifted_at from batch_blocks where tenant_id = bucket.tenant_id
+      - select id, tenant_id, full_name, full_name_ur, kind, status, preferred_language, idle_lock_seconds, allowed_hours from users where tenant_id = bucket.tenant_id
+      - select id, tenant_id, name, template_code, archived_at from roles where tenant_id = bucket.tenant_id
+      - select id, tenant_id, role_id, permission_code, allowed, needs_approval, limit_value from role_permissions where tenant_id = bucket.tenant_id
+      - select id, tenant_id, user_id, role_id, branch_id, archived_at from user_roles where tenant_id = bucket.tenant_id
+      - select id, tenant_id, user_id, branch_id, permission_code, allowed, needs_approval, limit_value from user_permission_overrides where tenant_id = bucket.tenant_id
+      - select tenant_id, user_id, device_id from user_allowed_devices where tenant_id = bucket.tenant_id
+      - select id, tenant_id, branch_id, key, value from settings where tenant_id = bucket.tenant_id
+      - select id, tenant_id, name, name_ur, pmdc_number, specialty, clinic from doctors where tenant_id = bucket.tenant_id
+      - select id, tenant_id, account_id, name, name_ur, phone, can_buy_on_account, reminders_opt_in, archived_at from customers where tenant_id = bucket.tenant_id
+      - select id, tenant_id, account_number, name, kind, udhaar_blocked from customer_accounts where tenant_id = bucket.tenant_id
+      # "Allowed / not allowed" and the headroom the counter needs offline (D13); never the balance.
+      - select account_id, tenant_id, status, available_credit from customer_credit_status where tenant_id = bucket.tenant_id
+      - select id, tenant_id, branch_id, kind, name from bank_accounts where tenant_id = bucket.tenant_id and archived_at is null
+      - select id, tenant_id, branch_id, name, paper, layout, is_default from receipt_templates where tenant_id = bucket.tenant_id
+
+  # This PC's branch: stock and recent bills (reprints and returns while offline).
+  branch:
+    parameters: >
+      select tenant_id, branch_id from devices
+      where id = request.jwt() ->> 'device_id' and auth_user_id = request.user_id() and status = 'active'
+    data:
+      - select branch_id || ':' || batch_id as id, tenant_id, branch_id, batch_id, product_id, qty_base from stock_balances where branch_id = bucket.branch_id
+      - >
+        select id, tenant_id, branch_id, device_id, local_seq, invoice_number, status, customer_id, customer_account_id,
+               subtotal, discount_total, tax_total, rounding_adjustment, grand_total, paid_total, udhaar_amount, change_given,
+               sold_at, business_date, tax_status, authority_invoice_number, created_by
+        from sales where branch_id = bucket.branch_id
+      - >
+        select id, tenant_id, sale_id, line_no, product_id, product_unit_id, batch_id, qty, qty_base, unit_price, discount_amount,
+               tax_rate_bp, tax_amount, line_total
+        from sale_lines where branch_id = bucket.branch_id
+      - select id, tenant_id, branch_id, label, cart, held_at, resumed_at, discarded_at, device_id from held_bills where branch_id = bucket.branch_id
+
+  # PIN hashes only of staff who work at this PC's branch (or at every branch), so the PC can
+  # check PINs offline. The server re-checks every sign-in when the PC uploads.
+  staff_pins:
+    parameters:
+      - select user_id from user_roles where branch_id = request.jwt() ->> 'branch_id' and archived_at is null
+      - select user_id from user_roles where tenant_id = request.jwt() ->> 'tenant_id' and branch_id is null and archived_at is null
+    data:
+      - select user_id as id, tenant_id, pin_hash, failed_attempts, locked_until from user_pins where user_id = bucket.user_id
+
+  # This PC only: its drawers, its tax queue, and what the server did with its uploads.
+  device:
+    parameters: >
+      select id as device_id, tenant_id from devices
+      where id = request.jwt() ->> 'device_id' and auth_user_id = request.user_id() and status = 'active'
+    data:
+      - select id, tenant_id, branch_id, code, invoice_prefix, name, kind, status, last_command_seq from devices where id = bucket.device_id
+      - select id, tenant_id, branch_id, device_id, name from cash_drawers where device_id = bucket.device_id
+      - select id, tenant_id, device_id, sale_id, provider, status, authority_invoice_number, qr_payload from tax_submissions where device_id = bucket.device_id
+      - select id, tenant_id, device_id, device_seq, kind, status, error from device_commands where device_id = bucket.device_id

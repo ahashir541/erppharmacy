@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Phase 4 — Offline sync (2026-11-09)
+
+- Counter outbox (`packages/sync`): every counter action is a numbered
+  command made on the PC; the bill is computed locally with the shared maths.
+- `public.apply_device_commands`: replays a PC's commands in order, once.
+  Offline rule breaks are flagged; commands that can't be applied are kept as
+  `rejected` with their error and flagged; one bad command never blocks the rest.
+- `device_commands` table, `devices.last_command_seq`, `sale_lines.branch_id`.
+- PowerSync sync rules (`packages/db/powersync/sync-rules.yaml`), checked on
+  every test run for money tables and columns.
+- Sync status label (Synced / Syncing / Offline · N waiting / Needs attention).
+- Two-counters-offline acceptance test; `09_sync` pgTAP tests.
+- Fix: return flags now carry their message.
+
 ### Phase 3 — Counter sales (2026-11-09)
 
 - Bill maths (discounts shared to the paisa, inclusive/exclusive tax, Re 1

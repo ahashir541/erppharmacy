@@ -83,6 +83,45 @@ try {
   await db.exec('rollback').catch(() => {});
 }
 
+// The counter prints the bill it computes offline; the server must record exactly the same.
+try {
+  const n = await billParity(db);
+  passed += n;
+  console.log(`ok    bill parity core <-> SQL (${n} random bills)`);
+} catch (err) {
+  failed++;
+  console.log(`FAIL  bill parity\n      ${err.message}`);
+}
+// The demo client (2 branches, 500 products, 30 days of sales) builds cleanly on a fresh database.
+// Slow in embedded Postgres, so only with --demo (CI builds it on real Postgres via supabase db reset).
+if (process.argv.includes('--demo')) try {
+  const n = await demoSeed();
+  passed += n;
+  console.log(`ok    seed-demo.sql: Demo Pharmacy (${n} checks)`);
+} catch (err) {
+  failed++;
+  console.log(`FAIL  seed-demo.sql\n      ${err.message}`);
+}
+// Phase 4 acceptance: two counters sell the same product offline for an hour, reconnect, and
+// stock and cash are exactly right with no lost sale.
+try {
+  const n = await twoCountersOffline(db);
+  passed += n;
+  console.log(`ok    offline: two counters, one hour, reconnect (${n} checks)`);
+} catch (err) {
+  failed++;
+  console.log(`FAIL  offline two counters\n      ${err.message}`);
+  await db.exec('rollback').catch(() => {});
+}
+// The sync rules never send money data to a counter PC, and every table and column they name exists.
+try {
+  const n = await syncRulesCheck(db);
+  passed += n;
+  console.log(`ok    powersync/sync-rules.yaml (${n} queries checked)`);
+} catch (err) {
+  failed++;
+  console.log(`FAIL  powersync/sync-rules.yaml\n      ${err.message}`);
+}
 console.log(`\n${passed} assertions passed, ${failed} file(s) failed`);
 process.exit(failed ? 1 : 0);
 
@@ -205,4 +244,176 @@ async function csvRoundTrip(db) {
   check(xanax?.is_controlled === true, 'controlled flag carried through');
   await db.exec('rollback');
   return 4;
+}
+
+async function billParity(db) {
+  const { priceBill, settlePayments } = await import('../../core/src/bill.ts');
+  let seed = 42;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  const methods = ['card', 'jazzcash', 'easypaisa', 'bank_transfer'];
+  let checked = 0;
+  for (let i = 0; i < 3000; i++) {
+    const lines = Array.from({ length: 1 + rnd(6) }, () => {
+      const qty = 1 + rnd(12);
+      const unitPrice = rnd(5) === 0 ? 0 : 50 + rnd(500_000);
+      return { qty, unitPrice, lineDiscount: rnd(3) === 0 ? rnd(qty * unitPrice + 1) : 0, taxRateBp: [0, 0, 1700, 1800, 500][rnd(5)] };
+    });
+    const base = lines.reduce((s, l) => s + l.qty * l.unitPrice - l.lineDiscount, 0);
+    const c = { lines, billDiscount: rnd(3) === 0 ? rnd(base + 1) : 0, inclusive: rnd(2) === 0, step: [0, 1, 100, 500, 1000][rnd(5)], pay: rnd(3) };
+    const ts = priceBill(c.lines, { billDiscount: c.billDiscount, pricesIncludeTax: c.inclusive, roundingStep: c.step });
+    const sqlLines = c.lines.map((l) => ({ qty: l.qty, unit_price: l.unitPrice, line_discount: l.lineDiscount, tax_rate_bp: l.taxRateBp }));
+    const [{ b }] = (await db.query('select app.price_bill($1::jsonb, $2, $3, $4) b', [JSON.stringify(sqlLines), c.billDiscount, c.inclusive, c.step])).rows;
+    const want = { gross_total: ts.grossTotal, subtotal: ts.subtotal, discount_total: ts.discountTotal, discount_bp: ts.discountBp,
+      tax_total: ts.taxTotal, rounding: ts.rounding, grand_total: ts.grandTotal };
+    const wantLines = ts.lines.map((l) => ({ gross: l.gross, discount: l.discount, net: l.net, tax: l.tax, line_total: l.lineTotal }));
+    for (const [k, v] of Object.entries(want)) {
+      if (Number(b[k]) !== v) throw new Error(`bill ${k}: core=${v} sql=${b[k]} for ${JSON.stringify(c)}`);
+    }
+    wantLines.forEach((w, j) => {
+      for (const [k, v] of Object.entries(w)) {
+        if (Number(b.lines[j][k]) !== v) throw new Error(`line ${j} ${k}: core=${v} sql=${b.lines[j][k]} for ${JSON.stringify(c)}`);
+      }
+    });
+    const g = ts.grandTotal;
+    if (g === 0) { checked++; continue; }
+    const payments = c.pay === 0 ? [{ method: 'cash', tendered: g + 1000 }]
+      : c.pay === 1 ? [{ method: methods[g % 4], amount: Math.max(1, Math.floor(g / 2)) }, { method: 'cash', tendered: Math.floor(g / 4) }]
+      : [{ method: 'cash', tendered: Math.floor(g / 3) }];
+    const tsPay = settlePayments(g, payments);
+    const [{ p }] = (await db.query('select app.settle_payments($1, $2::jsonb) p', [g, JSON.stringify(payments)])).rows;
+    const wantPay = { paid_total: tsPay.paidTotal, cash_applied: tsPay.cashApplied, change: tsPay.change, udhaar: tsPay.udhaar };
+    for (const [k, v] of Object.entries(wantPay)) {
+      if (Number(p[k]) !== v) throw new Error(`payment ${k}: core=${v} sql=${p[k]} for ${JSON.stringify({ g, payments })}`);
+    }
+    checked++;
+  }
+  return checked;
+}
+
+async function demoSeed() {
+  const demo = await freshDatabase();
+  await demo.exec(read('seed.sql'));
+  const t0 = Date.now();
+  await demo.exec(read('seed-demo.sql'));
+  const q = async (sql) => (await demo.query(sql)).rows[0];
+  const c = await q(`select (select count(*)::int from branches b join tenants t on t.id = b.tenant_id where t.name = 'Demo Pharmacy') branches,
+    (select count(*)::int from products p join tenants t on t.id = p.tenant_id where t.name = 'Demo Pharmacy') products,
+    (select count(*)::int from sales s join tenants t on t.id = s.tenant_id where t.name = 'Demo Pharmacy') sales,
+    (select count(distinct business_date)::int from sales s join tenants t on t.id = s.tenant_id where t.name = 'Demo Pharmacy') days,
+    (select count(*)::int from sync_flags) flags,
+    (select count(*)::int from app.stock_balance_mismatches()) mismatches,
+    (select count(*)::int from drawer_session_reconciliations where variance <> 0) short`);
+  const want = { branches: 2, products: 500, days: 30, flags: 0, mismatches: 0, short: 0 };
+  for (const [k, v] of Object.entries(want)) if (c[k] !== v) throw new Error(`${k}: expected ${v}, got ${c[k]} (${JSON.stringify(c)})`);
+  if (c.sales < 900) throw new Error(`expected at least 900 sales, got ${c.sales}`);
+  console.log(`      ${c.sales} sales over ${c.days} days in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  return Object.keys(want).length + 1;
+}
+
+async function twoCountersOffline(db) {
+  const { Outbox } = await import('../../sync/src/outbox.ts');
+  await db.exec(`begin; select tests.fixture();`);
+  const id = async (name) => (await db.query('select tests.id($1) id', [name])).rows[0].id;
+  const [ta, a1, salesman, dev1, pu, batch] = await Promise.all(['tenant_a', 'branch_a1', 'salesman_a', 'device_a1', 'product_unit_a', 'batch_a'].map(id));
+  const dev2Auth = await id('auth_device_a1_c2');
+  // A second counter at the same branch, and a fresh drawer on each.
+  await db.query(`insert into auth.users (id, email) values ($1, 'c2@test.invalid')`, [dev2Auth]);
+  const dev2 = (await db.query(`insert into devices (tenant_id, branch_id, auth_user_id, code, invoice_prefix, name, kind)
+    values ($1, $2, $3, 'C2', 'KHI1-C2', 'Saddar counter 2', 'counter') returning id`, [ta, a1, dev2Auth])).rows[0].id;
+  const drawer = async (dev) => (await db.query(`insert into cash_drawers (tenant_id, branch_id, device_id, name) values ($1, $2, $3, 'Offline drawer') returning id`, [ta, a1, dev])).rows[0].id;
+  const [drawer1, drawer2] = [await drawer(dev1), await drawer(dev2)];
+  await db.query(`insert into stock_movements (tenant_id, branch_id, product_id, batch_id, movement_type, qty_base, occurred_at)
+    values ($1, $2, $3, $4, 'opening', 300, now())`, [ta, a1, await id('product_a'), batch]);
+  const before = Number((await db.query('select qty_base from stock_balances where branch_id = $1 and batch_id = $2', [a1, batch])).rows[0].qty_base);
+
+  // One hour offline on each counter: 60 bills of 1–3 tablets at Rs 2.50, cash.
+  let seed = 7;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  const run = (prefix, drawerId) => {
+    let t = Date.parse('2026-11-09T10:00:00Z');
+    const o = new Outbox({ devicePrefix: prefix, nextCommandSeq: 1, nextInvoiceSeq: 100, nextReturnSeq: 1, staffId: null, sessionId: null,
+      drawerSessionId: null, settings: { pricesIncludeTax: true, roundingStep: 100 } }, () => new Date((t += 55_000)));
+    o.signIn(salesman);
+    o.openDrawer(drawerId, 500_000);
+    let cash = 500_000;
+    let sold = 0;
+    for (let i = 0; i < 60; i++) {
+      const qty = 1 + rnd(3);
+      const grand = Math.round((qty * 250) / 100) * 100;
+      const s = o.sale({ lines: [{ productUnitId: pu, batchId: batch, qty, unitPrice: 250 }], payments: [{ method: 'cash', tendered: grand + rnd(2) * 500 }] });
+      cash += s.settlement.cashApplied;
+      sold += qty;
+    }
+    o.closeDrawer(cash);
+    o.signOut();
+    return { o, cash, sold };
+  };
+  const c1 = run('KHI1-C1', drawer1);
+  const c2 = run('KHI1-C2', drawer2);
+
+  // Reconnect: counter 1 uploads half, counter 2 everything, counter 1 the rest plus a full retry.
+  const upload = async (devAuth, cmds) => {
+    await db.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: devAuth, aal: 'aal1' })]);
+    const [{ r }] = (await db.query('select public.apply_device_commands($1::jsonb) r', [JSON.stringify(cmds)])).rows;
+    return r;
+  };
+  const dev1Auth = await id('auth_device_a1');
+  const half = Math.floor(c1.o.pending.length / 2);
+  await upload(dev1Auth, c1.o.pending.slice(0, half));
+  await upload(dev2Auth, c2.o.pending);
+  await upload(dev1Auth, c1.o.pending.slice(half));
+  const retry = await upload(dev1Auth, [...c1.o.pending].reverse());
+  await db.query(`select set_config('request.jwt.claims', '', true)`);
+
+  const q = async (sql, params = []) => (await db.query(sql, params)).rows[0];
+  const sales = await q(`select count(*)::int n, coalesce(sum(sl.qty_base), 0)::int qty from sales s join sale_lines sl on sl.sale_id = s.id
+    where s.device_id = any($1::uuid[]) and s.local_seq >= 100`, [[dev1, dev2]]);
+  const stock = Number((await q('select qty_base from stock_balances where branch_id = $1 and batch_id = $2', [a1, batch])).qty_base);
+  const drawers = (await db.query(`select r.expected_cash, r.variance from drawer_session_reconciliations r join drawer_sessions d on d.id = r.drawer_session_id
+    where d.cash_drawer_id = any($1::uuid[]) order by r.expected_cash`, [[drawer1, drawer2]])).rows;
+  const bad = await q(`select (select count(*)::int from device_commands where status <> 'applied') not_applied,
+                              (select count(*)::int from app.stock_balance_mismatches()) mismatches,
+                              (select count(*)::int from sync_flags where device_id = any($1::uuid[])) flags`, [[dev1, dev2]]);
+  await db.exec('rollback');
+
+  const check = (cond, msg) => { if (!cond) throw new Error(msg); };
+  check(retry.every((r) => r.duplicate === true), 'a repeated upload must change nothing');
+  check(sales.n === 120, `expected 120 bills, got ${sales.n} (a sale was lost or doubled)`);
+  check(sales.qty === c1.sold + c2.sold, `sold ${c1.sold + c2.sold} tablets, recorded ${sales.qty}`);
+  check(stock === before - c1.sold - c2.sold, `stock ${stock}, expected ${before - c1.sold - c2.sold}`);
+  check(drawers.length === 2 && drawers.every((d) => Number(d.variance) === 0), `drawers not exact: ${JSON.stringify(drawers)}`);
+  check(JSON.stringify(drawers.map((d) => Number(d.expected_cash))) === JSON.stringify([c1.cash, c2.cash].sort((a, b) => a - b)), 'drawer cash differs from what the counters took');
+  check(bad.not_applied === 0 && bad.mismatches === 0 && bad.flags === 0, `problems: ${JSON.stringify(bad)}`);
+  return 7;
+}
+
+async function syncRulesCheck(db) {
+  const text = readFileSync(join(supabaseDir, '..', 'powersync', 'sync-rules.yaml'), 'utf8').replace(/#.*$/gm, '');
+  // Tables a counter must never receive, and money columns that must never appear anywhere.
+  const SENSITIVE_TABLES = new Set(['batch_cost_layers', 'grn_line_costs', 'sale_line_costs', 'party_balances', 'ledger_entries',
+    'ledger_allocations', 'credit_limits', 'cash_movements', 'money_balances', 'drawer_session_reconciliations', 'stock_count_results',
+    'audit_log', 'gl_entries', 'gl_journals', 'gl_accounts', 'expenses', 'salaries', 'staff_advances', 'salary_rates', 'cheques',
+    'supplier_claims', 'purchase_invoices', 'po_lines', 'api_keys', 'tax_profiles', 'platform_invoices', 'subscriptions']);
+  const SENSITIVE_COLUMNS = /\b(cogs|total_cost|unit_cost|trade_price|line_net|expected_cash|variance|balance|opening_float|counted_cash|expected_unit_cost)\b/;
+  const queries = [...text.matchAll(/select\s+([\s\S]+?)\s+from\s+([a-z_]+)([\s\S]*?)(?=\n\s*-\s|\n\s*[a-z_]+:\s*$|\n\s*[a-z_]+:\s*\n|$)/gim)];
+  if (queries.length < 20) throw new Error(`only ${queries.length} queries found; the parser is out of step with the file`);
+  const cols = new Map();
+  for (const r of (await db.query(`select table_name, column_name from information_schema.columns where table_schema = 'public'`)).rows) {
+    if (!cols.has(r.table_name)) cols.set(r.table_name, new Set());
+    cols.get(r.table_name).add(r.column_name);
+  }
+  for (const [, list, table, rest] of queries) {
+    if (SENSITIVE_TABLES.has(table)) throw new Error(`${table} must never be sent to a counter PC`);
+    if (/\*/.test(list)) throw new Error(`"select *" from ${table}: list the columns`);
+    if (SENSITIVE_COLUMNS.test(list)) throw new Error(`a money column is sent from ${table}: ${list.match(SENSITIVE_COLUMNS)[0]}`);
+    if (table === 'product_prices' && !/price_kind in \('retail', 'min_sale'\)/.test(rest)) throw new Error('product_prices must exclude trade prices');
+    const known = cols.get(table);
+    if (!known) throw new Error(`unknown table ${table}`);
+    const idents = list.replace(/'[^']*'/g, ' ').replace(/\bas\s+[a-z_]+/gi, ' ').match(/[a-z_][a-z0-9_]*/gi) ?? [];
+    for (const id of idents) if (!known.has(id)) throw new Error(`${table}.${id} doesn't exist`);
+    for (const id of (rest.match(/\b([a-z_]+)\s*(=|in\b|is\b)/gi) ?? []).map((m) => m.split(/\s/)[0])) {
+      if (!['bucket', 'request', 'and', 'or', 'not'].includes(id) && !known.has(id)) throw new Error(`${table}.${id} (filter) doesn't exist`);
+    }
+  }
+  return queries.length;
 }

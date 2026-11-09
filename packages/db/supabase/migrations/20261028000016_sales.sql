@@ -632,7 +632,8 @@ begin
             (returned at time zone 'UTC')::date, 'sale_return', rid, returned, p_actor, dev.id);
   end if;
   insert into sync_flags (tenant_id, branch_id, device_id, kind, reference_type, reference_id, details)
-  select tid, dev.branch_id, dev.id, f ->> 'kind', 'sale_return', rid, coalesce(f -> 'details', '{}')
+  select tid, dev.branch_id, dev.id, f ->> 'kind', 'sale_return', rid,
+         jsonb_build_object('message', f ->> 'message') || coalesce(f -> 'details', '{}')
   from jsonb_array_elements(flags) f;
   return jsonb_build_object('return_id', rid, 'return_number', number, 'refund_total', total, 'flags', flags,
                             'duplicate', false);

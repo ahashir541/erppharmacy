@@ -135,3 +135,22 @@ before go-live.
 - **D30. Demo data.** The demo client is local-only seed data. Its names are
   marked "Demo" and its contacts use example.com.
 
+## 2026-11-09 — Phase 4 (Delegated)
+
+- **D31. A command outbox, not table sync, for writes.** The counter never
+  writes tables directly. It uploads commands (sale, return, drawer, sign-in,
+  held bill) that the server replays through the same functions the online
+  counter uses. This keeps every rule on the server and makes retries safe
+  (each command has a UUIDv7 from the PC and is applied once). Downloads use
+  PowerSync sync rules with every column listed.
+- **D32. Voids are online only.** A void needs a manager's approval and
+  reverses cash and udhaar, so it isn't queued offline. Offline, the counter
+  does a return instead.
+- **D33. Nothing is ever dropped.** A command the server can't apply (an app
+  bug, a newer app version, a reused number) is stored as `rejected` with its
+  full contents and error, and the owner gets a flag. Support can replay it
+  after a fix.
+- **D34. PIN hashes per branch.** A counter downloads PIN hashes only for
+  staff who work at its branch (or at all branches), so a lost PC exposes as
+  few as possible. PINs are slow PBKDF2 hashes, and the server re-checks every
+  sign-in when it uploads.

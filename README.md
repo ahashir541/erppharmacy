@@ -7,7 +7,7 @@ sees money.
 - **Brief:** [docs/MASTER_PROMPT.md](docs/MASTER_PROMPT.md)
 - **Decisions:** [docs/DECISIONS.md](docs/DECISIONS.md)
 - **What changed:** [docs/CHANGELOG.md](docs/CHANGELOG.md)
-- **Phases:** [1 Foundation](docs/PHASE1.md) · [2 Catalogue and stock](docs/PHASE2.md) · [3 Counter sales](docs/PHASE3.md) · [4 Offline sync](docs/PHASE4.md)
+- **Phases:** [1 Foundation](docs/PHASE1.md) · [2 Catalogue and stock](docs/PHASE2.md) · [3 Counter sales](docs/PHASE3.md) · [4 Offline sync](docs/PHASE4.md) · [5 Purchasing and udhaar](docs/PHASE5.md)
 
 ## Layout
 

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Phase 5 — Purchasing and udhaar (2026-11-09)
+
+- Suppliers, purchase orders (WhatsApp text), goods received with bonus and
+  expiry checks, supplier invoices checked against the paper total, cost
+  layers (bonus lowers cost), purchase returns with claims and credit notes.
+- Customer accounts and members, opening balances, credit limits, blocking,
+  write-offs, udhaar payments at the counter (no balance on the receipt).
+- Supplier payments, allocations to chosen bills, cheques (clear, bounce,
+  cancel), open bills, ageing, statements, supplier statement matching,
+  udhaar reminders (queued for WhatsApp).
+- Document numbers per pharmacy (`PO-`, `GRN-`, `PR-`, `C-`).
+- `app.party_balance_mismatches()` self-check.
+- Tests: `10_purchasing_udhaar` (64 checks) and a 400-document random ledger test.
+
 ### Phase 4 — Offline sync (2026-11-09)
 
 - Counter outbox (`packages/sync`): every counter action is a numbered

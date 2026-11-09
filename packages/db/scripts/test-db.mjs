@@ -113,6 +113,16 @@ try {
   console.log(`FAIL  offline two counters\n      ${err.message}`);
   await db.exec('rollback').catch(() => {});
 }
+// Phase 5 acceptance: statements match the ledger to the paisa, over hundreds of random documents.
+try {
+  const n = await ledgerProperties(db);
+  passed += n;
+  console.log(`ok    statements = ledger, 400 random documents (${n} checks)`);
+} catch (err) {
+  failed++;
+  console.log(`FAIL  statements = ledger\n      ${err.message}`);
+  await db.exec('rollback').catch(() => {});
+}
 // The sync rules never send money data to a counter PC, and every table and column they name exists.
 try {
   const n = await syncRulesCheck(db);
@@ -416,4 +426,109 @@ async function syncRulesCheck(db) {
     }
   }
   return queries.length;
+}
+
+// Phase 5 acceptance, at scale: 400 random bills, payments (some for chosen bills), returns, write-offs and
+// cheques that clear, bounce or are cancelled. Then, for every customer and supplier: the statement's closing
+// balance = the ledger balance, the open bills add up to what is owed, and ageing adds up too.
+async function ledgerProperties(db) {
+  await db.exec(`begin; select tests.fixture();`);
+  const id = async (name) => (await db.query('select tests.id($1) id', [name])).rows[0].id;
+  const [ta, a1, owner, ownerAuth, pu] = await Promise.all(['tenant_a', 'branch_a1', 'owner_a', 'auth_owner_a', 'product_unit_a'].map(id));
+  const one = async (sql, params = []) => (await db.query(sql, params)).rows[0];
+  const asOwner = () => db.query('select tests.as_owner($1, $2)', [ownerAuth, ta]);
+  const asSystem = () => db.exec('reset role');
+  const bank = (await one(`insert into bank_accounts (tenant_id, kind, name) values ($1, 'bank', 'Test bank') returning id`, [ta])).id;
+  let seed = 11;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+
+  await asOwner();
+  const customers = [];
+  for (let i = 0; i < 6; i++) {
+    const c = (await one(`select public.create_customer($1::jsonb) r`, [JSON.stringify({ name: `Random customer ${i}`,
+      opening_balance: i % 2 ? 10_000 * (i + 1) : 0, opening_date: '2026-08-01' })])).r;
+    customers.push(c.account_id);
+  }
+  const suppliers = [];
+  for (let i = 0; i < 4; i++) {
+    suppliers.push((await one(`select public.save_supplier($1::jsonb) r`, [JSON.stringify({ name: `Random supplier ${i}`, payment_terms_days: 15 * i })])).r);
+  }
+  const openBills = async (type, party) =>
+    (await db.query(`select entry_id, open_amount::int open from public.open_bills($1, $2)`, [type, party])).rows;
+  const day = (n) => new Date(Date.parse('2026-08-01') + n * 86_400_000).toISOString().slice(0, 10);
+
+  for (let i = 0; i < 400; i++) {
+    const op = rnd(10);
+    const when = day(rnd(90));
+    if (op <= 2) {
+      // A credit sale (as the counter records it).
+      await asSystem();
+      await db.query(`insert into ledger_entries (tenant_id, branch_id, party_type, customer_account_id, entry_type, debit, entry_date, due_date,
+        occurred_at, created_by) values ($1, $2, 'customer_account', $3, 'credit_sale', $4, $5::date, $5::date + 30, $5::date, $6)`,
+        [ta, a1, customers[rnd(customers.length)], 100 + rnd(50_000), when, owner]);
+      await asOwner();
+    } else if (op <= 4) {
+      // A customer pays: sometimes for a chosen bill, by bank, card or cheque.
+      const acct = customers[rnd(customers.length)];
+      const open = await openBills('customer_account', acct);
+      const amount = 100 + rnd(30_000);
+      const allocations = open.length && rnd(2) ? [{ entry_id: open[0].entry_id, amount: Math.min(open[0].open, amount) }] : [];
+      const method = ['bank_transfer', 'card', 'cheque'][rnd(3)];
+      await db.query(`select public.receive_udhaar_payment($1::jsonb)`, [JSON.stringify({ account_id: acct, amount, method, bank_account_id: bank,
+        branch_id: a1, allocations, cheque: { number: `C${i}`, date: when } })]);
+    } else if (op === 5) {
+      // A supplier delivery with its invoice, sometimes part paid on the spot.
+      const qty = 1 + rnd(50);
+      const cost = 50 + rnd(500);
+      await db.query(`select public.post_grn($1::jsonb)`, [JSON.stringify({ branch_id: a1, supplier_id: suppliers[rnd(suppliers.length)],
+        lines: [{ product_unit_id: pu, batch_number: `R${i}`, expiry_date: '2028-01-01', qty, bonus_qty: rnd(3), unit_cost: cost }],
+        invoice: { supplier_invoice_number: `RI-${i}`, invoice_date: when, paid_at_receipt: rnd(3) ? 0 : Math.floor((qty * cost) / 2),
+          payment: { method: 'bank_transfer', bank_account_id: bank } } })]);
+    } else if (op <= 7) {
+      // We pay a supplier: for chosen invoices or oldest first.
+      const sup = suppliers[rnd(suppliers.length)];
+      const open = await openBills('supplier', sup);
+      const amount = 100 + rnd(20_000);
+      const allocations = [];
+      let left = amount;
+      for (const b of open) { if (left <= 0 || rnd(2)) break; const a = Math.min(b.open, left); allocations.push({ entry_id: b.entry_id, amount: a }); left -= a; }
+      await db.query(`select public.pay_supplier($1::jsonb)`, [JSON.stringify({ supplier_id: sup, amount, method: rnd(2) ? 'cheque' : 'bank_transfer',
+        bank_account_id: bank, branch_id: a1, allocations, cheque: { number: `S${i}`, date: when, bank_account_id: bank } })]);
+    } else if (op === 8) {
+      // A pending cheque clears, bounces, or is cancelled.
+      const c = await one(`select id from cheques where tenant_id = $1 and status = 'pending' order by id limit 1 offset 0`, [ta]);
+      if (c) await db.query(`select public.set_cheque_status($1, $2, $3)`, [c.id, ['cleared', 'bounced', 'cancelled'][rnd(3)], bank]);
+    } else {
+      // A small write-off for a customer who owes something.
+      const acct = customers[rnd(customers.length)];
+      const bal = Number((await one(`select coalesce((select balance from party_balances where party_id = $1), 0) b`, [acct])).b);
+      if (bal > 0) await db.query(`select public.write_off_udhaar($1, $2, 'test')`, [acct, 1 + rnd(Math.min(bal, 500))]);
+    }
+  }
+
+  let checks = 0;
+  const check = (cond, msg) => { if (!cond) throw new Error(msg); checks++; };
+  for (const [type, parties] of [['customer_account', customers], ['supplier', suppliers]]) {
+    const ageing = (await db.query(`select * from public.party_ageing($1, '2026-12-31')`, [type])).rows;
+    for (const party of parties) {
+      const st = (await one(`select public.party_statement($1, $2, '2026-01-01', '2027-12-31') s`, [type, party])).s;
+      const bal = Number((await one(`select coalesce((select balance from party_balances where party_id = $1), 0) b`, [party])).b);
+      const open = await openBills(type, party);
+      const openSum = open.reduce((s, b) => s + b.open, 0);
+      check(Number(st.closing_balance) === bal, `${type} statement ${st.closing_balance} ≠ ledger ${bal}`);
+      check(st.entries.length === 0 || Number(st.entries.at(-1).balance) === bal, `${type} running balance does not end at the balance`);
+      check(openSum === Math.max(bal, 0), `${type} open bills ${openSum} ≠ owed ${Math.max(bal, 0)}`);
+      check(open.every((b) => b.open > 0), `${type} has a negative open bill`);
+      const a = ageing.find((r) => r.party_id === party);
+      const aged = a ? ['not_due', 'days_1_30', 'days_31_60', 'days_61_90', 'days_over_90'].reduce((s, k) => s + Number(a[k]), 0) : 0;
+      check(aged === Math.max(bal, 0), `${type} ageing ${aged} ≠ owed ${Math.max(bal, 0)}`);
+    }
+  }
+  await asSystem();
+  const mism = await one(`select (select count(*)::int from app.party_balance_mismatches()) p, (select count(*)::int from app.stock_balance_mismatches()) s,
+    (select count(*)::int from ledger_entries where tenant_id = $1) n`, [ta]);
+  check(mism.p === 0 && mism.s === 0, `balance mismatches: ${mism.p} party, ${mism.s} stock`);
+  check(mism.n > 300, `only ${mism.n} ledger entries were made`);
+  await db.exec('rollback');
+  return checks;
 }

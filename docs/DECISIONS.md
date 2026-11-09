@@ -154,3 +154,33 @@ before go-live.
   staff who work at its branch (or at all branches), so a lost PC exposes as
   few as possible. PINs are slow PBKDF2 hashes, and the server re-checks every
   sign-in when it uploads.
+
+## 2026-11-09 — Phase 5 (Delegated)
+
+- **D35. Open bills come from the ledger.** Nothing is marked "paid" on a
+  bill. Which bills are open is worked out each time: payments tied to a bill
+  count against that bill first, and everything else pays the oldest bill
+  first. So the open bills always add up to the balance, whatever order
+  things happened in.
+- **D36. Prices arrive with the invoice.** A store keeper posts the delivery
+  (quantities only); the person allowed to see costs posts the invoice. The
+  batch's cost is known from then on. Sales made in between have no cost yet
+  and are reported as "cost pending".
+- **D37. Purchase tax is part of the cost.** Most pharmacies can't claim
+  input tax back, so tax on a supplier invoice is added to the cost of the
+  stock. Phase 7 adds an option for those who can.
+- **D38. Returns wait as claims.** Returned stock leaves at once. Its value at
+  average cost is a claim on the supplier, and what we owe goes down only when
+  the credit note arrives, for whatever amount they credit.
+- **D39. Cheques count when they change hands.** A cheque reduces what is
+  owed when it is received or issued. The bank balance changes only when it
+  clears; a bounce makes the amount owed again; a cancelled cheque is reversed.
+- **D40. Deliveries are never "un-received".** A delivery can't be voided,
+  because some of it may already be sold. Mistakes are fixed with a return
+  or a stock adjustment, so the history stays true.
+- **D41. Reminders.** Only to members who agreed, at most once every 7 days
+  (a setting), in Urdu and English. Balances and statements are never
+  readable from a counter PC (D13).
+- **D42. Document numbers.** Purchase orders, deliveries, returns and khata
+  accounts are numbered per pharmacy (`PO-000001` and so on), by the cloud.
+  Counter bills keep their own PC numbers (D23).

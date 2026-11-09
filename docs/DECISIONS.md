@@ -113,3 +113,25 @@ before go-live.
   16-byte salt). It is available in WebCrypto (browsers), Node and Deno
   without native code, and the counter can verify it offline. 5 wrong tries
   lock the PIN for 15 minutes.
+
+## 2026-11-09 — Phase 3 (Delegated)
+
+- **D26. Bill discount sharing.** A bill discount is shared across lines in
+  proportion to each line's amount after line discounts. Leftover paisa go to
+  the biggest lines first. The discount limit is checked as a percentage of
+  the bill's gross (basis points), as D16 said.
+- **D27. Tax inside the total.** Tax is computed per line (inside the price
+  or on top, per the tenant setting) and the bill is rounded once at the end.
+  The stored subtotal is grand total − rounding + discounts − tax, so
+  `grand = subtotal − discounts + tax + rounding` always holds.
+- **D28. Online vs offline sales.** The same function records both. Online,
+  any rule problem rejects the sale before the medicine is handed over.
+  Offline (uploaded later), problems become owner flags and the sale is kept.
+  Unknown items, a wrong batch, or udhaar without a customer are always
+  rejected: they are app bugs, not judgement calls.
+- **D29. Returns.** The refund is the line total × returned qty ÷ sold qty,
+  rounded half-up. Damaged items can be returned without restocking. A bill
+  with returns can't be voided (return the rest instead).
+- **D30. Demo data.** The demo client is local-only seed data. Its names are
+  marked "Demo" and its contacts use example.com.
+

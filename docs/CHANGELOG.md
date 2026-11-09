@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Phase 3 — Counter sales (2026-11-09)
+
+- Bill maths (discounts shared to the paisa, inclusive/exclusive tax, Re 1
+  rounding, split payments, change, udhaar) in `packages/core` and SQL, with
+  a 3,000-bill parity test; FEFO allocation; thermal receipt and ESC/POS.
+- `post_sale` / `app.record_sale` (online rejects, offline flags), `void_sale`,
+  `post_return`, `open_drawer` / `close_drawer` (blind), `get_receipt`.
+- Prices: the batch's printed price wins, else the list price converted to
+  the pack size sold. Cost of goods per line from the batch's cost layers.
+- New flag kind `drawer_closed`.
+- Demo Pharmacy seed (2 branches, 500 products, 30 days of sales), loaded by
+  `supabase db reset` and tested with `--demo`.
+
 ### Phase 2 — Catalogue and stock (2026-10-28)
 
 - Product import (10,000 rows per call, idempotent, per-row errors, wrong

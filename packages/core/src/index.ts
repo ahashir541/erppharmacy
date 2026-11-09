@@ -7,3 +7,6 @@ export * from './permissions.ts';
 export * from './pin.ts';
 export * from './catalogue.ts';
 export * from './stock.ts';
+export * from './bill.ts';
+export * from './fefo.ts';
+export * from './receipt.ts';

@@ -227,7 +227,7 @@ create table sync_flags (
   kind             text not null check (kind in (
                      'negative_stock', 'below_min_price', 'expired_batch', 'blocked_batch',
                      'over_credit_limit', 'udhaar_blocked', 'total_mismatch', 'permission_exceeded',
-                     'controlled_without_prescription', 'clock_skew', 'licence_expired')),
+                     'controlled_without_prescription', 'clock_skew', 'licence_expired', 'drawer_closed')),
   reference_type   text not null,
   reference_id     uuid not null,
   details          jsonb not null default '{}'::jsonb,

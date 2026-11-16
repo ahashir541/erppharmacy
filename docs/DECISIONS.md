@@ -209,3 +209,33 @@ before go-live.
 - **D47. Alert defaults.** A discount of Rs 500 or more on one bill, every
   void, a drawer Rs 100 or more short, every controlled drug sale, and every
   flag. The owner changes or switches off each one.
+
+## 2026-11-16 — Phase 7 (Delegated, tax items need a tax adviser)
+
+- **D48. Order per counter.** Each counter has its own running number per
+  authority, given when the document is recorded (offline documents are
+  replayed in the counter's order). The next document is sent only when the
+  one before it has an answer. A refused document does not hold up the rest;
+  the owner fixes and resends it.
+- **D49. No voids after tax.** A bill queued for or reported to a tax
+  authority is corrected with a return (sent as a refund), never voided, so
+  MedFlow and FBR always tell the same story.
+- **D50. Only authorities with a sender can be switched on.** FBR first. SRB
+  and PRA registrations can be saved, but not enabled, until their adapters
+  are written against confirmed specifications. Nothing invents an
+  authority's rules.
+- **D51. FBR adapter fields** follow FBR's POS integration guide as known at
+  the time of writing (amounts in rupees, invoice type 1 = sale and 3 =
+  refund, code 100 = accepted). Network errors, timeouts, 5xx and 429 are
+  retried; a refusal of the document is final until the owner resends.
+  Everything is in one file to confirm before production.
+- **D52. Prescriptions travel with the bill.** The counter can send the
+  prescription inside the sale, so offline sales and their prescriptions
+  arrive together. Only someone allowed to confirm prescriptions counts as
+  the pharmacist.
+- **D53. Recalls match by batch number and brand.** A recall freezes every
+  batch with that number whose brand matches, now and when received later.
+  Only the platform can lift it.
+- **D54. Receipts at the counter.** A counter can reprint the receipts of its
+  branch's bills from the last 7 days, one at a time; each reprint is logged,
+  so pulling receipts to add them up shows in the activity feed.

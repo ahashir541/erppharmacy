@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Phase 7 — Compliance (2026-11-16)
+
+- Tax queue: bills and returns are queued per counter and authority as they
+  are recorded; `tax_claim_batch` hands out only the next unanswered document
+  of each counter; `tax_record_result` with retries and backoff;
+  `retry_tax_submission`; `report_tax`; stuck-queue alerts.
+- `packages/tax`: `TaxProvider` interface, FBR POS adapter, mock provider,
+  worker; Edge Function `tax-worker`.
+- Reported bills can't be voided (use a return).
+- Prescriptions (`save_prescription`, `confirm_prescription`, or embedded in
+  a sale), `controlled_register`, branch licences, platform recalls that
+  freeze matching batches (also ones received later).
+- `run_scheduled_checks`: tax queue, licences, offline PCs, expiring
+  batches, low stock, expired approvals.
+- `get_receipt` checks visibility itself and logs counter reprints;
+  service-only functions revoked from signed-in users.
+- Tests: `12_compliance` (45 checks), tax-in-order acceptance (41 checks),
+  `packages/tax` unit tests.
+
 ### Phase 6 — Owner control and finance (2026-11-16)
 
 - Bill amounts are no longer readable by signed-in clients; owners use the

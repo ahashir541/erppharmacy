@@ -134,6 +134,17 @@ try {
       ${err.message}`);
   await db.exec('rollback').catch(() => {});
 }
+// Phase 7 acceptance: invoices made offline reach the tax API in order after reconnecting.
+try {
+  const n = await taxOfflineInOrder(db);
+  passed += n;
+  console.log(`ok    tax: offline invoices reach the authority in order (${n} checks)`);
+} catch (err) {
+  failed++;
+  console.log(`FAIL  tax in order
+      ${err.message}`);
+  await db.exec('rollback').catch(() => {});
+}
 // The sync rules never send money data to a counter PC, and every table and column they name exists.
 try {
   const n = await syncRulesCheck(db);
@@ -583,4 +594,96 @@ async function counterSeesNoMoney(db) {
   await db.exec('rollback');
   if (leaks.length) throw new Error(`a counter PC can read: ${leaks.join(', ')}`);
   return checked;
+}
+
+// Phase 7 acceptance: invoices made offline reach the tax API in order after reconnecting. A counter
+// sells 25 bills and takes 2 returns offline, uploads in pieces, and the sender works the queue while
+// the (pretend) authority is unreachable every 4th try.
+async function taxOfflineInOrder(db) {
+  const { Outbox } = await import('../../sync/src/outbox.ts');
+  const { MockTaxProvider, runTaxWorker, recordArgs } = await import('../../tax/src/index.ts');
+  await db.exec(`begin; select tests.fixture();`);
+  const id = async (name) => (await db.query('select tests.id($1) id', [name])).rows[0].id;
+  const [ta, a1, salesman, dev1, pu, batch, devAuth] = await Promise.all(
+    ['tenant_a', 'branch_a1', 'salesman_a', 'device_a1', 'product_unit_a', 'batch_a', 'auth_device_a1'].map(id));
+  await db.query(`insert into tax_profiles (tenant_id, provider, ntn, pos_id, is_enabled) values ($1, 'fbr', '1234567', '123456', true)`, [ta]);
+  const drawer = (await db.query(`insert into cash_drawers (tenant_id, branch_id, device_id, name) values ($1, $2, $3, 'Tax drawer') returning id`,
+    [ta, a1, dev1])).rows[0].id;
+
+  let t = Date.parse('2026-11-16T09:00:00Z');
+  const o = new Outbox({ devicePrefix: 'KHI1-C1', nextCommandSeq: 1, nextInvoiceSeq: 200, nextReturnSeq: 1, staffId: null, sessionId: null,
+    drawerSessionId: null, settings: { pricesIncludeTax: true, roundingStep: 100 } }, () => new Date((t += 60_000)));
+  o.signIn(salesman);
+  o.openDrawer(drawer, 100_000);
+  const sales = [];
+  for (let i = 0; i < 25; i++) {
+    const s = o.sale({ lines: [{ productUnitId: pu, batchId: batch, qty: 1, unitPrice: 250 }], payments: [{ method: 'cash', tendered: 300 }] });
+    sales.push(s);
+    if (i === 5 || i === 15) {
+      o.saleReturn({ originalSaleId: sales[i - 2].command.payload.id, refundMethod: 'cash', reason: 'not needed',
+        lines: [{ saleLineId: sales[i - 2].command.payload.lines[0].id, qtyBase: 1 }] });
+    }
+  }
+  o.signOut();
+  const upload = async (cmds) => {
+    await db.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: devAuth, aal: 'aal1' })]);
+    const [{ r }] = (await db.query('select public.apply_device_commands($1::jsonb) r', [JSON.stringify(cmds)])).rows;
+    await db.query(`select set_config('request.jwt.claims', '', true)`);
+    return r;
+  };
+  const cmds = o.pending;
+  for (const part of [cmds.slice(0, 9), cmds.slice(9, 20), cmds.slice(20)]) {
+    const r = await upload(part);
+    if (r.some((x) => x.status === 'rejected')) throw new Error(`upload rejected: ${JSON.stringify(r.find((x) => x.status === 'rejected'))}`);
+  }
+
+  // The sender, against the real queue.
+  const fbr = new MockTaxProvider('fbr', 4);
+  let biggestBatch = 0;
+  const queue = {
+    claim: async (n) => {
+      const batch = (await db.query('select public.tax_claim_batch($1) b', [n])).rows[0].b;
+      biggestBatch = Math.max(biggestBatch, batch.length);
+      return batch;
+    },
+    record: async (sid, result) => {
+      const a = recordArgs(sid, result);
+      await db.query('select public.tax_record_result($1, $2, $3, $4, $5, $6, $7)',
+        [a.p_submission, a.p_accepted, a.p_authority_number, a.p_qr, a.p_response === null ? null : JSON.stringify(a.p_response), a.p_error, a.p_retryable]);
+    },
+    credentials: async () => ({}),
+  };
+  for (let round = 0; round < 200; round++) {
+    await db.exec(`update tax_submissions set next_attempt_at = now() where status = 'retrying'`);   // skip the backoff wait
+    const s = await runTaxWorker({ queue, providers: { fbr }, fetch: async () => { throw new Error('offline'); }, maxRounds: 1 });
+    if (s.sent === 0) break;
+  }
+  const q = async (sql, params = []) => (await db.query(sql, params)).rows[0];
+  const state = await q(`select count(*) filter (where status = 'accepted')::int accepted, count(*) filter (where status <> 'accepted')::int other,
+    count(*)::int total from tax_submissions where device_id = $1`, [dev1]);
+  const reported = await q(`select count(*) filter (where tax_status = 'reported' and authority_invoice_number like 'MOCK%')::int n
+    from sales where device_id = $1 and local_seq >= 200`, [dev1]);
+  const order = (await db.query(`select t.device_seq, coalesce(s.invoice_number, r.return_number) doc
+    from tax_submissions t left join sales s on s.id = t.sale_id left join sale_returns r on r.id = t.sale_return_id
+    where t.device_id = $1 order by t.device_seq`, [dev1])).rows;
+  await db.exec('rollback');
+
+  let checks = 0;
+  const check = (cond, msg) => { if (!cond) throw new Error(msg); checks++; };
+  check(state.total === 27 && state.accepted === 27 && state.other === 0, `27 documents accepted (have ${JSON.stringify(state)})`);
+  check(reported.n === 25, `every bill carries its FBR number (${reported.n} of 25)`);
+  check(fbr.received.some((x) => !x.accepted), 'the authority was unreachable at times');
+  const acceptedOrder = fbr.received.filter((x) => x.accepted).map((x) => x.sequence);
+  check(acceptedOrder.every((s, i) => s === i + 1), `accepted in order: ${acceptedOrder.join(',')}`);
+  let done = 0;
+  for (const x of fbr.received) {
+    check(x.sequence === done + 1, `document ${x.sequence} was sent before ${done + 1} had its answer`);
+    if (x.accepted) done = x.sequence;
+  }
+  check(biggestBatch <= 1, 'one counter never has two documents in flight');
+  // Queue order = the order the counter made them (bills and returns interleaved as they happened).
+  const expected = cmds.filter((c) => c.kind === 'sale' || c.kind === 'return')
+    .map((c) => (c.kind === 'sale' ? `KHI1-C1-${String(c.payload.local_seq).padStart(6, '0')}` : null));
+  check(order.every((row, i) => expected[i] === null ? row.doc.includes('-R') : row.doc === expected[i]), 'queue order = counter order');
+  return checks;
 }

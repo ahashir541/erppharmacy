@@ -51,7 +51,9 @@ bucket_definitions:
       - select id, tenant_id, branch_id, kind, name from bank_accounts where tenant_id = bucket.tenant_id and archived_at is null
       - select id, tenant_id, branch_id, name, paper, layout, is_default from receipt_templates where tenant_id = bucket.tenant_id
 
-  # This PC's branch: stock and recent bills (reprints and returns while offline).
+  # This PC's branch: stock, and which bills exist (to find one for a return). Bill amounts are
+  # never downloaded: adding them up would show the day's sales and the drawer's cash (Phase 6).
+  # The PC reprints its own bills from its local outbox; other bills' receipts come from get_receipt.
   branch:
     parameters: >
       select tenant_id, branch_id from devices
@@ -60,12 +62,10 @@ bucket_definitions:
       - select branch_id || ':' || batch_id as id, tenant_id, branch_id, batch_id, product_id, qty_base from stock_balances where branch_id = bucket.branch_id
       - >
         select id, tenant_id, branch_id, device_id, local_seq, invoice_number, status, customer_id, customer_account_id,
-               subtotal, discount_total, tax_total, rounding_adjustment, grand_total, paid_total, udhaar_amount, change_given,
                sold_at, business_date, tax_status, authority_invoice_number, created_by
         from sales where branch_id = bucket.branch_id
       - >
-        select id, tenant_id, sale_id, line_no, product_id, product_unit_id, batch_id, qty, qty_base, unit_price, discount_amount,
-               tax_rate_bp, tax_amount, line_total
+        select id, tenant_id, sale_id, line_no, product_id, product_unit_id, batch_id, qty, qty_base
         from sale_lines where branch_id = bucket.branch_id
       - select id, tenant_id, branch_id, label, cart, held_at, resumed_at, discarded_at, device_id from held_bills where branch_id = bucket.branch_id
 

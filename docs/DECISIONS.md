@@ -184,3 +184,28 @@ before go-live.
 - **D42. Document numbers.** Purchase orders, deliveries, returns and khata
   accounts are numbered per pharmacy (`PO-000001` and so on), by the cloud.
   Counter bills keep their own PC numbers (D23).
+
+## 2026-11-16 — Phase 6 (Delegated)
+
+- **D43. Bill amounts are hidden by column, not by screen.** A counter PC
+  could otherwise add up the bills it can look up and see the day's sales
+  and the drawer's expected cash. So the amount columns of bills, lines,
+  payments and returns are not readable through the API at all; owners use
+  the `owner_*` views, gated by "see sales totals". A counter reprints its own
+  bills from its local copy and other bills through `get_receipt`. Offline,
+  a counter can still take a return on another counter's bill, but the
+  refund amount is worked out when it reconnects.
+- **D44. The trial balance comes from the books underneath.** Cash, bank,
+  stock at cost, udhaar, supplier dues, sales, tax, cost of goods, expenses
+  and salaries are read from their own ledgers. "Owner's capital and
+  opening balances" makes up the difference: what the owner put in. Posting
+  every document as a journal comes later; the numbers will not change.
+- **D45. Expenses count when they are owed.** An unpaid expense (rent that
+  fell due) is in the profit and loss straight away, not only when paid.
+- **D46. Approvals.** Only someone allowed both to approve and to do the
+  action themselves can approve it, never the person asking. At the counter,
+  the PC checks the approver's PIN as it does for any sign-in (D34).
+  Requests expire after 15 minutes.
+- **D47. Alert defaults.** A discount of Rs 500 or more on one bill, every
+  void, a drawer Rs 100 or more short, every controlled drug sale, and every
+  flag. The owner changes or switches off each one.

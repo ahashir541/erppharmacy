@@ -123,6 +123,17 @@ try {
   console.log(`FAIL  statements = ledger\n      ${err.message}`);
   await db.exec('rollback').catch(() => {});
 }
+// Phase 6 acceptance: a counter PC reads no money total anywhere, table by table, column by column.
+try {
+  const n = await counterSeesNoMoney(db);
+  passed += n;
+  console.log(`ok    a counter PC sees no money totals (${n} money columns checked)`);
+} catch (err) {
+  failed++;
+  console.log(`FAIL  counter money check
+      ${err.message}`);
+  await db.exec('rollback').catch(() => {});
+}
 // The sync rules never send money data to a counter PC, and every table and column they name exists.
 try {
   const n = await syncRulesCheck(db);
@@ -404,7 +415,7 @@ async function syncRulesCheck(db) {
     'ledger_allocations', 'credit_limits', 'cash_movements', 'money_balances', 'drawer_session_reconciliations', 'stock_count_results',
     'audit_log', 'gl_entries', 'gl_journals', 'gl_accounts', 'expenses', 'salaries', 'staff_advances', 'salary_rates', 'cheques',
     'supplier_claims', 'purchase_invoices', 'po_lines', 'api_keys', 'tax_profiles', 'platform_invoices', 'subscriptions']);
-  const SENSITIVE_COLUMNS = /\b(cogs|total_cost|unit_cost|trade_price|line_net|expected_cash|variance|balance|opening_float|counted_cash|expected_unit_cost)\b/;
+  const SENSITIVE_COLUMNS = /\b(cogs|total_cost|unit_cost|trade_price|line_net|expected_cash|variance|balance|opening_float|counted_cash|expected_unit_cost|subtotal|discount_total|tax_total|rounding_adjustment|grand_total|paid_total|udhaar_amount|change_given|unit_price|discount_amount|tax_amount|line_total|refund_total)\b/;
   const queries = [...text.matchAll(/select\s+([\s\S]+?)\s+from\s+([a-z_]+)([\s\S]*?)(?=\n\s*-\s|\n\s*[a-z_]+:\s*$|\n\s*[a-z_]+:\s*\n|$)/gim)];
   if (queries.length < 20) throw new Error(`only ${queries.length} queries found; the parser is out of step with the file`);
   const cols = new Map();
@@ -531,4 +542,45 @@ async function ledgerProperties(db) {
   check(mism.n > 300, `only ${mism.n} ledger entries were made`);
   await db.exec('rollback');
   return checks;
+}
+
+// Phase 6 acceptance: a counter PC (whose sign-in a salesman could copy out of the app) reads no money
+// total anywhere. For every table and view, every money column must be refused or show nothing,
+// except the few a counter needs to sell (price lists, a batch's printed price, D13's credit headroom).
+
+async function counterSeesNoMoney(db) {
+  const COUNTER_MAY_READ = new Set([
+    'product_prices.amount', 'batches.mrp', 'batches.retail_price', 'customer_credit_status.available_credit',
+    'tax_category_rates.rate_bp', 'role_permissions.limit_value', 'user_permission_overrides.limit_value',
+    'products.max_qty_per_sale', 'current_product_prices.amount', 'role_template_permissions.limit_value',
+    'plan_features.limit_value',
+    // Not totals: the float and count the salesman entered themselves, public plan prices, a yes/no flag.
+    'drawer_sessions.opening_float', 'drawer_sessions.counted_cash', 'plans.price_monthly', 'plans.price_yearly', 'devices.pending_changes',
+  ]);
+  await db.exec(`begin; select tests.fixture();`);
+  const id = async (name) => (await db.query('select tests.id($1) id', [name])).rows[0].id;
+  const cols = (await db.query(`
+    select c.table_name t, c.column_name col from information_schema.columns c
+    join information_schema.tables x on x.table_schema = c.table_schema and x.table_name = c.table_name
+    where c.table_schema = 'public' and c.data_type in ('bigint', 'integer', 'numeric')
+      and c.column_name ~ '(amount|total|cost|cogs|price|balance|cash|variance|float|value|paid|debit|credit|tax|discount|refund|change|udhaar|salary|net|gross|limit|rate_bp|recovery|deduction)'
+    order by 1, 2`)).rows;
+  await db.query('select tests.as_device($1)', [await id('auth_device_a1')]);
+  const leaks = [];
+  let checked = 0;
+  for (const { t, col } of cols) {
+    if (COUNTER_MAY_READ.has(`${t}.${col}`)) continue;
+    checked++;
+    await db.exec('savepoint s');
+    try {
+      const r = (await db.query(`select count(*)::int n from public.${t} where ${col} is not null`)).rows[0];
+      if (r.n > 0) leaks.push(`${t}.${col} (${r.n} rows)`);
+      await db.exec('release savepoint s');
+    } catch {
+      await db.exec('rollback to savepoint s');   // permission denied: good
+    }
+  }
+  await db.exec('rollback');
+  if (leaks.length) throw new Error(`a counter PC can read: ${leaks.join(', ')}`);
+  return checked;
 }

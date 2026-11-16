@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Phase 6 — Owner control and finance (2026-11-16)
+
+- Bill amounts are no longer readable by signed-in clients; owners use the
+  `owner_sales` / `owner_sale_lines` / `owner_sale_payments` /
+  `owner_sale_returns` / `owner_return_lines` views. `get_receipt` still
+  returns one bill. Counter sync rules no longer download bill amounts.
+- Approvals: `request_approval`, `decide_approval`, `approve_at_counter`,
+  `cancel_approval`, with notifications to the people who may approve.
+- Alerts (large discount, void, cash short, controlled sale, flags) with
+  `set_alert_rule`; notifications and push subscriptions.
+- Expenses, recurring expenses, salaries and staff advances.
+- Owner dashboard and reports (sales, payments, profit, P&L, stock value,
+  dead stock, purchases, collections, staff, activity feed, trial balance).
+- Tests: `11_owner_control` (59 checks) and a column-by-column check that a
+  counter PC reads no money totals.
+
 ### Phase 5 — Purchasing and udhaar (2026-11-09)
 
 - Suppliers, purchase orders (WhatsApp text), goods received with bonus and

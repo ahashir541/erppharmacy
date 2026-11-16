@@ -66,11 +66,13 @@ create or replace function app.notify(p_tenant uuid, p_kind text, p_title text, 
 language plpgsql security definer set search_path = public, app as $$
 declare
   rule record;
+  rule_recipients uuid[] := '{}';
   n int;
 begin
   if p_rule is not null then
     select * into rule from app.alert_rule(p_tenant, p_rule);
     if not rule.enabled then return 0; end if;
+    rule_recipients := rule.recipients;
   end if;
   if p_quiet is not null and exists (select 1 from notifications where tenant_id = p_tenant and kind = p_kind
        and reference_id is not distinct from p_ref_id and created_at > now() - p_quiet) then
@@ -81,7 +83,7 @@ begin
   from users u
   where u.tenant_id = p_tenant and u.status = 'active' and u.archived_at is null
     and (case when coalesce(cardinality(p_recipients), 0) > 0 then u.id = any (p_recipients)
-              when coalesce(cardinality(rule.recipients), 0) > 0 then u.id = any (rule.recipients)
+              when coalesce(cardinality(rule_recipients), 0) > 0 then u.id = any (rule_recipients)
               else u.kind = 'owner' end);
   get diagnostics n = row_count;
   return n;

@@ -1000,6 +1000,7 @@ declare
   used uuid[] := '{}';
   status text;
   result jsonb;
+  out_lines jsonb := '[]';
 begin
   if not exists (select 1 from suppliers where id = sup and tenant_id = tid) then raise exception 'Supplier not found' using errcode = 'P0002'; end if;
   insert into supplier_reconciliations (tenant_id, supplier_id, statement_date, period_from, period_to, statement_balance, created_by)
@@ -1031,6 +1032,9 @@ begin
                                                ledger_entry_id, match_status, note, created_by)
     values (tid, rid, l ->> 'ref', (l ->> 'date')::date, amt, e.id, status,
             case when status = 'difference' then 'Ours: Rs ' || to_char((e.credit - e.debit) / 100.0, 'FM999,999,999,990.00') end, uid);
+    -- Kept in the statement's own order (rows saved in the same moment have no reliable order).
+    out_lines := out_lines || jsonb_build_object('ref', l ->> 'ref', 'date', (l ->> 'date')::date, 'amount', amt, 'status', status,
+      'note', case when status = 'difference' then 'Ours: Rs ' || to_char((e.credit - e.debit) / 100.0, 'FM999,999,999,990.00') end);
   end loop;
   insert into supplier_reconciliation_lines (tenant_id, reconciliation_id, statement_ref, statement_date, statement_amount,
                                              ledger_entry_id, match_status, created_by)
@@ -1044,9 +1048,9 @@ begin
   select jsonb_build_object(
     'reconciliation_id', rid, 'our_balance', ours, 'their_balance', (p ->> 'statement_balance')::bigint,
     'difference', (p ->> 'statement_balance')::bigint - ours,
-    'lines', (select jsonb_agg(jsonb_build_object('ref', statement_ref, 'date', statement_date, 'amount', statement_amount,
-                                                  'status', match_status, 'note', note) order by created_at, id)
-              from supplier_reconciliation_lines where reconciliation_id = rid))
+    'lines', out_lines || (select coalesce(jsonb_agg(jsonb_build_object('ref', statement_ref, 'date', statement_date, 'amount', statement_amount,
+                                          'status', match_status, 'note', note) order by statement_date, statement_ref), '[]')
+                           from supplier_reconciliation_lines where reconciliation_id = rid and match_status = 'missing_in_theirs'))
   into result;
   update supplier_reconciliations set status = case when (result ->> 'difference')::bigint = 0
     and not exists (select 1 from supplier_reconciliation_lines where reconciliation_id = rid and match_status <> 'matched')

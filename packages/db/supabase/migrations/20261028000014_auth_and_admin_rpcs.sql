@@ -176,8 +176,6 @@ begin
     (p_tenant, 'pos.bill_rounding_minor', '100', p_owner),
     (p_tenant, 'pos.loose_price_rounding', '"half_up_minor"', p_owner),
     (p_tenant, 'udhaar.default_due_days', '30', p_owner),
-    (p_tenant, 'tax.prices_include_tax', 'true', p_owner),
-    (p_tenant, 'tax.pos_service_charge_enabled', 'false', p_owner),
     (p_tenant, 'security.pin_max_attempts', '5', p_owner),
     (p_tenant, 'security.pin_lock_minutes', '15', p_owner),
     (p_tenant, 'compliance.controlled_retention_years', '5', p_owner);

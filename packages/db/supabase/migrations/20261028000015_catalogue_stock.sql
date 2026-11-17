@@ -113,7 +113,7 @@ begin
     raise exception 'Permission % is required', p_code using errcode = '42501';
   end if;
   if p_approval is null then
-    raise exception 'Owner approval is needed for this' using errcode = 'P0001', hint = 'approval_required';
+    raise exception 'Owner approval is needed for this' using errcode = 'P0001', hint = 'approval_required', detail = p_code;
   end if;
   update approval_requests
   set used_at = now(), used_for = p_reference

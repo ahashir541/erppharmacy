@@ -37,6 +37,8 @@ alter table tenant_feature_overrides enable trigger user;
 alter table feature_rollouts enable trigger user;
 alter table features enable trigger user;
 
+delete from settings where key in ('tax.prices_include_tax', 'tax.pos_service_charge_enabled');
+
 -- Nothing can be "stuck at the tax authority".
 delete from alert_rules where kind = 'tax_queue_stuck';
 

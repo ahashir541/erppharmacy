@@ -10,3 +10,5 @@ export * from './stock.ts';
 export * from './bill.ts';
 export * from './fefo.ts';
 export * from './receipt.ts';
+export * from './licence.ts';
+export * from './i18n.ts';

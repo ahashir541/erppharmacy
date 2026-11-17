@@ -1,0 +1,135 @@
+// The owner's back office: a collapsible sidebar, a top bar (branch, search / command palette,
+// sync status) and the pages. The POS is one click (or Ctrl+K → "POS") away.
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { AppProps, Session } from '../App.tsx';
+import { Customers, Suppliers } from './parties.tsx';
+import { Dashboard, Invoices, Shifts } from './sales.tsx';
+import { Expiry, Movements, Products } from './stock.tsx';
+import type { PageProps } from './ui.tsx';
+
+interface NavItem { key: string; label: string; icon: string; group: string; render?: (p: PageProps) => ReactNode; soon?: boolean }
+
+const NAV: NavItem[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: '▦', group: 'Overview', render: (p) => <Dashboard {...p} /> },
+  { key: 'pos', label: 'POS / New sale', icon: '⌁', group: 'Overview' },
+  { key: 'invoices', label: 'Sales & invoices', icon: '≡', group: 'Sales', render: (p) => <Invoices {...p} /> },
+  { key: 'customers', label: 'Customers & udhaar', icon: '☺', group: 'Sales', render: (p) => <Customers {...p} /> },
+  { key: 'shifts', label: 'Shifts', icon: '◷', group: 'Sales', render: (p) => <Shifts {...p} /> },
+  { key: 'products', label: 'Products & stock', icon: '▤', group: 'Inventory', render: (p) => <Products {...p} /> },
+  { key: 'expiry', label: 'Expiry', icon: '⚠', group: 'Inventory', render: (p) => <Expiry {...p} /> },
+  { key: 'movements', label: 'Stock movements', icon: '⇅', group: 'Inventory', render: (p) => <Movements {...p} /> },
+  { key: 'suppliers', label: 'Suppliers', icon: '⛟', group: 'Purchasing', render: (p) => <Suppliers {...p} /> },
+  { key: 'purchases', label: 'Purchases', icon: '⊕', group: 'Purchasing', soon: true },
+  { key: 'expenses', label: 'Expenses', icon: '−', group: 'Money', soon: true },
+  { key: 'accounts', label: 'Accounts & books', icon: '₨', group: 'Money', soon: true },
+  { key: 'reports', label: 'Reports', icon: '◔', group: 'Money', soon: true },
+  { key: 'approvals', label: 'Approvals & alerts', icon: '✓', group: 'Admin', soon: true },
+  { key: 'team', label: 'Team', icon: '☷', group: 'Admin', soon: true },
+  { key: 'settings', label: 'Settings', icon: '⚙', group: 'Admin', soon: true },
+];
+
+export function Office(props: AppProps & { session: Session; onOpenPos: () => void; onSignOut: () => void }) {
+  const [page, setPage] = useState('dashboard');
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1200);
+  const [palette, setPalette] = useState(false);
+  const pageProps: PageProps = useMemo(() => ({ db: props.backend, branchId: props.ctx.branch.id, today: props.ctx.today, go: (k) => setPage(k) }),
+    [props.backend, props.ctx]);
+
+  const go = (key: string) => {
+    if (key === 'pos') { props.onOpenPos(); return; }
+    setPage(key);
+    setPalette(false);
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setPalette((p) => !p); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const current = NAV.find((n) => n.key === page)!;
+  const groups = [...new Set(NAV.map((n) => n.group))];
+  return (
+    <div className={`office${collapsed ? ' collapsed' : ''}`}>
+      <aside className="sidebar" aria-label="Main menu">
+        <div className="sidebar-head">
+          <span className="brand-mark">M</span>
+          {!collapsed && <span className="brand-name">MedFlow</span>}
+          <button type="button" className="icon-btn collapse-btn" aria-label={collapsed ? 'Expand menu' : 'Collapse menu'} onClick={() => setCollapsed((c) => !c)}>{collapsed ? '»' : '«'}</button>
+        </div>
+        <nav>
+          {groups.map((g) => (
+            <div key={g} className="nav-group">
+              {!collapsed && <div className="nav-group-label">{g}</div>}
+              {NAV.filter((n) => n.group === g).map((n) => (
+                <button key={n.key} type="button" title={n.label} className={`nav-item${page === n.key ? ' on' : ''}${n.soon ? ' soon' : ''}`} onClick={() => go(n.key)}>
+                  <span className="nav-icon" aria-hidden>{n.icon}</span>
+                  {!collapsed && <span className="nav-label">{n.label}</span>}
+                  {!collapsed && n.soon && <span className="nav-soon">next</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="sidebar-foot">
+          {!collapsed && <div className="who-block"><strong>{props.session.staff.name}</strong><span className="muted small">Owner</span></div>}
+          <button type="button" className="link-btn" onClick={props.onSignOut}>{collapsed ? '⏻' : 'Sign out'}</button>
+        </div>
+      </aside>
+      <div className="office-main">
+        <header className="office-top">
+          <div className="branch-switch" title="Branch">{props.ctx.pharmacy} · <strong>{props.ctx.branch.name}</strong></div>
+          <button type="button" className="global-search" onClick={() => setPalette(true)}>
+            <span aria-hidden>⌕</span> Search or jump to… <kbd>Ctrl K</kbd>
+          </button>
+          <span className="sync-pill" title="All changes saved">● Synced</span>
+          <button type="button" className="btn primary" onClick={props.onOpenPos}>New sale</button>
+        </header>
+        <main className="office-content">
+          {current.render ? current.render(pageProps) : <ComingNext label={current.label} />}
+        </main>
+      </div>
+      {palette && <CommandPalette onPick={go} onClose={() => setPalette(false)} />}
+    </div>
+  );
+}
+
+function ComingNext(props: { label: string }) {
+  return (
+    <div className="empty-state">
+      <div className="empty-icon" aria-hidden>◌</div>
+      <h2>{props.label}</h2>
+      <p className="muted">This screen is next. Its rules already work in MedFlow's database (tested); the screen is being built on the new design system.</p>
+    </div>
+  );
+}
+
+/** Ctrl+K: type to jump to any page. */
+function CommandPalette(props: { onPick: (key: string) => void; onClose: () => void }) {
+  const [q, setQ] = useState('');
+  const [i, setI] = useState(0);
+  const hits = NAV.filter((n) => n.label.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className="modal-backdrop palette-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) props.onClose(); }}>
+      <div className="palette" role="dialog" aria-label="Command palette">
+        <input autoFocus placeholder="Jump to… (e.g. expiry, customers, new sale)" value={q}
+               onChange={(e) => { setQ(e.target.value); setI(0); }}
+               onKeyDown={(e) => {
+                 if (e.key === 'ArrowDown') { e.preventDefault(); setI((x) => Math.min(hits.length - 1, x + 1)); }
+                 if (e.key === 'ArrowUp') { e.preventDefault(); setI((x) => Math.max(0, x - 1)); }
+                 if (e.key === 'Enter' && hits[i]) props.onPick(hits[i]!.key);
+                 if (e.key === 'Escape') props.onClose();
+               }} />
+        <ul>
+          {hits.map((n, j) => (
+            <li key={n.key} className={j === i ? 'on' : ''} onMouseEnter={() => setI(j)} onMouseDown={() => props.onPick(n.key)}>
+              <span className="nav-icon" aria-hidden>{n.icon}</span>{n.label}<span className="muted small palette-group">{n.group}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}

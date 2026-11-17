@@ -1,46 +1,5 @@
-:root {
-  --bg: #f3f5f8;
-  --surface: #ffffff;
-  --ink: #142033;
-  --ink-2: #4a5a70;
-  --muted: #7a889c;
-  --line: #e2e7ee;
-  --brand: #0e5a8a;
-  --brand-ink: #ffffff;
-  --brand-soft: #e6f1f8;
-  --pay: #12805c;
-  --pay-hover: #0e6b4c;
-  --danger: #c0392b;
-  --danger-soft: #fdecea;
-  --warn: #9a6200;
-  --warn-soft: #fff4dd;
-  --ok-soft: #e7f6ef;
-  --radius: 10px;
-  --shadow: 0 1px 2px rgba(20, 32, 51, 0.06), 0 4px 16px rgba(20, 32, 51, 0.06);
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  font-size: 15px;
-  color: var(--ink);
-  background: var(--bg);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #0f1520;
-    --surface: #172131;
-    --ink: #e8eef6;
-    --ink-2: #b6c2d2;
-    --muted: #8796ab;
-    --line: #263347;
-    --brand: #4aa3df;
-    --brand-ink: #06121f;
-    --brand-soft: #16304a;
-    --pay: #22a676;
-    --pay-hover: #1c8d64;
-    --danger-soft: #3a1e1c;
-    --warn-soft: #3a2e14;
-    --ok-soft: #14332a;
-  }
-}
-:root[dir='rtl'] { font-family: 'Noto Nastaliq Urdu', Inter, system-ui, sans-serif; font-size: 14px; }
+:root { font-family: var(--font-ui); font-size: var(--text-md); color: var(--color-text); background: var(--color-bg); }
+:root[dir='rtl'] { font-family: var(--font-urdu), var(--font-ui); font-size: 14px; }
 /* Nastaliq is tall: keep bars on one line and give text room. */
 :root[dir='rtl'] .topbar, :root[dir='rtl'] .shift-bar, :root[dir='rtl'] .btn, :root[dir='rtl'] .method, :root[dir='rtl'] .link-btn { white-space: nowrap; line-height: 1.6; }
 :root[dir='rtl'] .shortcuts { line-height: 2; }

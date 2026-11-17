@@ -24,7 +24,7 @@ type Dialog =
 interface HeldCart { lines: Array<{ product: Product; unitId: string; qty: number; discountPct: number; priceOverride: number | null }>;
                      billDiscount: number; customer: CustomerHit | null; note: string }
 
-export function Pos(props: AppProps & { session: Session; onSignOut: () => void; onToggleLang: () => void }) {
+export function Pos(props: AppProps & { session: Session; onSignOut: () => void; onToggleLang: () => void; onBackOffice?: (() => void) | undefined }) {
   const { t, ctx, backend, session, lang } = props;
   const [cart, setCart] = useState<CartState>(emptyCart);
   const [selected, setSelected] = useState(0);
@@ -260,6 +260,7 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
         <div className="topbar-right">
           <span className="sync-pill">● {t('sync.synced')}</span>
           <span className="who">{session.staff.name}</span>
+          {props.onBackOffice && <button type="button" className="link-btn" onClick={props.onBackOffice}>Back office</button>}
           <button type="button" className="link-btn" onClick={props.onToggleLang}>{t('pos.language')}</button>
           <button type="button" className="link-btn" onClick={() => setDialog({ kind: 'close_shift' })}>{t('pos.close_shift')}</button>
           <button type="button" className="link-btn" onClick={props.onSignOut}>{t('pos.lock')}</button>

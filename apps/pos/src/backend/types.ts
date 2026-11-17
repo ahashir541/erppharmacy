@@ -124,7 +124,14 @@ export class PosError extends Error {
   }
 }
 
-export interface PosBackend {
+/** The owner's back office. */
+export interface OfficeBackend {
+  ownerRows<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
+  ownerCall<T = unknown>(fn: string, ...args: unknown[]): Promise<T>;
+  ownerTable<T = Record<string, unknown>>(fn: string, ...args: unknown[]): Promise<T[]>;
+}
+
+export interface PosBackend extends OfficeBackend {
   context(): Promise<PosContext>;
   search(query: string): Promise<Product[]>;
   batches(productId: string): Promise<Batch[]>;

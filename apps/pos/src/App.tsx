@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { openLocalBackend } from './backend/local.ts';
 import type { PosBackend, PosContext, Staff } from './backend/types.ts';
 import { tr } from './i18n.ts';
+import { Office } from './office/Office.tsx';
 import { Pos } from './screens/Pos.tsx';
 import { OpenShift } from './screens/Shift.tsx';
 import { SignIn } from './screens/SignIn.tsx';
@@ -29,6 +30,7 @@ export function App() {
   const [progress, setProgress] = useState('');
   const [fatal, setFatal] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [mode, setMode] = useState<'office' | 'pos'>('office');
   const [lang, setLang] = useState<Lang>(() => {
     try { return (localStorage.getItem(LANG_KEY) as Lang) || 'en'; } catch { return 'en'; }
   });
@@ -98,10 +100,15 @@ export function App() {
   const toggleLang = () => setLang((l) => (l === 'en' ? 'ur' : 'en'));
 
   if (!session) {
-    return <SignIn {...props} onSignedIn={setSession} onToggleLang={toggleLang} />;
+    return <SignIn {...props} onSignedIn={(s) => { setSession(s); setMode(s.staff.kind === 'owner' ? 'office' : 'pos'); }} onToggleLang={toggleLang} />;
+  }
+  // The owner lands in the back office; staff go straight to the counter.
+  if (session.staff.kind === 'owner' && mode === 'office') {
+    return <Office {...props} session={session} onOpenPos={() => setMode('pos')} onSignOut={() => void signOut()} />;
   }
   if (!ctx.open_shift) {
     return <OpenShift {...props} session={session} onOpened={reload} onSignOut={() => void signOut()} />;
   }
-  return <Pos {...props} session={session} onSignOut={() => void signOut()} onToggleLang={toggleLang} />;
+  return <Pos {...props} session={session} onSignOut={() => void signOut()} onToggleLang={toggleLang}
+              onBackOffice={session.staff.kind === 'owner' ? () => setMode('office') : undefined} />;
 }

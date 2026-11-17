@@ -23,7 +23,7 @@ function schemaVersion(): string {
 }
 
 export async function openLocalBackend(onProgress: (text: string) => void = () => {}): Promise<LocalBackend> {
-  const name = `idb://medflow-pos-demo-${schemaVersion()}`;
+  const name = `idb://medflow-pos-demo-v2-${schemaVersion()}`;
   const db = new PGlite(name, { extensions: { pg_trgm } });
   await db.waitReady;
   const ready = await db.query<{ ok: boolean }>(`select to_regclass('public.tenants') is not null
@@ -48,6 +48,8 @@ export async function openLocalBackend(onProgress: (text: string) => void = () =
 }
 
 type Tx = Transaction;
+const toParam = (a: unknown) => (a !== null && typeof a === 'object' && !(a instanceof Date) ? JSON.stringify(a) : a);
+const argList = (args: unknown[]) => args.map((a, i) => `$${i + 1}${a !== null && typeof a === 'object' && !(a instanceof Date) ? '::jsonb' : ''}`).join(', ');
 
 export class LocalBackend implements PosBackend {
   private readonly db: PGlite;
@@ -68,6 +70,38 @@ export class LocalBackend implements PosBackend {
       const e = err as { message?: string; code?: string; hint?: string; detail?: string };
       throw new PosError(e.message ?? String(err), e.code ?? '', e.hint ?? null, e.detail ?? null);
     }
+  }
+
+  /** Runs as the owner signed in with 2FA (the back office). */
+  private async asOwner<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+    try {
+      return await this.db.transaction(async (tx) => {
+        await tx.query(`select set_config('request.jwt.claims', $1, true)`,
+          [JSON.stringify({ sub: DEMO.ownerAuth, role: 'authenticated', aal: 'aal2', tenant_id: DEMO.tenant })]);
+        await tx.exec('set local role authenticated');
+        return fn(tx);
+      });
+    } catch (err) {
+      const e = err as { message?: string; code?: string; hint?: string; detail?: string };
+      throw new PosError(e.message ?? String(err), e.code ?? '', e.hint ?? null, e.detail ?? null);
+    }
+  }
+
+  /** Back office: rows of a query, as the owner (Row Level Security applies). */
+  ownerRows<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> {
+    return this.asOwner(async (tx) => (await tx.query<T>(sql, params.map(toParam))).rows);
+  }
+
+  /** Back office: one MedFlow function returning a value, as the owner. */
+  ownerCall<T = unknown>(fn: string, ...args: unknown[]): Promise<T> {
+    if (!/^[a-z_]+$/.test(fn)) throw new Error('bad function name');
+    return this.asOwner(async (tx) => (await tx.query<{ r: T }>(`select public.${fn}(${argList(args)}) r`, args.map(toParam))).rows[0]!.r);
+  }
+
+  /** Back office: a MedFlow function returning rows, as the owner. */
+  ownerTable<T = Record<string, unknown>>(fn: string, ...args: unknown[]): Promise<T[]> {
+    if (!/^[a-z_]+$/.test(fn)) throw new Error('bad function name');
+    return this.asOwner(async (tx) => (await tx.query<T>(`select * from public.${fn}(${argList(args)})`, args.map(toParam))).rows);
   }
 
   private async one<T>(sql: string, params: unknown[] = []): Promise<T> {

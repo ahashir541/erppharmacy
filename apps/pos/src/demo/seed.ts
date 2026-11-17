@@ -9,6 +9,9 @@ export const DEMO = {
   device: '0195f000-0000-7000-8000-000000000003',
   deviceAuth: '0195f000-0000-7000-8000-000000000004',
   drawer: '0195f000-0000-7000-8000-000000000005',
+  ownerAuth: '0195f000-0000-7000-8000-000000000006',
+  bank: '0195f000-0000-7000-8000-000000000007',
+  wallet: '0195f000-0000-7000-8000-000000000008',
   staff: [
     { id: '0195f000-0000-7000-8000-000000000010', name: 'Syed Hashir Ali', kind: 'owner', role: 'owner', pin: '1470' },
     { id: '0195f000-0000-7000-8000-000000000011', name: 'Sana Malik', kind: 'staff', role: 'manager', pin: '2580' },
@@ -64,7 +67,8 @@ export async function demoSeedSql(): Promise<string> {
   out.push(`insert into tenants (id, name, owner_name, owner_phone, owner_email, city, plan_id, status, trial_ends_at)
     select '${T}', 'Demo Pharmacy', 'Syed Hashir Ali', '03000000000', 'owner@demo.invalid', 'Karachi', id, 'trial', now() + interval '14 days'
     from plans where code = 'pro';`);
-  out.push(`insert into users (id, tenant_id, kind, is_primary_owner, full_name, status) values ('${owner}', '${T}', 'owner', true, 'Syed Hashir Ali', 'active');`);
+  out.push(`insert into auth.users (id, email) values ('${DEMO.ownerAuth}', 'owner@demo.invalid');`);
+  out.push(`insert into users (id, tenant_id, auth_user_id, kind, is_primary_owner, full_name, status) values ('${owner}', '${T}', '${DEMO.ownerAuth}', 'owner', true, 'Syed Hashir Ali', 'active');`);
   out.push(`insert into branches (id, tenant_id, code, name, address, city, phone, closing_time)
     values ('${DEMO.branch}', '${T}', 'KHI1', 'Saddar Branch', 'Shop 12, Saddar, Karachi', 'Karachi', '021-35550000', '23:00');`);
   out.push(`select app.seed_tenant_defaults('${T}', '${owner}');`);
@@ -142,6 +146,23 @@ export async function demoSeedSql(): Promise<string> {
         values ('${T}', '${bid}', 'opening', ${qty}, ${Math.round(boxPaisa * 0.85) * boxes}, now() - interval '30 days', '${owner}');`);
     }
   });
+
+  out.push(`insert into bank_accounts (id, tenant_id, kind, name, bank_name) values
+    ('${DEMO.bank}', '${T}', 'bank', 'Meezan Bank current', 'Meezan Bank'), ('${DEMO.wallet}', '${T}', 'jazzcash', 'Shop JazzCash', 'JazzCash');`);
+  out.push(`select app.ensure_expense_categories('${T}');`);
+  const suppliers: Array<[string, string, number, number]> = [
+    ['Muller & Phipps Pakistan', '02132410000', 30, 4_500_000],
+    ['Premier Agencies', '02132420000', 15, 1_250_000],
+    ['United Distributors', '04235760000', 21, 0],
+  ];
+  for (const [name, phone, terms, opening] of suppliers) {
+    const sid = id();
+    out.push(`insert into suppliers (id, tenant_id, name, phone, payment_terms_days) values ('${sid}', '${T}', ${q(name)}, '${phone}', ${terms});`);
+    if (opening > 0) {
+      out.push(`insert into ledger_entries (tenant_id, branch_id, party_type, supplier_id, entry_type, credit, entry_date, due_date, memo, occurred_at, created_by)
+        values ('${T}', '${DEMO.branch}', 'supplier', '${sid}', 'opening', ${opening}, current_date - 20, current_date + 10, 'opening balance', now() - interval '20 days', '${owner}');`);
+    }
+  }
 
   const customers: Array<[string, string, number, number]> = [
     ['Khan Family', '03001234567', 2_000_000, 450_000],

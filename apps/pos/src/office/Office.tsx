@@ -10,6 +10,9 @@ import { Dashboard, Invoices, Shifts } from './sales.tsx';
 import { Expiry, Movements, Products } from './stock.tsx';
 import type { PageProps } from './ui.tsx';
 
+const LABEL_UR: Record<string, string> = {"dashboard": "ڈیش بورڈ", "pos": "نئی فروخت", "invoices": "فروخت اور بل", "customers": "گاہک اور ادھار", "shifts": "شفٹیں", "products": "ادویات اور اسٹاک", "expiry": "میعاد", "movements": "اسٹاک کی آمد و رفت", "suppliers": "سپلائرز", "purchases": "خریداری", "expenses": "اخراجات", "accounts": "حسابات", "reports": "رپورٹس", "approvals": "منظوریاں اور الرٹس", "team": "عملہ", "settings": "ترتیبات"};
+const GROUP_LABEL_UR: Record<string, string> = {"Overview": "جائزہ", "Sales": "فروخت", "Inventory": "اسٹاک", "Purchasing": "خریداری", "Money": "رقم", "Admin": "انتظام"};
+
 interface NavItem { key: string; label: string; icon: string; group: string; render?: (p: PageProps) => ReactNode; soon?: boolean }
 
 const NAV: NavItem[] = [
@@ -31,7 +34,7 @@ const NAV: NavItem[] = [
   { key: 'settings', label: 'Settings', icon: '⚙', group: 'Admin', render: (p) => <Settings {...p} /> },
 ];
 
-export function Office(props: AppProps & { session: Session; onOpenPos: () => void; onSignOut: () => void }) {
+export function Office(props: AppProps & { session: Session; onOpenPos: () => void; onSignOut: () => void; onToggleLang: () => void }) {
   const [page, setPage] = useState('dashboard');
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1200);
   const [palette, setPalette] = useState(false);
@@ -52,6 +55,9 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const ur = props.lang === 'ur';
+  const L = (n: NavItem) => (ur ? LABEL_UR[n.key] ?? n.label : n.label);
+  const G = (g: string) => (ur ? GROUP_LABEL_UR[g] ?? g : g);
   const current = NAV.find((n) => n.key === page)!;
   const groups = [...new Set(NAV.map((n) => n.group))];
   return (
@@ -65,11 +71,11 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
         <nav>
           {groups.map((g) => (
             <div key={g} className="nav-group">
-              {!collapsed && <div className="nav-group-label">{g}</div>}
+              {!collapsed && <div className="nav-group-label">{G(g)}</div>}
               {NAV.filter((n) => n.group === g).map((n) => (
-                <button key={n.key} type="button" title={n.label} className={`nav-item${page === n.key ? ' on' : ''}${n.soon ? ' soon' : ''}`} onClick={() => go(n.key)}>
+                <button key={n.key} type="button" title={L(n)} className={`nav-item${page === n.key ? ' on' : ''}${n.soon ? ' soon' : ''}`} onClick={() => go(n.key)}>
                   <span className="nav-icon" aria-hidden>{n.icon}</span>
-                  {!collapsed && <span className="nav-label">{n.label}</span>}
+                  {!collapsed && <span className="nav-label">{L(n)}</span>}
                   {!collapsed && n.soon && <span className="nav-soon">next</span>}
                 </button>
               ))}
@@ -87,6 +93,7 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
           <button type="button" className="global-search" onClick={() => setPalette(true)}>
             <span aria-hidden>⌕</span> Search or jump to… <kbd>Ctrl K</kbd>
           </button>
+          <button type="button" className="link-btn" onClick={props.onToggleLang}>{props.lang === 'ur' ? 'English' : 'اردو'}</button>
           <span className="sync-pill" title="All changes saved">● Synced</span>
           <button type="button" className="btn primary" onClick={props.onOpenPos}>New sale</button>
         </header>

@@ -98,6 +98,10 @@ export class LocalBackend implements PosBackend {
     return this.asOwner(async (tx) => (await tx.query<{ r: T }>(`select public.${fn}(${argList(args)}) r`, args.map(toParam))).rows[0]!.r);
   }
 
+  office<T = unknown>(name: string, ...args: unknown[]): Promise<T> {
+    return this.ownerCall<T>(`office_${name}`, ...args);
+  }
+
   /** Back office: a MedFlow function returning rows, as the owner. */
   ownerTable<T = Record<string, unknown>>(fn: string, ...args: unknown[]): Promise<T[]> {
     if (!/^[a-z_]+$/.test(fn)) throw new Error('bad function name');

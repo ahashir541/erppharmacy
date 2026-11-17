@@ -4,10 +4,7 @@ import { csvButton, DateRange, dateOf, Modal, money, monthStart, PageHead, Stat,
 
 /** Where money can come from or go to: an open cash drawer, or a bank / wallet account. */
 export function useMoneyAccounts(props: PageProps) {
-  return useLoad(() => props.db.ownerRows<{ kind: 'drawer' | 'bank'; id: string; name: string }>(`
-    select 'drawer' kind, ds.id, d.name || ' (cash, open shift)' name from drawer_sessions ds join cash_drawers d on d.id = ds.cash_drawer_id
-    where ds.status = 'open' and ds.branch_id = $1
-    union all select 'bank', id, name from bank_accounts where archived_at is null`, [props.branchId]), []);
+  return useLoad(() => props.db.office<{ kind: 'drawer' | 'bank'; id: string; name: string }[]>('money_accounts', props.branchId), []);
 }
 const methodFor = (kind: string, name: string) => (kind === 'drawer' ? 'cash' : /jazz/i.test(name) ? 'jazzcash' : /easy/i.test(name) ? 'easypaisa' : 'bank_transfer');
 
@@ -21,15 +18,7 @@ export function Customers(props: PageProps) {
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<CustomerRow | null>(null);
-  const { data, error, reload } = useLoad(() => props.db.ownerRows<CustomerRow>(`
-    select c.id customer_id, a.id account_id, a.account_number, c.name, c.phone, coalesce(pb.balance, 0)::bigint balance, a.udhaar_blocked,
-           (select limit_amount from credit_limits cl where cl.account_id = a.id order by effective_from desc, created_at desc limit 1) credit_limit,
-           coalesce(cs.status, 'no_limit_set') status
-    from customers c join customer_accounts a on a.id = c.account_id
-    left join party_balances pb on pb.party_type = 'customer_account' and pb.party_id = a.id
-    left join customer_credit_status cs on cs.account_id = a.id
-    where c.archived_at is null and ($1 = '' or c.name ilike '%' || $1 || '%' or c.phone like '%' || $1 || '%' or a.account_number ilike $1)
-    order by coalesce(pb.balance, 0) desc, c.name`, [q.trim()]), [q]);
+  const { data, error, reload } = useLoad(() => props.db.office<CustomerRow[]>('customers', q.trim()), [q]);
   const ageing = useLoad(() => props.db.ownerTable<Ageing>('party_ageing', 'customer_account', props.today), [data]);
   const owed = (ageing.data ?? []).filter((a) => a.balance > 0);
   const overdue = owed.reduce((s, a) => s + Number(a.days_1_30) + Number(a.days_31_60) + Number(a.days_61_90) + Number(a.days_over_90), 0);
@@ -170,10 +159,7 @@ interface SupplierRow { id: string; name: string; phone: string | null; payment_
 export function Suppliers(props: PageProps) {
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<SupplierRow | null>(null);
-  const { data, error, reload } = useLoad(() => props.db.ownerRows<SupplierRow>(`
-    select s.id, s.name, s.phone, s.payment_terms_days, coalesce(pb.balance, 0)::bigint balance
-    from suppliers s left join party_balances pb on pb.party_type = 'supplier' and pb.party_id = s.id
-    where s.archived_at is null order by coalesce(pb.balance, 0) desc, s.name`), []);
+  const { data, error, reload } = useLoad(() => props.db.office<SupplierRow[]>('suppliers'), []);
   const ageing = useLoad(() => props.db.ownerTable<Ageing>('party_ageing', 'supplier', props.today), [data]);
   const total = (data ?? []).reduce((s, r) => s + Number(r.balance), 0);
   const dueSoon = (ageing.data ?? []).reduce((s, a) => s + Number(a.days_1_30) + Number(a.days_31_60) + Number(a.days_61_90) + Number(a.days_over_90), 0);

@@ -10,10 +10,7 @@ const emptyLine = (): Line => ({ key: crypto.randomUUID(), product: null, unitId
 
 /** Find a medicine and its pack sizes (owner side). */
 function useProductSearch(props: PageProps, q: string) {
-  return useLoad(() => (q.trim().length < 2 ? Promise.resolve([] as ProductPick[]) : props.db.ownerRows<ProductPick>(`
-    select p.id, p.brand_name, (select json_agg(json_build_object('id', pu.id, 'name', u.name, 'factor', pu.factor_to_base) order by pu.factor_to_base desc)
-                                from product_units pu join units u on u.id = pu.unit_id where pu.product_id = p.id and pu.archived_at is null) units
-    from products p where p.archived_at is null and p.brand_name ilike '%' || $1 || '%' order by p.brand_name limit 12`, [q.trim()])), [q]);
+  return useLoad(() => (q.trim().length < 2 ? Promise.resolve([] as ProductPick[]) : props.db.office<ProductPick[]>('product_search', q.trim())), [q]);
 }
 
 function ProductPicker(props: PageProps & { value: ProductPick | null; onPick: (p: ProductPick) => void }) {
@@ -34,7 +31,7 @@ function ProductPicker(props: PageProps & { value: ProductPick | null; onPick: (
 }
 
 interface Supplier { id: string; name: string; payment_terms_days: number | null }
-const useSuppliers = (props: PageProps) => useLoad(() => props.db.ownerRows<Supplier>(`select id, name, payment_terms_days from suppliers where archived_at is null order by name`), []);
+const useSuppliers = (props: PageProps) => useLoad(() => props.db.office<Supplier[]>('suppliers'), []);
 
 export function Purchases(props: PageProps) {
   const [tab, setTab] = useState<'deliveries' | 'orders' | 'returns'>('deliveries');
@@ -66,13 +63,7 @@ export function Purchases(props: PageProps) {
 interface DeliveryRow { id: string; grn_number: string; received_at: string; supplier: string; invoice_no: string | null; total: number | null; open: number | null; lines: number }
 
 function Deliveries(props: PageProps) {
-  const { data, error } = useLoad(() => props.db.ownerRows<DeliveryRow>(`
-    select g.id, g.grn_number, g.received_at, s.name supplier, coalesce(pi.supplier_invoice_number, g.supplier_invoice_number) invoice_no, pi.grand_total total,
-           (select count(*) from grn_lines gl where gl.grn_id = g.id)::int lines,
-           (select o.open_amount from public.open_bills('supplier', g.supplier_id) o where o.entry_id =
-              (select le.id from ledger_entries le where le.reference_type = 'purchase_invoice' and le.reference_id = pi.id limit 1)) open
-    from grns g join suppliers s on s.id = g.supplier_id left join purchase_invoices pi on pi.grn_id = g.id and pi.status = 'posted'
-    where g.branch_id = $1 order by g.received_at desc limit 300`, [props.branchId]), []);
+  const { data, error } = useLoad(() => props.db.office<DeliveryRow[]>('deliveries', props.branchId), []);
   const total = (data ?? []).reduce((s, r) => s + Number(r.total ?? 0), 0);
   return (
     <>
@@ -97,12 +88,8 @@ function Deliveries(props: PageProps) {
 function ReceiveDelivery(props: PageProps & { order: OrderRow | null; onClose: () => void; onSaved: () => void }) {
   const suppliers = useSuppliers(props);
   const accounts = useMoneyAccounts(props);
-  const orderLines = useLoad(() => (props.order ? props.db.ownerRows<{ id: string; product_id: string; brand_name: string; unit_id: string; qty: number; bonus_qty: number;
-    units: ProductPick['units'] }>(`
-    select pl.id, pl.product_id, p.brand_name, pl.product_unit_id unit_id, pl.qty::int, pl.bonus_qty::int,
-           (select json_agg(json_build_object('id', pu.id, 'name', u.name, 'factor', pu.factor_to_base) order by pu.factor_to_base desc)
-              from product_units pu join units u on u.id = pu.unit_id where pu.product_id = p.id) units
-    from po_lines pl join products p on p.id = pl.product_id where pl.purchase_order_id = $1`, [props.order.id]) : Promise.resolve([])), []);
+  const orderLines = useLoad(() => (props.order ? props.db.office<{ id: string; product_id: string; brand_name: string; unit_id: string; qty: number; bonus_qty: number;
+    units: ProductPick['units'] }[]>('order_lines', props.order.id) : Promise.resolve([])), []);
   const [supplier, setSupplier] = useState(props.order?.supplier_id ?? '');
   const [invoiceNo, setInvoiceNo] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(props.today);
@@ -187,16 +174,14 @@ function ReceiveDelivery(props: PageProps & { order: OrderRow | null; onClose: (
   );
 }
 
-interface OrderRow { id: string; po_number: string; supplier_id: string; supplier: string; order_date: string; status: string; lines: number }
+interface OrderRow { id: string; po_number: string; supplier_id: string; supplier: string; supplier_whatsapp: string | null; order_date: string; status: string; lines: number }
 
 function Orders(props: PageProps & { onReceive: (o: OrderRow) => void }) {
   const [sent, setSent] = useState<{ text: string; phone: string | null } | null>(null);
-  const { data, error, reload } = useLoad(() => props.db.ownerRows<OrderRow>(`
-    select po.id, po.po_number, po.supplier_id, s.name supplier, po.order_date, po.status, (select count(*) from po_lines where purchase_order_id = po.id)::int lines
-    from purchase_orders po join suppliers s on s.id = po.supplier_id where po.branch_id = $1 order by po.created_at desc limit 200`, [props.branchId]), []);
+  const { data, error, reload } = useLoad(() => props.db.office<OrderRow[]>('orders', props.branchId), []);
   const send = async (o: OrderRow) => {
     const text = await props.db.ownerCall<string>('send_purchase_order', o.id, 'whatsapp');
-    const phone = (await props.db.ownerRows<{ whatsapp: string | null }>('select coalesce(whatsapp, phone) whatsapp from suppliers where id = $1', [o.supplier_id]))[0]?.whatsapp ?? null;
+    const phone = o.supplier_whatsapp;
     setSent({ text, phone });
     reload();
   };
@@ -263,10 +248,7 @@ interface ReturnRow { id: string; return_number: string; created_at: string; sup
 
 function Returns(props: PageProps) {
   const [settle, setSettle] = useState<ReturnRow | null>(null);
-  const { data, error, reload } = useLoad(() => props.db.ownerRows<ReturnRow>(`
-    select r.id, r.return_number, r.created_at, s.name supplier, r.reason, r.status, c.claimed_amount claimed, c.settled_amount settled
-    from purchase_returns r join suppliers s on s.id = r.supplier_id left join supplier_claims c on c.reference_type = 'purchase_return' and c.reference_id = r.id
-    where r.branch_id = $1 order by r.created_at desc`, [props.branchId]), []);
+  const { data, error, reload } = useLoad(() => props.db.office<ReturnRow[]>('returns', props.branchId), []);
   return (
     <>
       <Table rows={data} error={error} empty="No returns to suppliers." cols={[
@@ -303,9 +285,7 @@ function SettleReturn(props: PageProps & { row: ReturnRow; onClose: () => void; 
 
 function NewReturn(props: PageProps & { onClose: () => void; onSaved: () => void }) {
   const suppliers = useSuppliers(props);
-  const batches = useLoad(() => props.db.ownerRows<{ batch_id: string; label: string; qty_base: number }>(`
-    select batch_id, brand_name || ' · ' || batch_number || ' · exp ' || to_char(expiry_date, 'DD Mon YY') || ' · ' || qty_base || ' in stock' label, qty_base::int
-    from expiry_dashboard where branch_id = $1 order by expiry_date`, [props.branchId]), []);
+  const batches = useLoad(() => props.db.office<{ batch_id: string; label: string; qty_base: number }[]>('shelf_batches', props.branchId), []);
   const [supplier, setSupplier] = useState('');
   const [batch, setBatch] = useState('');
   const [qty, setQty] = useState('');

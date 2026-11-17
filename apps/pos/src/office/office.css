@@ -126,3 +126,17 @@ kbd { font: var(--text-xs) var(--font-mono); border: 1px solid var(--color-borde
 a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 @media (max-width: 900px) { .reports { grid-template-columns: 1fr; } .report-list { position: static; } .order-line { grid-template-columns: 1fr 1fr; } }
 @media print { .sidebar, .office-top, .report-list, .page-actions, .filters { display: none !important; } .office { display: block; } }
+
+/* Chart, drawer, skeleton */
+.chart-panel { gap: var(--space-2); }
+.bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--space-2); height: 180px; align-items: end; }
+.bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; min-width: 0; }
+.bar { width: 100%; max-width: 48px; background: var(--color-brand); border-radius: 6px 6px 2px 2px; transition: height var(--motion-base) var(--ease); }
+.bar-value { font-size: var(--text-xs); color: var(--color-text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bar-label { font-size: var(--text-xs); color: var(--color-text-2); }
+.drawer-backdrop { position: fixed; inset: 0; background: rgba(10, 18, 30, 0.4); z-index: 60; display: flex; justify-content: flex-end; }
+.drawer { width: min(560px, 100%); height: 100%; background: var(--color-surface); box-shadow: var(--shadow-2); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); overflow: auto; animation: slide-in var(--motion-base) var(--ease); }
+@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+:root[dir='rtl'] .drawer-backdrop { justify-content: flex-start; }
+.skeleton { border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--color-surface-2), var(--color-border), var(--color-surface-2)); background-size: 200% 100%; animation: shimmer 1.2s infinite linear; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }

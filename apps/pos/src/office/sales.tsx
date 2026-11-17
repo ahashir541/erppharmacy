@@ -2,6 +2,7 @@ import { formatReceipt } from '@medflow/core';
 import { useState } from 'react';
 import type { Receipt } from '../backend/types.ts';
 import { receiptData } from '../screens/Dialogs.tsx';
+import { SalesTrend } from './extras.tsx';
 import { csvButton, DateRange, dateOf, Modal, money, PageHead, Stat, Table, timeOf, useLoad, type Col, type PageProps } from './ui.tsx';
 
 interface Dash {
@@ -42,6 +43,7 @@ export function Dashboard(props: PageProps) {
         <Stat label="Owed to suppliers" value={money(data.supplier_payable)} />
         <Stat label="Expiring in 90 days (cost)" value={money(data.expiring_90_days_cost)} sub={`Dead stock ${money(data.dead_stock_cost)}`} tone="bad" />
       </div>
+      <SalesTrend {...props} />
       <div className="grid-2">
         <section className="panel">
           <div className="panel-title">Needs attention</div>
@@ -82,14 +84,7 @@ export function Invoices(props: PageProps) {
   const [status, setStatus] = useState('all');
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<InvoiceRow | null>(null);
-  const { data, error } = useLoad(() => props.db.ownerRows<InvoiceRow>(`
-    select s.id, s.invoice_number, s.sold_at, s.status, s.grand_total, s.udhaar_amount, s.discount_total,
-           (select full_name from users where id = s.created_by) cashier, (select name from customers where id = s.customer_id) customer
-    from owner_sales s
-    where s.business_date between $1 and $2
-      and ($3 = 'all' or ($3 = 'udhaar' and s.udhaar_amount > 0 and s.status = 'completed') or ($3 = 'paid' and s.udhaar_amount = 0 and s.status = 'completed') or s.status = $3)
-      and ($4 = '' or s.invoice_number ilike '%' || $4 || '%' or exists (select 1 from customers c where c.id = s.customer_id and (c.name ilike '%' || $4 || '%' or c.phone like '%' || $4 || '%')))
-    order by s.sold_at desc limit 500`, [from, to, status, q.trim()]), [from, to, status, q]);
+  const { data, error } = useLoad(() => props.db.office<InvoiceRow[]>('invoices', from, to, status, q.trim()), [from, to, status, q]);
   const done = (data ?? []).filter((r) => r.status === 'completed');
   const cols: Col<InvoiceRow>[] = [
     { label: 'Bill', value: (r) => r.invoice_number },
@@ -138,14 +133,7 @@ interface ShiftRow { id: string; drawer: string; opened_by: string; closed_by: s
 export function Shifts(props: PageProps) {
   const [from, setFrom] = useState(props.today.slice(0, 8) + '01');
   const [to, setTo] = useState(props.today);
-  const { data, error } = useLoad(() => props.db.ownerRows<ShiftRow>(`
-    select ds.id, d.name drawer, (select full_name from users where id = ds.opened_by) opened_by, (select full_name from users where id = ds.closed_by) closed_by,
-           ds.opened_at, ds.closed_at, ds.status, ds.opening_float, ds.counted_cash, r.expected_cash, r.variance,
-           case when ds.status = 'open' then (select balance from money_balances where account_kind = 'drawer_session' and account_id = ds.id) end in_drawer_now,
-           (select count(distinct sale_id) from sale_payments sp where sp.drawer_session_id = ds.id)::int bills
-    from drawer_sessions ds join cash_drawers d on d.id = ds.cash_drawer_id
-    left join drawer_session_reconciliations r on r.drawer_session_id = ds.id
-    where ds.opened_at::date between $1 and $2 order by ds.opened_at desc`, [from, to]), [from, to]);
+  const { data, error } = useLoad(() => props.db.office<ShiftRow[]>('shifts', from, to), [from, to]);
   return (
     <>
       <PageHead title="Shifts" sub="Each cashier's drawer: what was counted and what was expected. Staff never see the expected amount." />

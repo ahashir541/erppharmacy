@@ -129,6 +129,8 @@ export interface OfficeBackend {
   ownerRows<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
   ownerCall<T = unknown>(fn: string, ...args: unknown[]): Promise<T>;
   ownerTable<T = Record<string, unknown>>(fn: string, ...args: unknown[]): Promise<T[]>;
+  /** A back-office list: public.office_<name>(...) (the same call works on the cloud). */
+  office<T = unknown>(name: string, ...args: unknown[]): Promise<T>;
 }
 
 export interface PosBackend extends OfficeBackend {

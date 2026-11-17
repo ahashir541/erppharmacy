@@ -8,10 +8,8 @@ interface Approval { id: string; kind: string; permission_code: string; amount: 
 interface Note { id: string; kind: string; title: string; body: string; created_at: string; read_at: string | null }
 
 export function Approvals(props: PageProps) {
-  const approvals = useLoad(() => props.db.ownerRows<Approval>(`
-    select a.id, a.kind, a.permission_code, a.amount, a.details, a.created_at, a.expires_at, (select full_name from users where id = a.created_by) who
-    from approval_requests a where a.status = 'pending' and (a.expires_at is null or a.expires_at > now()) order by a.created_at desc`), []);
-  const notes = useLoad(() => props.db.ownerRows<Note>(`select id, kind, title, body, created_at, read_at from notifications order by created_at desc limit 200`), []);
+  const approvals = useLoad(() => props.db.office<Approval[]>('approvals'), []);
+  const notes = useLoad(() => props.db.office<Note[]>('notifications'), []);
   const decide = async (id: string, ok: boolean) => {
     await props.db.ownerCall('decide_approval', id, ok, null);
     approvals.reload();
@@ -53,13 +51,7 @@ interface Member { id: string; full_name: string; kind: string; status: string; 
 export function Team(props: PageProps) {
   const [adding, setAdding] = useState(false);
   const [pinFor, setPinFor] = useState<Member | null>(null);
-  const { data, error, reload } = useLoad(() => props.db.ownerRows<Member>(`
-    select u.id, u.full_name, u.kind, u.status, u.phone,
-           (select string_agg(r.name || coalesce(' @ ' || b.name, ' (all branches)'), ', ') from user_roles ur join roles r on r.id = ur.role_id
-              left join branches b on b.id = ur.branch_id where ur.user_id = u.id and ur.archived_at is null) roles,
-           u.id in (select public.staff_with_pin()) has_pin,
-           (select max(coalesce(last_active_at, started_at)) from user_sessions s where s.user_id = u.id) last_seen
-    from users u where u.archived_at is null order by u.kind desc, u.full_name`), []);
+  const { data, error, reload } = useLoad(() => props.db.office<Member[]>('team'), []);
   const toggle = async (m: Member) => {
     if (m.status === 'active') await props.db.ownerCall('disable_user', m.id, 'Disabled by the owner');
     else await props.db.ownerCall('enable_user', m.id);
@@ -89,7 +81,7 @@ export function Team(props: PageProps) {
 }
 
 function AddStaff(props: PageProps & { onClose: () => void; onSaved: () => void }) {
-  const roles = useLoad(() => props.db.ownerRows<{ id: string; name: string }>(`select id, name from roles where archived_at is null and template_code is distinct from 'owner' order by name`), []);
+  const roles = useLoad(() => props.db.office<{ id: string; name: string }[]>('roles'), []);
   const [f, setF] = useState({ name: '', phone: '', role: '', allBranches: false, pin: '' });
   const set = (k: keyof typeof f, v: string | boolean) => setF((x) => ({ ...x, [k]: v }));
   const { busy, error, submit } = useSubmit(async () => {
@@ -155,19 +147,13 @@ const ALERTS: Array<[string, string, string | null]> = [
 ];
 
 export function Settings(props: PageProps) {
-  const biz = useLoad(() => props.db.ownerRows<{ name: string; owner_name: string; owner_phone: string; city: string; status: string; trial_ends_at: string | null;
-    branch: string; address: string; phone: string | null; footer: string | null; width: number | null; rounding: number | null }>(`
-    select t.name, t.owner_name, t.owner_phone, t.city, t.status, t.trial_ends_at, b.name branch, b.address, b.phone,
-           (select value #>> '{}' from settings where key = 'pos.receipt_footer' and branch_id is null limit 1) footer,
-           (select (value #>> '{}')::int from settings where key = 'pos.receipt_width' and branch_id is null limit 1) width,
-           (select (value #>> '{}')::int from settings where key = 'pos.bill_rounding_minor' and branch_id is null limit 1) rounding
-    from tenants t join branches b on b.tenant_id = t.id where b.id = $1`, [props.branchId]), []);
-  const rules = useLoad(() => props.db.ownerRows<{ kind: string; enabled: boolean; threshold: number | null }>(`select kind, enabled, threshold from alert_rules`), []);
-  const devices = useLoad(() => props.db.ownerRows<{ name: string; last_seen_at: string | null; last_sync_at: string | null; app_version: string | null; status: string }>(
-    `select name, last_seen_at, last_sync_at, app_version, status from devices where archived_at is null order by name`), []);
+  const biz = useLoad(() => props.db.office<{ business: { name: string; owner_name: string; owner_phone: string; city: string; status: string; trial_ends_at: string | null;
+    branch: string; address: string; phone: string | null; footer: string | null; width: number | null; rounding: number | null }; rules: Array<{ kind: string; enabled: boolean; threshold: number | null }>; devices: Array<{ name: string; last_seen_at: string | null; last_sync_at: string | null; app_version: string | null; status: string }> }>('settings', props.branchId), []);
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem(LS.theme) ?? 'system'; } catch { return 'system'; } });
   const [contrast, setContrast] = useState(() => { try { return localStorage.getItem(LS.contrast) ?? 'normal'; } catch { return 'normal'; } });
-  const b = biz.data?.[0];
+  const b = biz.data?.business;
+  const rules = { data: biz.data?.rules ?? null, reload: biz.reload };
+  const devices = { data: biz.data?.devices ?? null };
   const [footer, setFooter] = useState<string | null>(null);
   const [width, setWidth] = useState<string | null>(null);
   const [rounding, setRounding] = useState<string | null>(null);

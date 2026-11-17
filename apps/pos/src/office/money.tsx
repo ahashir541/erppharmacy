@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toPaisa } from '../util.ts';
+import { MoveMoney } from './extras.tsx';
 import { useMoneyAccounts } from './parties.tsx';
 import { csvButton, DateRange, dateOf, Modal, money, monthStart, PageHead, Stat, Table, timeOf, useLoad, useSubmit, type Col, type PageProps } from './ui.tsx';
 
@@ -10,10 +11,7 @@ export function Expenses(props: PageProps) {
   const [from, setFrom] = useState(monthStart(props.today));
   const [to, setTo] = useState(props.today);
   const [adding, setAdding] = useState(false);
-  const { data, error, reload } = useLoad(() => props.db.ownerRows<ExpenseRow>(`
-    select e.id, e.expense_date, c.name category, e.description, e.amount, e.paid_from, e.status, (select full_name from users where id = e.created_by) "by"
-    from expenses e join expense_categories c on c.id = e.category_id
-    where e.branch_id = $1 and e.expense_date between $2 and $3 order by e.expense_date desc, e.created_at desc`, [props.branchId, from, to]), [from, to]);
+  const { data, error, reload } = useLoad(() => props.db.office<ExpenseRow[]>('expenses', props.branchId, from, to), [from, to]);
   const posted = (data ?? []).filter((r) => r.status === 'posted');
   const byCat = Object.entries(posted.reduce<Record<string, number>>((m, r) => ({ ...m, [r.category]: (m[r.category] ?? 0) + Number(r.amount) }), {})).sort((a, b) => b[1] - a[1]);
   const cols: Col<ExpenseRow>[] = [
@@ -42,7 +40,7 @@ export function Expenses(props: PageProps) {
 }
 
 function AddExpense(props: PageProps & { onClose: () => void; onSaved: () => void }) {
-  const cats = useLoad(() => props.db.ownerRows<{ id: string; name: string }>(`select id, name from expense_categories where archived_at is null order by name`), []);
+  const cats = useLoad(() => props.db.office<{ id: string; name: string }[]>('expense_categories'), []);
   const accounts = useMoneyAccounts(props);
   const [f, setF] = useState({ category: '', description: '', amount: '', date: props.today, from: '' });
   const set = (k: keyof typeof f, v: string) => setF((x) => ({ ...x, [k]: v }));
@@ -95,20 +93,10 @@ export function Accounts(props: PageProps) {
 }
 
 function CashBook(props: PageProps & { from: string; to: string }) {
-  const balances = useLoad(() => props.db.ownerRows<{ kind: string; id: string; name: string; balance: number }>(`
-    select 'drawer' kind, ds.id, d.name || ' · ' || (select full_name from users where id = ds.opened_by) || ' (open)' name, coalesce(mb.balance, 0)::bigint balance
-    from drawer_sessions ds join cash_drawers d on d.id = ds.cash_drawer_id
-    left join money_balances mb on mb.account_kind = 'drawer_session' and mb.account_id = ds.id where ds.status = 'open'
-    union all
-    select 'bank', b.id, b.name, coalesce(mb.balance, 0)::bigint from bank_accounts b
-    left join money_balances mb on mb.account_kind = 'bank_account' and mb.account_id = b.id where b.archived_at is null`), []);
+  const balances = useLoad(() => props.db.office<{ kind: string; id: string; name: string; balance: number }[]>('balances'), []);
+  const [moving, setMoving] = useState(false);
   const [acc, setAcc] = useState<string>('all');
-  const moves = useLoad(() => props.db.ownerRows<{ occurred_at: string; account: string; movement_type: string; memo: string | null; amount: number; who: string | null }>(`
-    select m.occurred_at, coalesce(b.name, d.name || ' drawer') account, m.movement_type, m.memo, m.amount, (select full_name from users where id = m.created_by) who
-    from cash_movements m left join bank_accounts b on b.id = m.bank_account_id
-    left join drawer_sessions ds on ds.id = m.drawer_session_id left join cash_drawers d on d.id = ds.cash_drawer_id
-    where m.occurred_at::date between $1 and $2 and ($3 = 'all' or m.bank_account_id::text = $3 or m.drawer_session_id::text = $3)
-    order by m.occurred_at desc limit 500`, [props.from, props.to, acc]), [props.from, props.to, acc]);
+  const moves = useLoad(() => props.db.office<{ occurred_at: string; account: string; movement_type: string; memo: string | null; amount: number; who: string | null }[]>('cash_moves', props.from, props.to, acc), [props.from, props.to, acc]);
   const cashIn = (moves.data ?? []).filter((m) => m.amount > 0).reduce((s, m) => s + Number(m.amount), 0);
   const cashOut = (moves.data ?? []).filter((m) => m.amount < 0).reduce((s, m) => s - Number(m.amount), 0);
   return (
@@ -121,7 +109,9 @@ function CashBook(props: PageProps & { from: string; to: string }) {
           <option value="all">All accounts</option>{(balances.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
         <span className="muted">Money in <strong className="good-text">{money(cashIn)}</strong> · money out <strong className="bad-text">{money(cashOut)}</strong></span>
+        <button type="button" className="btn primary" onClick={() => setMoving(true)}>Move money</button>
       </div>
+      {moving && <MoveMoney {...props} onClose={() => setMoving(false)} onSaved={() => { setMoving(false); balances.reload(); moves.reload(); }} />}
       <Table rows={moves.data} error={moves.error} empty="No money moved in these dates." cols={[
         { label: 'When', value: (r) => timeOf(r.occurred_at) },
         { label: 'Account', value: (r) => r.account },

@@ -104,7 +104,7 @@ export function App() {
   }
   // The owner lands in the back office; staff go straight to the counter.
   if (session.staff.kind === 'owner' && mode === 'office') {
-    return <Office {...props} session={session} onOpenPos={() => setMode('pos')} onSignOut={() => void signOut()} />;
+    return <Office {...props} session={session} onOpenPos={() => setMode('pos')} onSignOut={() => void signOut()} onToggleLang={toggleLang} />;
   }
   if (!ctx.open_shift) {
     return <OpenShift {...props} session={session} onOpened={reload} onSignOut={() => void signOut()} />;

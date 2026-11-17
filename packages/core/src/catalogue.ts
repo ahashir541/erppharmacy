@@ -5,7 +5,7 @@
 export const IMPORT_FIELDS = [
   'brand_name', 'brand_name_ur', 'generic', 'strength', 'dosage_form', 'manufacturer', 'category',
   'barcode', 'base_unit', 'units_per_strip', 'strips_per_box', 'retail_price', 'rack',
-  'reorder_level', 'min_stock', 'max_stock', 'is_controlled', 'rx_required', 'tax_category',
+  'reorder_level', 'min_stock', 'max_stock', 'is_controlled', 'rx_required',
 ] as const;
 export type ImportField = (typeof IMPORT_FIELDS)[number];
 export type ColumnMapping = Partial<Record<ImportField, number>>;
@@ -29,7 +29,6 @@ export interface ImportRow {
   max_stock?: number;
   is_controlled?: boolean;
   rx_required?: boolean;
-  tax_category?: string;
 }
 
 export interface RowProblem {
@@ -89,7 +88,6 @@ const SYNONYMS: Record<ImportField, string[]> = {
   max_stock: ['max', 'max stock', 'maximum'],
   is_controlled: ['controlled', 'narcotic', 'schedule', 'is controlled'],
   rx_required: ['rx', 'prescription', 'rx required', 'prescription required'],
-  tax_category: ['tax', 'tax category', 'gst category'],
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -180,7 +178,6 @@ export function buildImportRows(
       text('category', 'category');
       text('barcode', 'barcode');
       text('rack', 'rack');
-      text('tax_category', 'tax_category');
       const price = parseMoneyToMinor(cell(r, 'retail_price'));
       if (price !== null) {
         if (price < 0) throw new RangeError('price cannot be negative');

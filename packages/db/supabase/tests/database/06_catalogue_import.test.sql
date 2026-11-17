@@ -54,15 +54,14 @@ select tests.keep('bad', public.import_products(jsonb_build_array(
   jsonb_build_object('brand_name', 'Bad Price', 'retail_price', '12.50'),
   jsonb_build_object('brand_name', 'Bad Unit', 'units', jsonb_build_array(jsonb_build_object('unit', 'strip', 'factor', 1))),
   jsonb_build_object('brand_name', 'Taken Barcode', 'barcode', '899000000005'),
-  jsonb_build_object('brand_name', 'Bad Tax', 'tax_category', 'luxury'),
   jsonb_build_object('brand_name', 'Medicine 7', 'strength', '300 mg', 'manufacturer', 'Maker 7', 'base_unit', 'bottle'),
   jsonb_build_object('brand_name', 'Twice', 'retail_price', 100),
   jsonb_build_object('brand_name', 'Twice', 'retail_price', 200))));
 select is((tests.kept('bad') ->> 'created')::int, 2, 'the good rows import');
-select is((tests.kept('bad') ->> 'error_count')::int, 6, 'six rows rejected');
+select is((tests.kept('bad') ->> 'error_count')::int, 5, 'five rows rejected');
 select is((tests.kept('bad') ->> 'duplicates_skipped')::int, 1, 'a row listed twice: the last one wins');
 select is((select jsonb_agg(e -> 'row' order by (e ->> 'row')::int) from jsonb_array_elements(tests.kept('bad') -> 'errors') e),
-          '[2, 3, 4, 5, 6, 7]'::jsonb, 'errors point at the right rows');
+          '[2, 3, 4, 5, 6]'::jsonb, 'errors point at the right rows');
 reset role;
 select is((select pp.amount from product_prices pp join products p on p.id = pp.product_id
            where p.brand_name = 'Twice'), 200::bigint, 'last duplicate row wins');

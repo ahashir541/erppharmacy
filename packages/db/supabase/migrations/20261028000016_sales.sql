@@ -427,8 +427,7 @@ begin
     end if;
   end if;
 
-  tax_on := exists (select 1 from tax_profiles where tenant_id = tid and is_enabled
-                    and (branch_id is null or branch_id = br.id));
+  tax_on := false;   -- MedFlow does not report to any tax authority (D55)
 
   insert into sales (id, tenant_id, branch_id, device_id, local_seq, invoice_number, customer_id, customer_account_id,
                      doctor_id, prescription_id, subtotal, discount_total, tax_total, rounding_adjustment, grand_total,

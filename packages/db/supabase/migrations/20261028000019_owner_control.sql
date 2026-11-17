@@ -553,17 +553,16 @@ language sql stable security definer set search_path = public, app as $$
     'pharmacy', t.name,
     'lines', (select jsonb_agg(jsonb_build_object(
                 'name', p.brand_name, 'strength', p.strength, 'unit', u.code, 'qty', sl.qty,
-                'unit_price', sl.unit_price, 'discount', sl.discount_amount, 'tax', sl.tax_amount,
+                'unit_price', sl.unit_price, 'discount', sl.discount_amount,
                 'line_total', sl.line_total, 'batch', b.batch_number, 'expiry', b.expiry_date) order by sl.line_no)
               from sale_lines sl join products p on p.id = sl.product_id
               join product_units pu on pu.id = sl.product_unit_id join units u on u.id = pu.unit_id
               join batches b on b.id = sl.batch_id
               where sl.sale_id = s.id),
-    'subtotal', s.subtotal, 'discount_total', s.discount_total, 'tax_total', s.tax_total,
+    'subtotal', s.subtotal, 'discount_total', s.discount_total,
     'rounding', s.rounding_adjustment, 'grand_total', s.grand_total, 'paid_total', s.paid_total,
     'udhaar', s.udhaar_amount, 'change', s.change_given,
-    'payments', (select jsonb_agg(jsonb_build_object('method', method, 'amount', amount)) from sale_payments where sale_id = s.id),
-    'tax_invoice_number', s.authority_invoice_number)
+    'payments', (select jsonb_agg(jsonb_build_object('method', method, 'amount', amount)) from sale_payments where sale_id = s.id))
   from sales s join branches br on br.id = s.branch_id join tenants t on t.id = s.tenant_id
   where s.id = p_sale
 $$;

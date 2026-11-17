@@ -8,8 +8,8 @@ const r: ReceiptData = {
     { name: 'Panadol', strength: '500 mg', unit: 'strip', qty: 2, unitPrice: 4_500, discount: 0, lineTotal: 9_000, batch: 'P123', expiry: '2027-12' },
     { name: 'Augmentin', strength: '625 mg', unit: 'box', qty: 1, unitPrice: 105_000, discount: 5_000, lineTotal: 100_000 },
   ],
-  discountTotal: 5_000, taxTotal: 0, rounding: 0, grandTotal: 109_000,
-  payments: [{ method: 'cash', amount: 50_000 }], change: 0, udhaar: 59_000, taxPending: true,
+  discountTotal: 5_000, rounding: 0, grandTotal: 109_000,
+  payments: [{ method: 'cash', amount: 50_000 }], change: 0, udhaar: 59_000,
 };
 
 describe('receipt', () => {
@@ -20,12 +20,12 @@ describe('receipt', () => {
     }
   });
 
-  it('shows the total, the credit mark and the FBR status', () => {
+  it('shows the total and the credit mark', () => {
     const text = formatReceipt(r, 80).join('\n');
     expect(text).toMatch(/TOTAL Rs\s+1,090\.00/);
     expect(text).toContain('*** CREDIT (UDHAAR) ***');
     expect(text).toMatch(/On account\s+590\.00/);
-    expect(text).toContain('FBR: pending');
+    expect(text).not.toMatch(/tax|FBR/i);
     expect(text).toContain('Batch P123  Exp 2027-12');
   });
 

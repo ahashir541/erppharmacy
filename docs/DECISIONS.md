@@ -210,25 +210,8 @@ before go-live.
   void, a drawer Rs 100 or more short, every controlled drug sale, and every
   flag. The owner changes or switches off each one.
 
-## 2026-11-16 — Phase 7 (Delegated, tax items need a tax adviser)
+## 2026-11-16 — Phase 7 (Delegated)
 
-- **D48. Order per counter.** Each counter has its own running number per
-  authority, given when the document is recorded (offline documents are
-  replayed in the counter's order). The next document is sent only when the
-  one before it has an answer. A refused document does not hold up the rest;
-  the owner fixes and resends it.
-- **D49. No voids after tax.** A bill queued for or reported to a tax
-  authority is corrected with a return (sent as a refund), never voided, so
-  MedFlow and FBR always tell the same story.
-- **D50. Only authorities with a sender can be switched on.** FBR first. SRB
-  and PRA registrations can be saved, but not enabled, until their adapters
-  are written against confirmed specifications. Nothing invents an
-  authority's rules.
-- **D51. FBR adapter fields** follow FBR's POS integration guide as known at
-  the time of writing (amounts in rupees, invoice type 1 = sale and 3 =
-  refund, code 100 = accepted). Network errors, timeouts, 5xx and 429 are
-  retried; a refusal of the document is final until the owner resends.
-  Everything is in one file to confirm before production.
 - **D52. Prescriptions travel with the bill.** The counter can send the
   prescription inside the sale, so offline sales and their prescriptions
   arrive together. Only someone allowed to confirm prescriptions counts as
@@ -239,3 +222,14 @@ before go-live.
 - **D54. Receipts at the counter.** A counter can reprint the receipts of its
   branch's bills from the last 7 days, one at a time; each reprint is logged,
   so pulling receipts to add them up shows in the activity feed.
+
+## 2026-11-17 — No tax (Owner's decision)
+
+- **D55. No sales tax and no FBR.** The owner decided MedFlow has no tax and
+  no connection to FBR or any other tax authority. This replaces D19 and the
+  brief's tax module (and the Phase 7 tax queue, removed again). Bills never
+  carry tax (the bill rows keep their tax columns at 0 so the shared bill
+  maths stays one code path). There are no tax settings, permissions,
+  features, receipt lines or report columns. Voids are allowed as in Phase 3.
+  A supplier invoice can still show the tax printed on the supplier's own bill
+  as part of what the pharmacy pays for the stock (D37).

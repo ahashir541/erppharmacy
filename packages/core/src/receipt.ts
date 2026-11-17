@@ -11,14 +11,11 @@ export interface ReceiptData {
   customer?: string | null;
   lines: Array<{ name: string; strength?: string | null; unit: string; qty: number; unitPrice: number; discount: number; lineTotal: number; batch?: string | null; expiry?: string | null }>;
   discountTotal: number;
-  taxTotal: number;
   rounding: number;
   grandTotal: number;
   payments: Array<{ method: string; amount: number }>;
   change: number;
   udhaar: number;
-  taxInvoiceNumber?: string | null;   // FBR / SRB number, when integrated
-  taxPending?: boolean;               // "pending FBR" while offline
   footer?: string | null;
 }
 
@@ -77,7 +74,6 @@ export function formatReceipt(r: ReceiptData, paper: PaperWidth = 80): string[] 
   }
   out.push(rule);
   if (r.discountTotal) out.push(pair('Discount', `-${money(r.discountTotal)}`, w));
-  if (r.taxTotal) out.push(pair('Sales tax (included)', money(r.taxTotal), w));
   if (r.rounding) out.push(pair('Rounding', `${r.rounding > 0 ? '+' : '-'}${money(Math.abs(r.rounding))}`, w));
   out.push(pair('TOTAL Rs', money(r.grandTotal), w));
   for (const p of r.payments) out.push(pair(METHOD_LABEL[p.method] ?? p.method, money(p.amount), w));
@@ -88,8 +84,6 @@ export function formatReceipt(r: ReceiptData, paper: PaperWidth = 80): string[] 
     out.push(pair('On account', money(r.udhaar), w));
   }
   out.push(rule);
-  if (r.taxInvoiceNumber) out.push(pair('FBR invoice', r.taxInvoiceNumber, w));
-  else if (r.taxPending) out.push(center('FBR: pending (sent when online)', w));
   out.push(...wrap(r.footer ?? 'Thank you. Medicines once sold are returned only with this bill.', w).map((l) => center(l, w)));
   return out;
 }

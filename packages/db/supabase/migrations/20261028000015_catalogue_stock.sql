@@ -133,7 +133,7 @@ end $$;
 --   manufacturer, category, barcode, base_unit (default 'tablet'),
 --   units [{"unit":"strip","factor":10},{"unit":"box","factor":100}],
 --   retail_price (minor units) + retail_unit, rack, reorder_level, min_stock,
---   max_stock (base units), is_controlled, rx_required, tax_category (code)
+--   max_stock (base units), is_controlled, rx_required
 -- Existing products are matched by barcode, then by brand + strength +
 -- manufacturer, and updated (blank cells never erase data). Re-importing
 -- the same file changes nothing. Returns counts and per-row problems.
@@ -180,7 +180,7 @@ begin
          app.try_bigint(r.v ->> 'max_stock')                  as max_stock,
          app.try_bool(r.v ->> 'is_controlled')                as is_controlled,
          app.try_bool(r.v ->> 'rx_required')                  as rx_required,
-         nullif(trim(r.v ->> 'tax_category'), '')             as tax_category,
+         null::text                                         as tax_category,   -- no sales tax (D55)
          null::text  as error,
          null::uuid  as generic_id,
          null::uuid  as manufacturer_id,

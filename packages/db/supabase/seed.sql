@@ -20,13 +20,13 @@ join (values
 
   ('pro', 'max_branches', true, 3), ('pro', 'max_counters', true, 10), ('pro', 'max_staff', true, 25),
   ('pro', 'pos', true, null), ('pro', 'stock', true, null), ('pro', 'udhaar', true, null),
-  ('pro', 'basic_reports', true, null), ('pro', 'tax_integration', true, null),
+  ('pro', 'basic_reports', true, null),
   ('pro', 'owner_app', true, null), ('pro', 'approvals', true, null), ('pro', 'whatsapp', true, null),
 
   ('enterprise', 'max_branches', true, null), ('enterprise', 'max_counters', true, null),
   ('enterprise', 'max_staff', true, null),
   ('enterprise', 'pos', true, null), ('enterprise', 'stock', true, null), ('enterprise', 'udhaar', true, null),
-  ('enterprise', 'basic_reports', true, null), ('enterprise', 'tax_integration', true, null),
+  ('enterprise', 'basic_reports', true, null),
   ('enterprise', 'owner_app', true, null), ('enterprise', 'approvals', true, null),
   ('enterprise', 'whatsapp', true, null), ('enterprise', 'warehouse', true, null),
   ('enterprise', 'transfers', true, null), ('enterprise', 'api_access', true, null),

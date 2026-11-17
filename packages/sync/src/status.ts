@@ -12,7 +12,7 @@ export function syncStatus(input: {
   rejected: number;             // commands the server kept with an error
   lastSyncAt: Date | null;
   now: Date;
-  /** Offline longer than this needs attention (the licence token and FBR queue depend on it). */
+  /** Offline longer than this needs attention (the licence token depends on it). */
   maxOfflineHours?: number;
 }): SyncStatus {
   const maxHours = input.maxOfflineHours ?? 72;

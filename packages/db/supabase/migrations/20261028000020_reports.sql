@@ -221,7 +221,7 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 
 create or replace function public.report_sales(p_from date, p_to date, p_group text default 'day', p_branch uuid default null)
-returns table (key text, label text, bills bigint, qty_base bigint, sales bigint, discounts bigint, tax bigint, returns bigint)
+returns table (key text, label text, bills bigint, qty_base bigint, sales bigint, discounts bigint, returns bigint)
 language plpgsql stable security definer set search_path = public, app as $$
 #variable_conflict use_column
 declare b uuid[] := app.report_branches('reports.sales', p_branch);
@@ -231,7 +231,7 @@ begin
   end if;
   return query
   select k.key, app.key_label(p_group, k.key), count(distinct f.sale_id) filter (where f.kind = 'sale'),
-         sum(f.qty_base)::bigint, sum(f.gross)::bigint, sum(f.discount)::bigint, sum(f.tax)::bigint,
+         sum(f.qty_base)::bigint, sum(f.gross)::bigint, sum(f.discount)::bigint,
          coalesce(-sum(f.gross) filter (where f.kind = 'return'), 0)::bigint
   from app.sale_facts(p_from, p_to, b) f
   cross join lateral (select app.fact_key(p_group, f) as key) k
@@ -397,7 +397,7 @@ end $$;
 
 -- ---- Trial balance --------------------------------------------------------------------------
 -- The accountant's view, built from the books underneath (cash and bank movements, stock at cost,
--- udhaar and supplier ledgers, sales, tax, expenses, salaries). Owner's capital and opening
+-- udhaar and supplier ledgers, sales, expenses, salaries). Owner's capital and opening
 -- balances is what makes it balance: the money and stock the owner put in (D44).
 create or replace function public.trial_balance(p_as_of date default current_date) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
@@ -445,7 +445,6 @@ begin
     jsonb_build_object('account', 'Supplier claims', 'type', 'asset', 'debit', claims, 'credit', 0),
     jsonb_build_object('account', 'Staff advances', 'type', 'asset', 'debit', greatest(adv, 0), 'credit', 0),
     jsonb_build_object('account', 'Supplier payable', 'type', 'liability', 'debit', greatest(-pay, 0), 'credit', greatest(pay, 0)),
-    jsonb_build_object('account', 'Sales tax payable', 'type', 'liability', 'debit', 0, 'credit', tax),
     jsonb_build_object('account', 'Sales', 'type', 'income', 'debit', 0, 'credit', sales),
     jsonb_build_object('account', 'Cost of goods sold', 'type', 'expense', 'debit', cogs, 'credit', 0),
     jsonb_build_object('account', 'Expenses', 'type', 'expense', 'debit', exp, 'credit', 0),

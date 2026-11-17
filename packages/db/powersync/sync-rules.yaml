@@ -21,12 +21,10 @@ bucket_definitions:
       - select id, tenant_id, code, name, name_ur from units where tenant_id = bucket.tenant_id
       - select id, tenant_id, name, name_ur from generics where tenant_id = bucket.tenant_id
       - select id, tenant_id, name from manufacturers where tenant_id = bucket.tenant_id
-      - select id, tenant_id, parent_id, name, name_ur, tax_category_id from categories where tenant_id = bucket.tenant_id
-      - select id, tenant_id, code, name, is_exempt from tax_categories where tenant_id = bucket.tenant_id
-      - select id, tenant_id, tax_category_id, authority, rate_bp, effective_from from tax_category_rates where tenant_id = bucket.tenant_id
-      - >
+      - select id, tenant_id, parent_id, name, name_ur from categories where tenant_id = bucket.tenant_id
+                  - >
         select id, tenant_id, brand_name, brand_name_ur, generic_id, strength, dosage_form, manufacturer_id, category_id,
-               tax_category_id, base_unit_id, is_controlled, rx_required, max_qty_per_sale, rack_location, is_active, archived_at
+               base_unit_id, is_controlled, rx_required, max_qty_per_sale, rack_location, is_active, archived_at
         from products where tenant_id = bucket.tenant_id
       - select id, tenant_id, product_id, unit_id, factor_to_base, is_sellable, sort_order, archived_at from product_units where tenant_id = bucket.tenant_id
       - select id, tenant_id, product_id, product_unit_id, code, archived_at from barcodes where tenant_id = bucket.tenant_id
@@ -62,7 +60,7 @@ bucket_definitions:
       - select branch_id || ':' || batch_id as id, tenant_id, branch_id, batch_id, product_id, qty_base from stock_balances where branch_id = bucket.branch_id
       - >
         select id, tenant_id, branch_id, device_id, local_seq, invoice_number, status, customer_id, customer_account_id,
-               sold_at, business_date, tax_status, authority_invoice_number, created_by
+               sold_at, business_date, created_by
         from sales where branch_id = bucket.branch_id
       - >
         select id, tenant_id, sale_id, line_no, product_id, product_unit_id, batch_id, qty, qty_base
@@ -78,7 +76,7 @@ bucket_definitions:
     data:
       - select user_id as id, tenant_id, pin_hash, failed_attempts, locked_until from user_pins where user_id = bucket.user_id
 
-  # This PC only: its drawers, its tax queue, and what the server did with its uploads.
+  # This PC only: its drawers and what the server did with its uploads.
   device:
     parameters: >
       select id as device_id, tenant_id from devices
@@ -86,5 +84,4 @@ bucket_definitions:
     data:
       - select id, tenant_id, branch_id, code, invoice_prefix, name, kind, status, last_command_seq from devices where id = bucket.device_id
       - select id, tenant_id, branch_id, device_id, name from cash_drawers where device_id = bucket.device_id
-      - select id, tenant_id, device_id, sale_id, provider, status, authority_invoice_number, qr_payload from tax_submissions where device_id = bucket.device_id
       - select id, tenant_id, device_id, device_seq, kind, status, error from device_commands where device_id = bucket.device_id

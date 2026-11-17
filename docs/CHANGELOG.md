@@ -2,24 +2,25 @@
 
 ## Unreleased
 
+### No tax, no FBR (2026-11-17)
+
+- The owner's decision (D55): MedFlow has no sales tax and no link to FBR or
+  any tax authority. Removed the tax queue, the tax profiles, the FBR adapter
+  (`packages/tax`), the `tax-worker` Edge Function, the tax permissions, the
+  `tax_integration` feature, the tax category import column, tax lines on
+  receipts, the tax column in the sales report and the tax line in the trial
+  balance. Bills always have tax 0; reported-bill voids work again.
+
 ### Phase 7 — Compliance (2026-11-16)
 
-- Tax queue: bills and returns are queued per counter and authority as they
-  are recorded; `tax_claim_batch` hands out only the next unanswered document
-  of each counter; `tax_record_result` with retries and backoff;
-  `retry_tax_submission`; `report_tax`; stuck-queue alerts.
-- `packages/tax`: `TaxProvider` interface, FBR POS adapter, mock provider,
-  worker; Edge Function `tax-worker`.
-- Reported bills can't be voided (use a return).
 - Prescriptions (`save_prescription`, `confirm_prescription`, or embedded in
   a sale), `controlled_register`, branch licences, platform recalls that
   freeze matching batches (also ones received later).
-- `run_scheduled_checks`: tax queue, licences, offline PCs, expiring
-  batches, low stock, expired approvals.
+- `run_scheduled_checks`: licences, offline PCs, expiring batches, low stock,
+  expired approvals.
 - `get_receipt` checks visibility itself and logs counter reprints;
   service-only functions revoked from signed-in users.
-- Tests: `12_compliance` (45 checks), tax-in-order acceptance (41 checks),
-  `packages/tax` unit tests.
+- Tests: `12_compliance`.
 
 ### Phase 6 — Owner control and finance (2026-11-16)
 

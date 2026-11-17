@@ -1,7 +1,7 @@
-import { formatReceipt } from '@medflow/core';
 import { useState } from 'react';
 import type { Receipt } from '../backend/types.ts';
 import { receiptData } from '../screens/Dialogs.tsx';
+import { ReceiptView } from '../screens/ReceiptView.tsx';
 import { SalesTrend } from './extras.tsx';
 import { csvButton, DateRange, dateOf, Modal, money, PageHead, Stat, Table, timeOf, useLoad, type Col, type PageProps } from './ui.tsx';
 
@@ -121,7 +121,7 @@ function InvoiceModal(props: PageProps & { invoice: InvoiceRow; onClose: () => v
   const { data } = useLoad(() => props.db.ownerCall<Receipt>('get_receipt', props.invoice.id), [props.invoice.id]);
   return (
     <Modal title={`Bill ${props.invoice.invoice_number}`} onClose={props.onClose}>
-      {data ? <pre className="receipt-preview">{formatReceipt(receiptData(data, props.invoice.cashier, props.invoice.customer, null), 80).join('\n')}</pre>
+      {data ? <div className="receipt-stage"><ReceiptView r={receiptData(data, props.invoice.cashier, props.invoice.customer, null)} /></div>
             : <div className="loading-row"><span className="spinner small" /></div>}
     </Modal>
   );

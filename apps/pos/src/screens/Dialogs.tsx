@@ -1,10 +1,11 @@
-import { formatReceipt, type ReceiptData } from '@medflow/core';
+import type { ReceiptData } from '@medflow/core';
 import { useEffect, useRef, useState } from 'react';
 import type { AppProps, Session } from '../App.tsx';
 import type { HeldBill, Receipt, Staff } from '../backend/types.ts';
 import { APPROVAL_KIND } from '../cart.ts';
 import { errorText, rs } from '../util.ts';
 import { PinPad } from './PinPad.tsx';
+import { printReceipt, ReceiptView } from './ReceiptView.tsx';
 
 const PERMISSION_WORDS: Record<string, string> = {
   'sales.discount': 'discount above your limit', 'sales.edit_price': 'changing the price', 'sales.sell_below_min': 'selling below the minimum price',
@@ -165,13 +166,10 @@ export function receiptData(r: Receipt, cashier: string, customer: string | null
 
 export function ReceiptDialog(props: AppProps & { receipt: ReceiptData; onClose: () => void }) {
   const { t, ctx } = props;
-  const text = formatReceipt(props.receipt, ctx.settings.receipt_width === 58 ? 58 : 80).join('\n');
+  const width: 58 | 80 = ctx.settings.receipt_width === 58 ? 58 : 80;
   const ref = useRef<HTMLDivElement>(null);
-  const print = () => {
-    const area = document.getElementById('print-area')!;
-    area.textContent = text;
-    window.print();
-  };
+  const paper = useRef<HTMLDivElement>(null);
+  const print = () => printReceipt(paper.current?.firstElementChild as HTMLElement | null, width);
   // Enter prints and Esc starts the next sale, wherever the focus is.
   useEffect(() => {
     ref.current?.focus();
@@ -194,7 +192,7 @@ export function ReceiptDialog(props: AppProps & { receipt: ReceiptData; onClose:
           <div className="done-total">{rs(props.receipt.grandTotal)}</div>
         </div>
         {props.receipt.change > 0 && <div className="change-banner">{t('sale.change')}: {rs(props.receipt.change)}</div>}
-        <pre className="receipt-preview">{text}</pre>
+        <div className="receipt-stage" ref={paper}><ReceiptView r={props.receipt} width={width} /></div>
         <div className="row-actions">
           <button type="button" className="btn" onClick={print}>{t('pos.print')}</button>
           <button type="button" className="btn primary" onClick={props.onClose}>{t('pos.new_sale')}</button>

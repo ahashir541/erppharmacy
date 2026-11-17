@@ -5,6 +5,7 @@ import { PosError, type CustomerHit, type HeldBill, type Product } from '../back
 import { APPROVAL_KEY, emptyCart, priceCart, salePayload, settle, unitOf, type CartLine, type CartState } from '../cart.ts';
 import { errorText, rs, rsShort, shortDate, toPaisa, uuid } from '../util.ts';
 import { ApprovalDialog, HeldDialog, PrescriptionDialog, ReceiptDialog, receiptData, type PrescriptionInfo } from './Dialogs.tsx';
+import { ReturnDialog } from './ReturnDialog.tsx';
 import { CloseShift } from './Shift.tsx';
 
 const METHODS: Array<{ id: PaymentMethod; key: 'sale.cash' | 'sale.card' | 'sale.jazzcash' | 'sale.easypaisa' | 'pos.bank_transfer' }> = [
@@ -18,6 +19,7 @@ type Dialog =
   | { kind: 'held'; bills: HeldBill[] }
   | { kind: 'receipt'; data: ReceiptData }
   | { kind: 'close_shift' }
+  | { kind: 'return' }
   | null;
 
 /** The cart as stored in a held bill (enough to rebuild it; stock and prices are read again on resume). */
@@ -40,6 +42,7 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
   const [approvals, setApprovals] = useState<Record<string, string>>({});
   const [prescription, setPrescription] = useState<PrescriptionInfo | null>(null);
   const [nextSeq, setNextSeq] = useState(ctx.next_invoice_seq);
+  const [returnSeq, setReturnSeq] = useState(ctx.next_return_seq);
   const [billDiscountText, setBillDiscountText] = useState('');
   const [cashText, setCashText] = useState('');
 
@@ -222,6 +225,7 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
         if (cart.method === 'cash') focusCash(); else { setCart((c) => ({ ...c, method: 'cash' })); window.setTimeout(focusCash, 0); }
       }
       else if (k === 'F12') { handled(); void complete(); }
+      else if (k === 'F11') { handled(); setDialog({ kind: 'return' }); }
       else if (e.ctrlKey && (k === 'u' || k === 'U')) {
         handled();
         if (line) {
@@ -363,6 +367,7 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
             <button type="button" className="btn ghost" onClick={() => void hold()} disabled={!cart.lines.length}>{t('pos.hold')}</button>
             <button type="button" className="btn ghost" onClick={() => void showHeld()}>{t('pos.held')}</button>
             <button type="button" className="btn ghost" onClick={resetSale} disabled={!cart.lines.length}>{t('pos.clear')}</button>
+            <button type="button" className="btn ghost" onClick={() => setDialog({ kind: 'return' })}>{t('sale.return')} (F11)</button>
             <input className="note" placeholder={t('pos.note')} value={cart.note} onChange={(e) => setCart((c) => ({ ...c, note: e.target.value }))} />
           </div>
         </section>
@@ -466,6 +471,10 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
       {dialog?.kind === 'close_shift' && (
         <CloseShift {...props} session={session} onCancel={() => setDialog(null)}
           onClosed={async () => { setDialog(null); await props.reload(); props.onSignOut(); }} />
+      )}
+      {dialog?.kind === 'return' && (
+        <ReturnDialog {...props} session={session} seq={returnSeq} onClose={() => { setDialog(null); focusSearch(); }}
+          onDone={(text) => { setReturnSeq((n) => n + 1); setDialog(null); say(text, 'info'); focusSearch(); }} />
       )}
       <div id="print-area" aria-hidden />
     </div>

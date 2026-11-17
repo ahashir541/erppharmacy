@@ -135,6 +135,10 @@ export class LocalBackend implements PosBackend {
   postSale(sale: Record<string, unknown>, sessionId: string) {
     return this.one<SaleResult>('select public.post_sale($1::jsonb, $2) r', [JSON.stringify(sale), sessionId]);
   }
+  billForReturn(invoice: string) { return this.one<unknown>('select public.pos_bill_for_return($1) r', [invoice]); }
+  postReturn(ret: Record<string, unknown>, sessionId: string) {
+    return this.one<{ return_id: string; return_number: string; refund_total: number }>('select public.post_return($1::jsonb, $2) r', [JSON.stringify(ret), sessionId]);
+  }
   receipt(saleId: string) { return this.one<Receipt>('select public.get_receipt($1) r', [saleId]); }
   requestApproval(request: Record<string, unknown>, sessionId: string) {
     return this.one<string>('select public.request_approval($1::jsonb, $2) r', [JSON.stringify(request), sessionId]);

@@ -102,6 +102,7 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
         </main>
       </div>
       {palette && <CommandPalette onPick={go} onClose={() => setPalette(false)} />}
+      <div id="print-area" aria-hidden />
     </div>
   );
 }

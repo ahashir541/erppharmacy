@@ -144,6 +144,8 @@ export interface PosBackend extends OfficeBackend {
   openShift(drawerId: string, openingFloat: number, sessionId: string): Promise<string>;
   closeShift(drawerSessionId: string, counted: number, sessionId: string): Promise<void>;
   postSale(sale: Record<string, unknown>, sessionId: string): Promise<SaleResult>;
+  billForReturn(invoice: string): Promise<unknown>;
+  postReturn(ret: Record<string, unknown>, sessionId: string): Promise<{ return_id: string; return_number: string; refund_total: number }>;
   receipt(saleId: string): Promise<Receipt>;
   requestApproval(request: Record<string, unknown>, sessionId: string): Promise<string>;
   approvalStatus(requestId: string): Promise<string>;

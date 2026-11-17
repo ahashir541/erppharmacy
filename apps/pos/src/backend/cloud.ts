@@ -92,6 +92,10 @@ export class CloudBackend implements PosBackend {
   openShift(drawerId: string, openingFloat: number, sessionId: string) { return this.dev<string>('open_drawer', drawerId, openingFloat, sessionId); }
   async closeShift(id: string, counted: number, sessionId: string) { await this.dev('close_drawer', id, counted, null, sessionId); }
   postSale(sale: Record<string, unknown>, sessionId: string) { return this.dev<SaleResult>('post_sale', sale, sessionId); }
+  billForReturn(invoice: string) { return this.dev<unknown>('pos_bill_for_return', invoice); }
+  postReturn(ret: Record<string, unknown>, sessionId: string) {
+    return this.dev<{ return_id: string; return_number: string; refund_total: number }>('post_return', ret, sessionId);
+  }
   receipt(saleId: string) { return this.dev<Receipt>('get_receipt', saleId); }
   requestApproval(r: Record<string, unknown>, sessionId: string) { return this.dev<string>('request_approval', r, sessionId); }
   async approvalStatus(id: string) {

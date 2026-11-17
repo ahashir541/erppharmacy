@@ -702,5 +702,17 @@ export const SIGNATURES: Record<string, string[]> = {
   "office_settings": [
     "p_branch"
   ],
-  "owner_context": []
+  "owner_context": [],
+  "pos_bill_for_return": [
+    "p_invoice"
+  ],
+  "office_stock_counts": [
+    "p_branch"
+  ],
+  "office_stock_count_sheet": [
+    "p_count"
+  ],
+  "office_role_permissions": [
+    "p_role"
+  ]
 };

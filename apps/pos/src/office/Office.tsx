@@ -2,7 +2,10 @@
 // sync status) and the pages. The POS is one click (or Ctrl+K → "POS") away.
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AppProps, Session } from '../App.tsx';
+import { Approvals, Settings, Team } from './admin.tsx';
+import { Accounts, Expenses, Reports } from './money.tsx';
 import { Customers, Suppliers } from './parties.tsx';
+import { Purchases } from './purchases.tsx';
 import { Dashboard, Invoices, Shifts } from './sales.tsx';
 import { Expiry, Movements, Products } from './stock.tsx';
 import type { PageProps } from './ui.tsx';
@@ -19,13 +22,13 @@ const NAV: NavItem[] = [
   { key: 'expiry', label: 'Expiry', icon: '⚠', group: 'Inventory', render: (p) => <Expiry {...p} /> },
   { key: 'movements', label: 'Stock movements', icon: '⇅', group: 'Inventory', render: (p) => <Movements {...p} /> },
   { key: 'suppliers', label: 'Suppliers', icon: '⛟', group: 'Purchasing', render: (p) => <Suppliers {...p} /> },
-  { key: 'purchases', label: 'Purchases', icon: '⊕', group: 'Purchasing', soon: true },
-  { key: 'expenses', label: 'Expenses', icon: '−', group: 'Money', soon: true },
-  { key: 'accounts', label: 'Accounts & books', icon: '₨', group: 'Money', soon: true },
-  { key: 'reports', label: 'Reports', icon: '◔', group: 'Money', soon: true },
-  { key: 'approvals', label: 'Approvals & alerts', icon: '✓', group: 'Admin', soon: true },
-  { key: 'team', label: 'Team', icon: '☷', group: 'Admin', soon: true },
-  { key: 'settings', label: 'Settings', icon: '⚙', group: 'Admin', soon: true },
+  { key: 'purchases', label: 'Purchases', icon: '⊕', group: 'Purchasing', render: (p) => <Purchases {...p} /> },
+  { key: 'expenses', label: 'Expenses', icon: '−', group: 'Money', render: (p) => <Expenses {...p} /> },
+  { key: 'accounts', label: 'Accounts & books', icon: '₨', group: 'Money', render: (p) => <Accounts {...p} /> },
+  { key: 'reports', label: 'Reports', icon: '◔', group: 'Money', render: (p) => <Reports {...p} /> },
+  { key: 'approvals', label: 'Approvals & alerts', icon: '✓', group: 'Admin', render: (p) => <Approvals {...p} /> },
+  { key: 'team', label: 'Team', icon: '☷', group: 'Admin', render: (p) => <Team {...p} /> },
+  { key: 'settings', label: 'Settings', icon: '⚙', group: 'Admin', render: (p) => <Settings {...p} /> },
 ];
 
 export function Office(props: AppProps & { session: Session; onOpenPos: () => void; onSignOut: () => void }) {

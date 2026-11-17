@@ -142,6 +142,13 @@ language sql stable security definer set search_path = public, app as $$
   where h.branch_id = app.device_branch_id() and h.resumed_at is null and h.discarded_at is null
 $$;
 
+-- Who has a counter PIN (for the Team page). Never the hash itself.
+create or replace function public.staff_with_pin() returns setof uuid
+language sql stable security definer set search_path = public, app as $$
+  select user_id from user_pins
+  where tenant_id = app.tenant_id() and app.current_user_id() is not null and app.has_perm('staff.manage')
+$$;
+
 do $$
 declare f regprocedure;
 begin
@@ -155,7 +162,7 @@ begin
 end $$;
 revoke all on all functions in schema app from public;
 grant execute on function public.pos_context(), public.pos_search(text, int), public.pos_batches(uuid),
-  public.pos_customers(text, int), public.pos_held_bills() to authenticated;
+  public.pos_customers(text, int), public.pos_held_bills(), public.staff_with_pin() to authenticated;
 grant execute on function
   app.current_user_id(), app.current_device_id(), app.is_device(), app.device_branch_id(),
   app.tenant_id(), app.is_primary_owner(), app.is_platform_admin(),

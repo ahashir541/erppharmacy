@@ -66,11 +66,11 @@ To build next:
 | 2 | Owner dashboard | **Built**. Sales, profit, week, month, cash in drawers, udhaar, payables, expiring value, dead stock, actions needed, top medicines. Next: a 7-day trend chart and net profit. |
 | 3 | POS / new sale | **Built**. Brand / generic / barcode search, FEFO batches, units, discounts, five payment methods, change, udhaar with customer headroom, owner approval, prescriptions, hold, 80 mm receipt, every shortcut, English and Urdu. Next: split payment across two methods in the screen (the server already supports it), and quantity steppers for tablets. |
 | 4 | Inventory | **Built**: products (add medicine, opening stock, low-stock chips, Excel export), expiry by severity with write-off, stock movements. Next: the item detail drawer (batches, price history, movements), saved filters, column toggles, bulk actions. |
-| 5 | Purchases | Server done (orders, deliveries with bonus, invoices, returns). Screen next: pipeline Pending → Ordered → Received → Paid, and receive-stock that flags ordered vs received. |
+| 5 | Purchases | **Built**: deliveries with the supplier invoice (bonus, cost, selling price, paid now), orders sent on WhatsApp then received with ordered-vs-received flags, returns to supplier with credit notes. Status: awaiting invoice / unpaid / paid. |
 | 6 | Contacts & ledger | **Built**: customers and suppliers with balances, khata statement with running balance, unpaid bills, receive / pay. Next: the WhatsApp reminder button. |
-| 7 | Reports hub | Server done (sales, profit, stock, purchases, udhaar, staff, P&L, trial balance). Screen next, with date presets, Excel / PDF export and "why this number" drill-down. |
-| 8 | Settings | Next: business profile, users and roles, backups and sync status, hot-key map, display (dark / high contrast / text size). |
-| 9 | Notifications centre | Server done (expiry, low stock, approvals, cash short, recalls). Screen next. |
+| 7 | Reports hub | **Built**: 11 reports grouped Sale / Profit / Stock / Purchase / Ledger / Staff, date presets, Excel export, print / PDF, a note on how profit is worked out. Plus Accounts & books: cash book with balances, profit & loss, trial balance. |
+| 8 | Settings | **Built**: business, receipts (footer, paper width, rounding), display (system / light / dark, high contrast), alert rules with thresholds, hot-key map, sync status. Team: add staff with role and PIN, reset PIN, disable / enable. Expenses page built too. |
+| 9 | Notifications centre | **Built** (Approvals & alerts): approve or reject counter requests, every alert with read state. |
 
 **Responsive layout**
 - **1366px and wider:** full sidebar, multi-panel POS.

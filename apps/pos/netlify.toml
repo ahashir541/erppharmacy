@@ -1,0 +1,9 @@
+[build]
+  base = "apps/pos"
+  command = "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @medflow/pos build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

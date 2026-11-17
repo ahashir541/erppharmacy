@@ -75,7 +75,7 @@ export async function demoSeedSql(): Promise<string> {
   out.push(`insert into settings (tenant_id, key, value, created_by) values ('${T}', 'pos.receipt_footer', '"Get well soon. Medicines once sold can be returned within 7 days with the bill."', '${owner}');`);
   out.push(`insert into devices (id, tenant_id, branch_id, auth_user_id, code, invoice_prefix, name, kind, platform)
     values ('${DEMO.device}', '${T}', '${DEMO.branch}', '${DEMO.deviceAuth}', 'C1', 'KHI1-C1', 'Counter 1', 'counter', 'browser');`);
-  out.push(`insert into cash_drawers (id, tenant_id, branch_id, device_id, name) values ('${DEMO.drawer}', '${T}', '${DEMO.branch}', '${DEMO.device}', 'Drawer 1');`);
+  // The PC's cash drawer is created with the PC (migration 0026).
   for (const s of DEMO.staff.slice(1)) {
     out.push(`insert into users (id, tenant_id, kind, full_name, status) values ('${s.id}', '${T}', 'staff', ${q(s.name)}, 'active');`);
     out.push(`insert into user_roles (tenant_id, user_id, role_id, branch_id) select '${T}', '${s.id}', r.id, '${DEMO.branch}'

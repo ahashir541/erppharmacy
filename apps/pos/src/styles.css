@@ -184,3 +184,5 @@ h2 { font-size: 19px; margin: 0 0 8px; }
   .signin-body { grid-template-columns: 1fr; padding: 16px; }
   .cart-head, .cart-row { grid-template-columns: minmax(140px, 1fr) 96px 60px 84px 60px 96px 30px; }
 }
+
+.qr { width: 200px; height: 200px; justify-self: center; background: #fff; padding: 8px; border-radius: 12px; }

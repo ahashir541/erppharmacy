@@ -1,12 +1,13 @@
 import type { Lang } from '@medflow/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { openLocalBackend } from './backend/local.ts';
+import { cloudEnabled, CloudBackend, openCloudCounter, ownerContext, ownerReady } from './backend/cloud.ts';
 import type { PosBackend, PosContext, Staff } from './backend/types.ts';
 import { tr } from './i18n.ts';
 import { Office } from './office/Office.tsx';
 import { Pos } from './screens/Pos.tsx';
 import { OpenShift } from './screens/Shift.tsx';
 import { SignIn } from './screens/SignIn.tsx';
+import { LinkCounter, OwnerSignIn } from './screens/CloudOwner.tsx';
 import { errorText } from './util.ts';
 
 export interface Session {
@@ -35,12 +36,28 @@ export function App() {
     try { return (localStorage.getItem(LANG_KEY) as Lang) || 'en'; } catch { return 'en'; }
   });
   const started = useRef(false);
+  // Cloud: no counter login on this PC means the owner works from a browser or phone.
+  const [ownerOnly, setOwnerOnly] = useState(false);
+  const [ownerOk, setOwnerOk] = useState(false);
+  const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
+  const [linking, setLinking] = useState(false);
 
   useEffect(() => {
     if (started.current) return;
     started.current = true;
     (async () => {
       try {
+        if (cloudEnabled) {
+          setProgress('Connecting to MedFlow…');
+          const counter = await openCloudCounter();
+          if (!counter) { setOwnerOnly(true); return; }
+          setBackend(counter);
+          setCtx(await counter.context());
+          setOwnerOk(await ownerReady().catch(() => false));
+          return;
+        }
+        // Demo mode: MedFlow's database runs inside this browser (loaded only when needed).
+        const { openLocalBackend } = await import('./backend/local.ts');
         const b = await openLocalBackend(setProgress);
         setBackend(b);
         setCtx(await b.context());
@@ -83,6 +100,29 @@ export function App() {
   if (fatal) {
     return <div className="boot"><div className="boot-card error">{fatal}</div></div>;
   }
+  // Cloud, owner from a browser or phone: sign in with 2FA, then the back office.
+  if (ownerOnly) {
+    if (!ownerOk || !backend || !ctx) {
+      return <OwnerSignIn onReady={async () => {
+        try {
+          const c = await ownerContext();
+          setBranches(c.branches);
+          setBackend(new CloudBackend());
+          setCtx(c);
+          setOwnerOk(true);
+        } catch (err) { setFatal(errorText(err)); }
+      }} />;
+    }
+    const ownerSession: Session = { staff: { id: '', name: 'Owner', kind: 'owner', pin_hash: '', locked_until: null, idle_lock_seconds: null, roles: ['Owner'], can_approve: true }, sessionId: '' };
+    return (
+      <>
+        <Office backend={backend} ctx={ctx} lang={lang} t={t} reload={async () => ctx} session={ownerSession}
+                onOpenPos={() => setLinking(true)} onToggleLang={() => setLang((l) => (l === 'en' ? 'ur' : 'en'))}
+                onSignOut={async () => { const { clients } = await import('./backend/cloud.ts'); await clients().owner.auth.signOut(); window.location.reload(); }} />
+        {linking && <LinkCounter branches={branches} onCancel={() => setLinking(false)} onLinked={() => window.location.reload()} />}
+      </>
+    );
+  }
   if (!backend || !ctx) {
     return (
       <div className="boot">
@@ -103,6 +143,10 @@ export function App() {
     return <SignIn {...props} onSignedIn={(s) => { setSession(s); setMode(s.staff.kind === 'owner' ? 'office' : 'pos'); }} onToggleLang={toggleLang} />;
   }
   // The owner lands in the back office; staff go straight to the counter.
+  if (session.staff.kind === 'owner' && mode === 'office' && cloudEnabled && !ownerOk) {
+    // On the cloud the back office needs the owner's own sign-in with 2FA, not just the PIN.
+    return <OwnerSignIn onReady={() => setOwnerOk(true)} onCancel={() => setMode('pos')} />;
+  }
   if (session.staff.kind === 'owner' && mode === 'office') {
     return <Office {...props} session={session} onOpenPos={() => setMode('pos')} onSignOut={() => void signOut()} onToggleLang={toggleLang} />;
   }

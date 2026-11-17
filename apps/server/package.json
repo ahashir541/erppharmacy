@@ -1,0 +1,22 @@
+{
+  "name": "@medflow/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MedFlow Local: the pharmacy's own server on the shop PC. Data on disk, counters over the shop network, nightly backups.",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node build.mjs --server-only --no-node && node release/MedFlow/medflow-server.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.2.17",
+    "@medflow/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@medflow/config": "workspace:*",
+    "@types/node": "22.18.6",
+    "esbuild": "0.21.5",
+    "typescript": "5.9.3"
+  }
+}

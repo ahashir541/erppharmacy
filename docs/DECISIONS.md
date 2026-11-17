@@ -233,3 +233,17 @@ before go-live.
   features, receipt lines or report columns. Voids are allowed as in Phase 3.
   A supplier invoice can still show the tax printed on the supplier's own bill
   as part of what the pharmacy pays for the stock (D37).
+
+## 2026-11-17 — MedFlow Local (Owner's decision: free and permanent)
+
+- **D56. The pharmacy's own PC is the server.** The owner wants no monthly bill
+  and nothing that can stop working when a service changes, so MedFlow runs on
+  the shop's main PC (MedFlow Local): the same migrations and functions on
+  PGlite kept on disk, served to the shop's counters over the local network.
+  The cloud build stays available. A counter is trusted the way a cloud device
+  principal is: it holds a token (only its hash is stored) issued after the
+  owner's PIN; owner calls additionally need an open owner session on that
+  counter. Setup only works from the main PC itself. Durability comes from
+  nightly backups, 30 kept, with an optional second copy away from the PC.
+  Schema updates must be new migration files: an installed shop only applies
+  migrations it has not run yet.

@@ -8,6 +8,8 @@ import { Pos } from './screens/Pos.tsx';
 import { OpenShift } from './screens/Shift.tsx';
 import { SignIn } from './screens/SignIn.tsx';
 import { LinkCounter, OwnerSignIn } from './screens/CloudOwner.tsx';
+import { LinkThisPc, SetupWizard } from './screens/LocalSetup.tsx';
+import { savedToken, ServerBackend, serverMode, serverStatus, type ServerStatus } from './backend/server.ts';
 import { errorText } from './util.ts';
 
 export interface Session {
@@ -41,12 +43,28 @@ export function App() {
   const [ownerOk, setOwnerOk] = useState(false);
   const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
   const [linking, setLinking] = useState(false);
+  // MedFlow Local: the pharmacy's server is not set up yet, or this PC is not linked.
+  const [local, setLocal] = useState<{ status: ServerStatus; need: 'setup' | 'link' } | null>(null);
 
   useEffect(() => {
     if (started.current) return;
     started.current = true;
     (async () => {
       try {
+        if (serverMode) {
+          setProgress('Connecting to MedFlow…');
+          const status = await serverStatus();
+          if (!status.ready) { setLocal({ status, need: 'setup' }); return; }
+          const token = savedToken();
+          if (!token) { setLocal({ status, need: 'link' }); return; }
+          const b = new ServerBackend(token);
+          try { setCtx(await b.context()); } catch (err) {
+            if (!savedToken()) { setLocal({ status, need: 'link' }); return; }
+            throw err;
+          }
+          setBackend(b);
+          return;
+        }
         if (cloudEnabled) {
           setProgress('Connecting to MedFlow…');
           const counter = await openCloudCounter();
@@ -97,6 +115,10 @@ export function App() {
     return () => { window.clearTimeout(timer); window.removeEventListener('keydown', bump); window.removeEventListener('pointerdown', bump); };
   }, [session, signOut]);
 
+  if (local) {
+    const done = () => window.location.reload();
+    return local.need === 'setup' ? <SetupWizard status={local.status} onDone={done} /> : <LinkThisPc status={local.status} onDone={done} />;
+  }
   if (fatal) {
     return <div className="boot"><div className="boot-card error">{fatal}</div></div>;
   }

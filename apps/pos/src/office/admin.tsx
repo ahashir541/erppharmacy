@@ -1,6 +1,7 @@
 import { checkPin, hashPin } from '@medflow/core';
 import { useState } from 'react';
 import { toPaisa } from '../util.ts';
+import { isServer, LocalServerPanel } from './localserver.tsx';
 import { RolePermissions } from './roles.tsx';
 import { Modal, money, PageHead, Stat, Table, timeOf, useLoad, useSubmit, type PageProps } from './ui.tsx';
 
@@ -182,13 +183,14 @@ export function Settings(props: PageProps) {
     <>
       <PageHead title="Settings" sub="Your pharmacy, receipts, display, alerts, hot keys and sync" />
       <div className="grid-2">
+        {isServer(props.db) && <LocalServerPanel {...props} />}
         <section className="panel">
           <div className="panel-title">Business</div>
           {b ? (
             <dl className="facts">
               <dt>Pharmacy</dt><dd>{b.name}</dd><dt>Owner</dt><dd>{b.owner_name} · {b.owner_phone}</dd>
               <dt>Branch</dt><dd>{b.branch}, {b.address}</dd><dt>Phone</dt><dd>{b.phone}</dd>
-              <dt>Plan</dt><dd>{b.status === 'trial' ? `Free trial until ${timeOf(b.trial_ends_at)}` : b.status}</dd>
+              <dt>Plan</dt><dd>{b.status === 'trial' ? `Free trial until ${timeOf(b.trial_ends_at)}` : b.status === 'active' ? 'Active' : b.status}</dd>
             </dl>
           ) : <div className="loading-row"><span className="spinner small" /></div>}
         </section>

@@ -17,3 +17,6 @@ export function errorText(err: unknown): string {
   const m = (err as Error)?.message ?? String(err);
   return m.replace(/^error:\s*/i, '');
 }
+
+/** The Demo Pharmacy (practice data), not a real pharmacy: shows the demo ribbon and demo PINs. */
+export const isDemo = (ctx: { branch: { id: string } }) => ctx.branch.id === '0195f000-0000-7000-8000-000000000002';

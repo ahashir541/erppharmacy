@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppProps, Session } from '../App.tsx';
 import { PosError, type CustomerHit, type HeldBill, type Product } from '../backend/types.ts';
 import { APPROVAL_KEY, emptyCart, priceCart, salePayload, settle, unitOf, type CartLine, type CartState } from '../cart.ts';
-import { errorText, rs, rsShort, shortDate, toPaisa, uuid } from '../util.ts';
+import { errorText, isDemo, rs, rsShort, shortDate, toPaisa, uuid } from '../util.ts';
 import { ApprovalDialog, HeldDialog, PrescriptionDialog, ReceiptDialog, receiptData, type PrescriptionInfo } from './Dialogs.tsx';
 import { ReturnDialog } from './ReturnDialog.tsx';
 import { CloseShift } from './Shift.tsx';
@@ -273,7 +273,7 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
 
       <div className="shift-bar">
         <span>{t('pos.shift_by', { name: ctx.open_shift?.opened_by_name ?? '' })} · {new Date(ctx.open_shift!.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-        <span className="muted">{t('pos.demo')}</span>
+        {isDemo(ctx) && <span className="muted">{t('pos.demo')}</span>}
       </div>
 
       <main className="pos-main">

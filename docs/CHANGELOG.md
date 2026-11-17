@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### MedFlow Local: free, permanent, on the shop PC (2026-11-17)
+
+- The owner's decision (D56): run MedFlow on the pharmacy's own main PC instead of
+  a paid cloud. `apps/server` is a small Node server with the same database
+  (PGlite) kept on disk in `C:\MedFlow\data`; it serves the app to every counter
+  on the shop network. Counters prove who they are with a token issued when the
+  owner links them by PIN; back-office calls also need an owner session on that
+  counter. Row Level Security and the database permissions apply as on the cloud.
+- First start: a setup wizard (pharmacy, owner and PIN, bill prefix, this PC) or
+  the Demo Pharmacy. New counter PCs: open the address in Settings, enter a name
+  and the owner's PIN.
+- Backups every night and at start-up when the last is a day old, newest 30 kept,
+  optional second copy (`copyTo`, e.g. a Google Drive folder), "Back up now" in
+  Settings, `Restore-Backup.ps1` (today's data is moved aside, never deleted).
+- `pnpm --filter @medflow/server build -- --zip` builds `MedFlow-Local.zip` with
+  Node included; `Install-MedFlow.ps1` installs it, starts it with Windows
+  (restarting by itself), opens the network port and adds desktop icons.
+- Import medicines from Excel (.xlsx) or CSV, a permission editor per role, and a
+  physical stock count screen. Demo PIN hints show only for the Demo Pharmacy.
+
 ### No tax, no FBR (2026-11-17)
 
 - The owner's decision (D55): MedFlow has no sales tax and no link to FBR or

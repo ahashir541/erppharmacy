@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { AppProps, Session } from '../App.tsx';
 import type { Staff } from '../backend/types.ts';
-import { errorText, uuid } from '../util.ts';
+import { errorText, isDemo, uuid } from '../util.ts';
 import { PinPad } from './PinPad.tsx';
 
 export function SignIn(props: AppProps & { onSignedIn: (s: Session) => void; onToggleLang: () => void }) {
@@ -16,7 +16,7 @@ export function SignIn(props: AppProps & { onSignedIn: (s: Session) => void; onT
         <div className="signin-place">{ctx.pharmacy} · {ctx.branch.name} · {ctx.device.name}</div>
         <button type="button" className="link-btn" onClick={props.onToggleLang}>{t('pos.language')}</button>
       </header>
-      <div className="demo-ribbon">{t('pos.demo')}</div>
+      {isDemo(ctx) && <div className="demo-ribbon">{t('pos.demo')}</div>}
       <main className="signin-body">
         <section className="staff-list" aria-label={t('pos.who')}>
           <h1>{t('pos.who')}</h1>
@@ -29,7 +29,7 @@ export function SignIn(props: AppProps & { onSignedIn: (s: Session) => void; onT
               </button>
             ))}
           </div>
-          <p className="muted small">Demo PINs: Bilal 1357 · Sana 2580 · Dr. Ayesha 2469 · Owner 1470</p>
+          {isDemo(ctx) && <p className="muted small">Demo PINs: Bilal 1357 · Sana 2580 · Dr. Ayesha 2469 · Owner 1470</p>}
         </section>
         <section className="pin-panel">
           {who ? (

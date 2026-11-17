@@ -1,6 +1,7 @@
 import { checkPin, hashPin } from '@medflow/core';
 import { useState } from 'react';
 import { toPaisa } from '../util.ts';
+import { RolePermissions } from './roles.tsx';
 import { Modal, money, PageHead, Stat, Table, timeOf, useLoad, useSubmit, type PageProps } from './ui.tsx';
 
 // ---- Approvals & alerts ----------------------------------------------------------------------
@@ -51,6 +52,7 @@ interface Member { id: string; full_name: string; kind: string; status: string; 
 export function Team(props: PageProps) {
   const [adding, setAdding] = useState(false);
   const [pinFor, setPinFor] = useState<Member | null>(null);
+  const [tab, setTab] = useState<'staff' | 'roles'>('staff');
   const { data, error, reload } = useLoad(() => props.db.office<Member[]>('team'), []);
   const toggle = async (m: Member) => {
     if (m.status === 'active') await props.db.ownerCall('disable_user', m.id, 'Disabled by the owner');
@@ -62,7 +64,11 @@ export function Team(props: PageProps) {
       <PageHead title="Team" sub="Staff, their roles and counter PINs. Staff work only on the shop's PCs.">
         <button type="button" className="btn primary" onClick={() => setAdding(true)}>+ Add staff</button>
       </PageHead>
-      <Table rows={data} error={error} cols={[
+      <div className="tabs">
+        <button type="button" className={`tab${tab === 'staff' ? ' on' : ''}`} onClick={() => setTab('staff')}>Staff</button>
+        <button type="button" className={`tab${tab === 'roles' ? ' on' : ''}`} onClick={() => setTab('roles')}>What each role can do</button>
+      </div>
+      {tab === 'roles' ? <RolePermissions {...props} /> : <Table rows={data} error={error} cols={[
         { label: 'Name', value: (r) => <><strong>{r.full_name}</strong><div className="muted small">{r.phone}</div></> },
         { label: 'Role', value: (r) => r.roles ?? '—' },
         { label: 'PIN', value: (r) => (r.has_pin ? <span className="pill good">Set</span> : <span className="pill warn">Not set</span>) },
@@ -73,7 +79,7 @@ export function Team(props: PageProps) {
             <button type="button" className="btn small-btn" onClick={() => setPinFor(r)}>Set PIN</button>
             <button type="button" className={`btn small-btn${r.status === 'active' ? ' danger' : ''}`} onClick={() => void toggle(r)}>{r.status === 'active' ? 'Disable' : 'Enable'}</button>
           </div>)) },
-      ]} />
+      ]} />}
       {adding && <AddStaff {...props} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); reload(); }} />}
       {pinFor && <SetPin {...props} member={pinFor} onClose={() => setPinFor(null)} onSaved={() => { setPinFor(null); reload(); }} />}
     </>

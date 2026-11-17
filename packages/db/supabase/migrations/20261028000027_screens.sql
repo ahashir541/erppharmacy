@@ -45,7 +45,8 @@ $$;
 create or replace function public.office_stock_count_sheet(p_count uuid) returns jsonb
 language sql stable security invoker set search_path = public, app as $$
   select app.rows(jsonb_agg(to_jsonb(x) order by x.rack_location nulls last, x.brand_name, x.expiry_date)) from (
-    select b.id batch_id, p.brand_name, p.rack_location, b.batch_number, b.expiry_date, sb.qty_base::int system_qty,
+    select b.id batch_id, p.brand_name, p.rack_location, b.batch_number, b.expiry_date, coalesce((select r.expected_qty from stock_count_lines l join stock_count_results r on r.stock_count_line_id = l.id
+                     where l.stock_count_id = sc.id and l.batch_id = b.id order by l.counted_at desc limit 1), sb.qty_base)::int system_qty,
            (select l.counted_qty from stock_count_lines l where l.stock_count_id = sc.id and l.batch_id = b.id
             order by l.counted_at desc limit 1)::int counted,
            (select r.variance_qty from stock_count_lines l join stock_count_results r on r.stock_count_line_id = l.id

@@ -74,9 +74,12 @@ describe('building import rows', () => {
     expect(problems.map((p) => p.row)).toEqual([1, 3, 4]);
   });
 
-  it('refuses a strip price when no strip size is given', () => {
-    const { problems } = buildImportRows([['A', '', '', '', '', '', '10']], mapping, { priceIsPer: 'strip' });
-    expect(problems[0]?.error).toMatch(/no strip size/);
+  it('prices the largest pack a row has when it lacks the chosen one (a syrup bottle has no box)', () => {
+    const { rows, problems } = buildImportRows([['A', '', '', '', '', '', '10']], mapping, { priceIsPer: 'box' });
+    expect(problems).toEqual([]);
+    expect(rows[0]?.retail_unit).toBe(rows[0]?.base_unit);
+    const strips = buildImportRows([['B', '', '', '', '10', '', '50']], mapping, { priceIsPer: 'box' });
+    expect(strips.rows[0]?.retail_unit).toBe('strip');
   });
 
   it('splits big files into 10,000-row calls', () => {

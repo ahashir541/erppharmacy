@@ -79,8 +79,8 @@ const SYNONYMS: Record<ImportField, string[]> = {
   category: ['category', 'group', 'class', 'department'],
   barcode: ['barcode', 'bar code', 'ean', 'upc', 'gtin'],
   base_unit: ['unit', 'base unit', 'uom'],
-  units_per_strip: ['units per strip', 'tablets per strip', 'tabs per strip', 'strip size', 'pack size'],
-  strips_per_box: ['strips per box', 'strips per pack', 'box size'],
+  units_per_strip: ['units per strip', 'tablets per strip', 'tabs per strip', 'strip size', 'pack size', 'strip'],
+  strips_per_box: ['strips per box', 'strips per pack', 'box size', 'strips', 'box'],
   retail_price: ['retail', 'retail price', 'price', 'mrp', 'sale price', 'selling price', 'rp'],
   rack: ['rack', 'shelf', 'location', 'rack no'],
   reorder_level: ['reorder', 'reorder level', 'reorder point', 'rol'],
@@ -182,12 +182,13 @@ export function buildImportRows(
       if (price !== null) {
         if (price < 0) throw new RangeError('price cannot be negative');
         row.retail_price = price;
+        // The price is for the pack chosen on the mapping screen; a row without that pack (a syrup
+        // bottle has no box) prices its largest pack: box, then strip, then the single unit.
         const per = opts.priceIsPer ?? 'base';
-        const unit = per === 'base' ? base : per;
-        if (per !== 'base' && !units.some((u) => u.unit === per)) {
-          throw new RangeError(`price is per ${per}, but no ${per} size is given`);
-        }
-        row.retail_unit = unit;
+        const has = (p: string) => units.some((u) => u.unit === p);
+        row.retail_unit = per === 'box' && has('box') ? 'box'
+          : per !== 'base' && has('strip') ? 'strip'
+          : base;
       }
       for (const f of ['reorder_level', 'min_stock', 'max_stock'] as const) {
         const v = parseWhole(cell(r, f), f.replace('_', ' '));

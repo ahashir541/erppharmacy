@@ -7,10 +7,11 @@ import { Accounts, Expenses, Reports } from './money.tsx';
 import { Customers, Suppliers } from './parties.tsx';
 import { Purchases } from './purchases.tsx';
 import { Dashboard, Invoices, Shifts } from './sales.tsx';
+import { StockCounts } from './counts.tsx';
 import { Expiry, Movements, Products } from './stock.tsx';
 import type { PageProps } from './ui.tsx';
 
-const LABEL_UR: Record<string, string> = {"dashboard": "ڈیش بورڈ", "pos": "نئی فروخت", "invoices": "فروخت اور بل", "customers": "گاہک اور ادھار", "shifts": "شفٹیں", "products": "ادویات اور اسٹاک", "expiry": "میعاد", "movements": "اسٹاک کی آمد و رفت", "suppliers": "سپلائرز", "purchases": "خریداری", "expenses": "اخراجات", "accounts": "حسابات", "reports": "رپورٹس", "approvals": "منظوریاں اور الرٹس", "team": "عملہ", "settings": "ترتیبات"};
+const LABEL_UR: Record<string, string> = {"dashboard": "ڈیش بورڈ", "pos": "نئی فروخت", "invoices": "فروخت اور بل", "customers": "گاہک اور ادھار", "shifts": "شفٹیں", "products": "ادویات اور اسٹاک", "expiry": "میعاد", "counts": "اسٹاک گنتی", "movements": "اسٹاک کی آمد و رفت", "suppliers": "سپلائرز", "purchases": "خریداری", "expenses": "اخراجات", "accounts": "حسابات", "reports": "رپورٹس", "approvals": "منظوریاں اور الرٹس", "team": "عملہ", "settings": "ترتیبات"};
 const GROUP_LABEL_UR: Record<string, string> = {"Overview": "جائزہ", "Sales": "فروخت", "Inventory": "اسٹاک", "Purchasing": "خریداری", "Money": "رقم", "Admin": "انتظام"};
 
 interface NavItem { key: string; label: string; icon: string; group: string; render?: (p: PageProps) => ReactNode; soon?: boolean }
@@ -23,6 +24,7 @@ const NAV: NavItem[] = [
   { key: 'shifts', label: 'Shifts', icon: '◷', group: 'Sales', render: (p) => <Shifts {...p} /> },
   { key: 'products', label: 'Products & stock', icon: '▤', group: 'Inventory', render: (p) => <Products {...p} /> },
   { key: 'expiry', label: 'Expiry', icon: '⚠', group: 'Inventory', render: (p) => <Expiry {...p} /> },
+  { key: 'counts', label: 'Stock count', icon: '☑', group: 'Inventory', render: (p) => <StockCounts {...p} /> },
   { key: 'movements', label: 'Stock movements', icon: '⇅', group: 'Inventory', render: (p) => <Movements {...p} /> },
   { key: 'suppliers', label: 'Suppliers', icon: '⛟', group: 'Purchasing', render: (p) => <Suppliers {...p} /> },
   { key: 'purchases', label: 'Purchases', icon: '⊕', group: 'Purchasing', render: (p) => <Purchases {...p} /> },

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toPaisa } from '../util.ts';
 import { ProductDrawer } from './extras.tsx';
+import { ImportProducts } from './importer.tsx';
 import { csvButton, dateOf, Modal, money, PageHead, Stat, Table, timeOf, useLoad, useSubmit, type Col, type PageProps } from './ui.tsx';
 
 interface ProductRow { id: string; brand_name: string; strength: string | null; generic: string | null; company: string | null; rack_location: string | null;
@@ -12,6 +13,7 @@ export function Products(props: PageProps) {
   const [adding, setAdding] = useState(false);
   const [stockFor, setStockFor] = useState<ProductRow | null>(null);
   const [detail, setDetail] = useState<ProductRow | null>(null);
+  const [importing, setImporting] = useState(false);
   const { data, error, reload } = useLoad(() => props.db.office<ProductRow[]>('products', props.branchId, q.trim()), [q]);
   const low = (data ?? []).filter((r) => r.reorder_level !== null && r.sellable <= r.reorder_level);
   const cols: Col<ProductRow>[] = [
@@ -27,6 +29,7 @@ export function Products(props: PageProps) {
     <>
       <PageHead title="Products & stock" sub="Medicines, pack sizes, prices and what is on the shelf at this branch">
         {csvButton('products', data, cols)}
+        <button type="button" className="btn" onClick={() => setImporting(true)}>Import from Excel</button>
         <button type="button" className="btn primary" onClick={() => setAdding(true)}>+ Add medicine</button>
       </PageHead>
       <div className="stats">
@@ -36,6 +39,7 @@ export function Products(props: PageProps) {
       </div>
       <div className="filters"><input placeholder="Search medicine or generic" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       <Table rows={data} error={error} cols={cols} onRow={setDetail} />
+      {importing && <ImportProducts {...props} onClose={() => setImporting(false)} onDone={() => { setImporting(false); reload(); }} />}
       {detail && <ProductDrawer {...props} productId={detail.id} name={detail.brand_name} onClose={() => setDetail(null)} />}
       {adding && <AddMedicine {...props} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); reload(); }} />}
       {stockFor && <AddStock {...props} product={stockFor} onClose={() => setStockFor(null)} onSaved={() => { setStockFor(null); reload(); }} />}

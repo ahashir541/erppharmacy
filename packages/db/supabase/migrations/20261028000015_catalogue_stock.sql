@@ -804,7 +804,7 @@ begin
     from stock_balances sb
     left join products p on p.id = sb.product_id
     where sb.branch_id = sc.branch_id and sb.qty_base <> 0
-      and (sc.rack_filter is null or p.rack_location = sc.rack_filter)
+      and (sc.rack_filter is null or p.rack_location ilike sc.rack_filter || '%')
     on conflict (stock_count_id, batch_id) do nothing;
   end if;
 

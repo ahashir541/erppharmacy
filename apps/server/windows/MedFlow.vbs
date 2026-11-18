@@ -11,7 +11,8 @@ Function Ready()
   http.setTimeouts 1000, 1000, 2000, 2000
   http.Open "GET", url & "/api/status", False
   http.Send
-  Ready = (Err.Number = 0 And http.Status = 200)
+  ' 503 = running but still opening the database: do not start a second copy.
+  Ready = (Err.Number = 0 And (http.Status = 200 Or http.Status = 503))
   On Error GoTo 0
 End Function
 

@@ -17,6 +17,29 @@ const LOOPBACK = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
 const PROXIED = ['x-forwarded-for', 'forwarded', 'tailscale-funnel-request', 'x-forwarded-host', 'x-real-ip', 'cf-connecting-ip'];
 const proxied = (req: http.IncomingMessage) => PROXIED.some((h) => req.headers[h] !== undefined);
 
+/**
+ * Takes the port BEFORE the database is opened. A second copy of the server (the icon clicked again
+ * while MedFlow is still starting) stops here with exit code 3 and never touches the data folder:
+ * two database engines on one folder can damage it.
+ */
+export async function claimPort(port: number, starting: string, log: (s: string) => void) {
+  let handler: ((req: http.IncomingMessage, res: http.ServerResponse) => void) | null = null;
+  const http_ = await import('node:http');
+  const server = http_.createServer((req, res) => {
+    if (handler) { handler(req, res); return; }
+    res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '3' });
+    res.end(JSON.stringify({ error: starting, starting: true }));
+  });
+  await new Promise<void>((resolve) => {
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      log(err.code === 'EADDRINUSE' ? `Port ${port} is in use: already running on this PC. This copy stops without opening the data.` : `Server error: ${err.message}`);
+      process.exit(err.code === 'EADDRINUSE' ? 3 : 1);
+    });
+    server.listen(port, '0.0.0.0', () => resolve());
+  });
+  return { server, ready: (h: (req: http.IncomingMessage, res: http.ServerResponse) => void) => { handler = h; } };
+}
+
 /** Really this PC: a direct connection from 127.0.0.1, not through a tunnel. */
 export const isLocal = (req: http.IncomingMessage) => LOOPBACK.includes(req.socket.remoteAddress ?? '') && !proxied(req);
 

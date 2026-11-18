@@ -26,10 +26,19 @@ export const savedToken = () => { try { return localStorage.getItem(TOKEN_KEY); 
 export const saveToken = (t: string) => { try { localStorage.setItem(TOKEN_KEY, t); } catch { /* private window */ } };
 export const forgetToken = () => { try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ } };
 
+/** While MedFlow is starting (it answers 503 until the database is open), wait and try again. */
+async function fetchWhileStarting(go: () => Promise<Response>): Promise<Response> {
+  for (let i = 0; ; i++) {
+    const res = await go();
+    if (res.status !== 503 || i >= 60) return res;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}
+
 async function post<T>(path: string, body: unknown, headers: Record<string, string> = {}, method = 'POST'): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`/api/${path}`, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: method === 'GET' ? null : JSON.stringify(body) });
+    res = await fetchWhileStarting(() => fetch(`/api/${path}`, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: method === 'GET' ? null : JSON.stringify(body) }));
   } catch {
     throw new PosError('Cannot reach the MedFlow PC. Is the main PC switched on and on the same network?', 'offline');
   }

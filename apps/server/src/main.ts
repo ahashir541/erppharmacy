@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { backupNow, listBackups, restore, scheduleBackups } from './backup.ts';
 import { ApiError, asPrincipal, callFunction, openDatabase } from './db.ts';
-import { clientAddress, isLocal, lanAddresses, readJson, send, serveStatic } from './http.ts';
+import { claimPort, clientAddress, isLocal, lanAddresses, readJson, send, serveStatic } from './http.ts';
 import { Licence } from './licence.ts';
 import { startupGuard, startupOk, Updater } from './updater.ts';
 import { counterFor, linkCounter, ownerClaims, pharmacy, setupDemo, setupPharmacy } from './setup.ts';
@@ -64,6 +64,7 @@ async function main() {
     return;
   }
   log(`MedFlow Local ${VERSION} starting · data ${cfg.data}`);
+  const { server, ready } = await claimPort(cfg.port, 'MedFlow is starting, one moment…', log);
   const db: PGlite = await openDatabase(cfg.data, cfg.sql, log);
   const licence = new Licence(db, cfg.hqUrl, VERSION, log);
   const updater = new Updater(home, VERSION, licence.hqUrl, () => licence.key, () => licence.licenceKey(),
@@ -98,6 +99,7 @@ async function main() {
         if (key) await licence.checkIn(key).catch((e: Error) => { licence_error = e.message; });
         else await licence.apply();
       }
+      setTimeout(() => { doBackup().catch((e) => log(`Backup after setup failed: ${(e as Error).message}`)); }, 5_000);
       return send(res, 200, { ...r, licence_error });
     }
     if (route === 'link') {
@@ -156,7 +158,7 @@ async function main() {
     throw new ApiError('Not found', 404);
   };
 
-  const server = http.createServer((req, res) => {
+  ready((req, res) => {
     const url = req.url ?? '/';
     if (!url.startsWith('/api/')) { serveStatic(cfg.public, req, res); return; }
     const route = url.slice(5).split('?')[0]!;
@@ -169,16 +171,9 @@ async function main() {
       }
     });
   });
-  server.on('error', (err: NodeJS.ErrnoException) => {
-    if (err.code === 'EADDRINUSE') log(`Port ${cfg.port} is in use: MedFlow Local is probably already running.`);
-    else log(`Server error: ${err.message}`);
-    process.exit(err.code === 'EADDRINUSE' ? 3 : 1);
-  });
-  server.listen(cfg.port, '0.0.0.0', () => {
-    log(`MedFlow ${VERSION} is ready on this PC: http://localhost:${cfg.port}`);
-    startupOk(home, VERSION, log);
-    for (const a of lanAddresses(cfg.port)) log(`Other counters on the shop network open: ${a}`);
-  });
+  log(`MedFlow ${VERSION} is ready on this PC: http://localhost:${cfg.port}`);
+  startupOk(home, VERSION, log);
+  for (const a of lanAddresses(cfg.port)) log(`Other counters on the shop network open: ${a}`);
   const stop = async () => { log('Stopping…'); server.close(); await db.close().catch(() => {}); process.exit(0); };
   process.on('SIGINT', () => void stop());
   process.on('SIGTERM', () => void stop());

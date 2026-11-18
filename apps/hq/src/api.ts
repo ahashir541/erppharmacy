@@ -9,14 +9,22 @@ export class HqError extends Error {
 export const hqToken = () => { try { return sessionStorage.getItem(TOKEN); } catch { return null; } };
 const setToken = (t: string | null) => { try { if (t) sessionStorage.setItem(TOKEN, t); else sessionStorage.removeItem(TOKEN); } catch { /* ignore */ } };
 
+async function fetchWhileStarting(go: () => Promise<Response>): Promise<Response> {
+  for (let i = 0; ; i++) {
+    const res = await go();
+    if (res.status !== 503 || i >= 60) return res;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}
+
 async function req<T>(path: string, body?: unknown, method = 'POST'): Promise<T> {
   let res: Response;
   try {
     const t = hqToken();
-    res = await fetch(`/hq/${path}`, {
+    res = await fetchWhileStarting(() => fetch(`/hq/${path}`, {
       method, headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
       body: method === 'GET' ? null : JSON.stringify(body ?? {}),
-    });
+    }));
   } catch {
     throw new HqError('Cannot reach MedFlow HQ');
   }

@@ -13,7 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { backupNow, scheduleBackups } from './backup.ts';
 import { ApiError, asPrincipal, callFunction, openDatabase, type Claims } from './db.ts';
-import { clientAddress, isLocal, readJson, send, serveStatic } from './http.ts';
+import { claimPort, clientAddress, isLocal, readJson, send, serveStatic } from './http.ts';
 
 const VERSION = '0.1.0';
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -84,6 +84,7 @@ async function asService<T>(db: PGlite, fn: (tx: Parameters<Parameters<typeof as
 
 async function main() {
   log(`MedFlow HQ ${VERSION} starting · data ${cfg.data}`);
+  const { server, ready } = await claimPort(cfg.port, 'MedFlow HQ is starting, one moment…', log);
   const db = await openDatabase(cfg.data, cfg.sql, log);
   await db.exec(`create table if not exists medflow_local.hq_passwords (admin_id uuid primary key, email text not null unique, hash text not null)`);
   const key = await signingKey();
@@ -222,7 +223,7 @@ async function main() {
     throw new ApiError('Not found', 404);
   };
 
-  const server = http.createServer((req, res) => {
+  ready((req, res) => {
     const url = req.url ?? '/';
     if (!url.startsWith('/hq/')) { serveStatic(cfg.public, req, res); return; }
     const route = url.slice(4).split('?')[0]!;
@@ -231,11 +232,7 @@ async function main() {
       else { log(`Error on ${route}: ${(err as Error).stack ?? err}`); send(res, 500, { error: 'MedFlow HQ had a problem. See the log.' }); }
     });
   });
-  server.on('error', (err: NodeJS.ErrnoException) => {
-    log(err.code === 'EADDRINUSE' ? `Port ${cfg.port} is in use: MedFlow HQ is probably already running.` : `Server error: ${err.message}`);
-    process.exit(err.code === 'EADDRINUSE' ? 3 : 1);
-  });
-  server.listen(cfg.port, '0.0.0.0', () => log(`MedFlow HQ is ready: http://localhost:${cfg.port}`));
+  log(`MedFlow HQ is ready: http://localhost:${cfg.port}`);
   const stop = async () => { server.close(); await db.close().catch(() => {}); process.exit(0); };
   process.on('SIGINT', () => void stop());
   process.on('SIGTERM', () => void stop());

@@ -2,7 +2,7 @@
 // screens to run MedFlow as a business: pharmacies, payments, plans and prices, announcements.
 import { useEffect, useState } from 'react';
 import { errorText, hqStatus, hqToken, setupAdmin, signIn, signOut, type HqStatus } from './api.ts';
-import { Announcements, Overview, Payments, Pharmacies, Plans } from './pages.tsx';
+import { Announcements, Overview, Payments, Pharmacies, Plans, Updates } from './pages.tsx';
 
 const NAV = [
   { key: 'overview', label: 'Overview', icon: '▦' },
@@ -10,6 +10,7 @@ const NAV = [
   { key: 'payments', label: 'Payments', icon: '₨' },
   { key: 'plans', label: 'Plans & prices', icon: '☰' },
   { key: 'announcements', label: 'Announcements', icon: '✉' },
+  { key: 'updates', label: 'Updates', icon: '⟳' },
 ] as const;
 type Page = (typeof NAV)[number]['key'];
 
@@ -52,6 +53,7 @@ export function App() {
           {page === 'payments' && <Payments go={go} />}
           {page === 'plans' && <Plans />}
           {page === 'announcements' && <Announcements />}
+          {page === 'updates' && <Updates />}
         </main>
       </div>
     </div>

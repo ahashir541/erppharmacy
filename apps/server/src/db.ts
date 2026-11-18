@@ -1,8 +1,7 @@
 // The pharmacy's database: PostgreSQL (PGlite) kept in a folder on this PC. On first start it runs
 // every MedFlow migration; on an update it runs only the new ones. Its own bookkeeping (applied
 // migrations, counter tokens) lives in the medflow_local schema, which staff calls cannot see.
-import { PGlite, type Transaction } from '@electric-sql/pglite';
-import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
+import type { PGlite, Transaction } from '@electric-sql/pglite';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -17,6 +16,9 @@ export class ApiError extends Error {
 
 export async function openDatabase(dataDir: string, sqlDir: string, log: (s: string) => void): Promise<PGlite> {
   fs.mkdirSync(dataDir, { recursive: true });
+  // Loaded here, not at the top, so a broken update package can still be rolled back (updater.ts).
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { pg_trgm } = await import('@electric-sql/pglite/contrib/pg_trgm');
   const db = await PGlite.create(dataDir, { extensions: { pg_trgm } });
   await db.exec(`
     create schema if not exists medflow_local;

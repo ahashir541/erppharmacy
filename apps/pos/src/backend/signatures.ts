@@ -729,6 +729,13 @@ export const SIGNATURES: Record<string, string[]> = {
   "platform_set_payment_instructions": [
     "p_text"
   ],
+  "platform_releases": [
+    "p_app"
+  ],
+  "platform_set_release_channel": [
+    "p_tenant",
+    "p_channel"
+  ],
   "platform_pharmacies": [],
   "platform_pharmacy": [
     "p_tenant"

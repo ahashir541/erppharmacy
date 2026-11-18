@@ -62,9 +62,25 @@ running which version. Pharmacies never send their sales, stock or customers to 
 Supabase (the cloud build) can host the same database functions; an Edge Function for the
 check-in is the remaining piece if you choose it later.
 
+## Updates (how to ship a new version)
+
+1. Raise `"version"` in `apps/server/package.json` (e.g. 0.2.0 → 0.3.0).
+2. `node apps/server/build.mjs --update` → `apps/server/release/medflow-local-0.3.0.tar.gz`.
+3. HQ console → **Updates** → choose the file → publish on **beta** first (set a few pharmacies to
+   "First (beta)" on their page), then publish the same file on **stable** for everyone.
+4. Each pharmacy sees the offer at its next check-in and installs it **between 1 and 5 at night**,
+   or at once when the owner presses **Install now** (Settings). Before installing it checks HQ's
+   signature and the file's SHA-256, backs up the data, keeps a copy of the current version, then
+   restarts on the new one (new database migrations run by themselves).
+5. If the new version does not start three times, it **goes back by itself** to the previous one,
+   does not try that version again, and HQ shows "update failed" on that PC.
+6. A bad version: **Pull** it in Updates. PCs that have not installed it stay put; PCs that have it
+   get the last good version.
+
+Rules for new versions: database changes are always new migration files (an installed pharmacy
+only runs migrations it has not run), and the data, backups, config and Node are never replaced.
+
 ## Still to build
 
-- Auto-update: MedFlow Local downloads a new signed version from HQ and installs it at night after
-  the backup (the release table and version rules already exist in the database).
 - Optional cloud backup of a pharmacy's data to HQ (a paid add-on).
 - Two-factor sign-in for the HQ console (it has a password, sign-in limits and 12-hour sessions now).

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Auto-update for MedFlow Local, version 0.2.0 (2026-11-18)
+
+- HQ console → Updates: upload `medflow-local-x.y.z.tar.gz` (made by `build.mjs --update`), HQ signs
+  its SHA-256 and size, publishes it on internal / beta / stable; versions per PC; Pull a bad one.
+  Per pharmacy: "Gets updates" with everyone (stable), first (beta) or as a test pharmacy.
+- The offer comes with the daily check-in (`app.release_offer`: channels and rollback as
+  `check_for_update`). MedFlow Local installs it 01:00–05:00 or on "Install now": checks signature
+  and checksum, backs up, keeps the previous version, restarts; three failed starts put the previous
+  version back, and that version is not tried again (HQ sees `update_failed`). Open PCs offer
+  "Reload now" when the server was updated. 10 more database checks; an update test went
+  0.1.0 → 0.2.0 → broken 0.3.0 → back to 0.2.0 with the data intact.
+
 ### MedFlow HQ: sell MedFlow on monthly plans (2026-11-18)
 
 - D57. `apps/hq` (your console) and `apps/server/src/hq.ts` (your server): add a pharmacy and get

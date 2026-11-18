@@ -1,7 +1,7 @@
 // Settings on MedFlow Local: where the data is backed up, "Back up now", and the address other
 // counter PCs open to join (same shop network).
 import { useEffect, useState } from 'react';
-import { serverStatus, type BackupList, type LicenceStatus, type ServerBackend, type ServerStatus } from '../backend/server.ts';
+import { serverStatus, type BackupList, type LicenceStatus, type ServerBackend, type ServerStatus, type UpdateStatus } from '../backend/server.ts';
 import { errorText, rs } from '../util.ts';
 import { Modal, timeOf, type PageProps } from './ui.tsx';
 
@@ -50,7 +50,23 @@ export function LicencePanel(props: PageProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState<LicenceStatus['invoices'][number] | null>(null);
-  useEffect(() => { serverStatus().then((s) => setLic(s.licence)).catch((e) => setError(errorText(e))); }, []);
+  const [upd, setUpd] = useState<UpdateStatus | null>(null);
+  const [installing, setInstalling] = useState(false);
+  useEffect(() => { serverStatus().then((s) => { setLic(s.licence); setUpd(s.update); }).catch((e) => setError(errorText(e))); }, []);
+  const installNow = async () => {
+    if (!window.confirm('Install the update now? MedFlow backs up, installs and restarts (about a minute). Counters reconnect by themselves.')) return;
+    setInstalling(true); setError(null);
+    try {
+      await db.installUpdate();
+      // Wait for the new version, then reload the page so this PC uses it too.
+      for (let i = 0; i < 120; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const s = await serverStatus().catch(() => null);
+        if (s?.update && s.update.current !== upd?.current) { window.location.reload(); return; }
+      }
+      setError('MedFlow did not come back yet. Wait a minute and reload the page.');
+    } catch (e) { setError(errorText(e)); setInstalling(false); }
+  };
   const run = async (fn: () => Promise<LicenceStatus>) => {
     setBusy(true); setError(null);
     try { setLic(await fn()); setKey(''); } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
@@ -85,6 +101,21 @@ export function LicencePanel(props: PageProps) {
             ))}
           </ul>
           {lic.payment_instructions && <p className="muted small pre">{lic.payment_instructions}</p>}
+        </>
+      )}
+      {upd && (
+        <>
+          <div className="panel-title">MedFlow version</div>
+          <dl className="facts">
+            <dt>This PC runs</dt><dd>{upd.current}</dd>
+            <dt>Update</dt><dd>{upd.offer?.version ? `${upd.offer.version}${upd.offer.is_rollback ? ' (going back to a safer version)' : ''} — installs by itself ${upd.install_window}, after the backup`
+              : 'Up to date'}</dd>
+            {upd.last_result && <><dt>Last update</dt><dd>{upd.last_result}</dd></>}
+          </dl>
+          {upd.offer?.notes && <p className="muted small pre">{upd.offer.notes}</p>}
+          {upd.last_error && <div className="message error">{upd.last_error}</div>}
+          {upd.offer?.version && <div className="row-actions"><button type="button" className="btn" disabled={installing || upd.installing} onClick={() => void installNow()}>
+            {installing || upd.installing ? 'Installing… MedFlow restarts' : 'Install now'}</button></div>}
         </>
       )}
       {lic.announcements.map((a) => (

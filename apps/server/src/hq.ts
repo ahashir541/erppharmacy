@@ -6,7 +6,7 @@
 // backed up: a new key means every pharmacy needs an update before its licence can renew.
 import type { PGlite } from '@electric-sql/pglite';
 import { exportPublicKey, signClaims } from '@medflow/core';
-import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -25,6 +25,7 @@ const cfg = {
   data: abs(arg('data') ?? 'hq-data'),
   keys: abs(arg('keys') ?? 'hq-keys'),
   backups: abs(arg('backups') ?? 'hq-backups'),
+  releases: abs(arg('releases') ?? 'hq-releases'),
   public: abs(arg('public') ?? 'hq-public'),
   sql: abs(arg('sql') ?? 'sql'),
   logs: abs('logs'),
@@ -104,6 +105,53 @@ async function main() {
   const api = async (req: http.IncomingMessage, res: http.ServerResponse, route: string) => {
     if (route === 'status' && req.method === 'GET') {
       return send(res, 200, { app: 'medflow-hq', version: VERSION, has_admin: await hasAdmin(), this_pc: isLocal(req), public_key: key.publicRaw });
+    }
+    // ---- A pharmacy downloads an update (its licence key proves it is a customer) ----
+    if (route.startsWith('download/') && req.method === 'GET') {
+      const file = route.slice('download/'.length);
+      if (!/^medflow-local-[0-9a-z.-]+\.tar\.gz$/.test(file)) throw new ApiError('Not found', 404);
+      const key = String(req.headers['x-licence-key'] ?? '');
+      const ok = (await db.query<{ t: string | null }>('select app.licence_key_tenant($1) t', [key])).rows[0]?.t;
+      if (!ok) throw new ApiError('A valid licence key is required', 403);
+      const full = path.join(cfg.releases, file);
+      if (!fs.existsSync(full)) throw new ApiError('Not found', 404);
+      res.writeHead(200, { 'Content-Type': 'application/gzip', 'Content-Length': String(fs.statSync(full).size) });
+      fs.createReadStream(full).pipe(res);
+      return;
+    }
+    // ---- You upload a new MedFlow Local version; HQ signs it ----
+    if (route === 'admin/release' && req.method === 'POST') {
+      const s = sessions.get((req.headers.authorization ?? '').replace(/^Bearer\s+/i, ''));
+      if (!s || s.until < Date.now()) throw new ApiError('Sign in to MedFlow HQ', 401);
+      const version = String(req.headers['x-medflow-version'] ?? '');
+      const channel = String(req.headers['x-medflow-channel'] ?? 'stable');
+      const notes = decodeURIComponent(String(req.headers['x-medflow-notes'] ?? ''));
+      if (!/^[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$/.test(version)) throw new ApiError('Version must look like 1.2.3');
+      if (!['internal', 'beta', 'stable'].includes(channel)) throw new ApiError('Unknown channel');
+      fs.mkdirSync(cfg.releases, { recursive: true });
+      const file = `medflow-local-${version}.tar.gz`;
+      const tmp = path.join(cfg.releases, `${file}.part`);
+      const hash = createHash('sha256');
+      let size = 0;
+      const out = fs.createWriteStream(tmp);
+      for await (const c of req) {
+        size += (c as Buffer).length;
+        if (size > 400 * 1048576) { out.destroy(); fs.rmSync(tmp, { force: true }); throw new ApiError('The file is too big (400 MB at most)', 413); }
+        hash.update(c as Buffer);
+        if (!out.write(c)) await new Promise<void>((r) => out.once('drain', () => r()));
+      }
+      await new Promise<void>((r, j) => out.end((e?: Error | null) => (e ? j(e) : r())));
+      const head = Buffer.alloc(2);
+      const fd = fs.openSync(tmp, 'r'); fs.readSync(fd, head, 0, 2, 0); fs.closeSync(fd);
+      if (size < 1024 || head[0] !== 0x1f || head[1] !== 0x8b) { fs.rmSync(tmp, { force: true }); throw new ApiError('Upload the medflow-local-x.y.z.tar.gz file made by the build'); }
+      fs.renameSync(tmp, path.join(cfg.releases, file));
+      const sha256 = hash.digest('hex');
+      const signature = await signClaims({ kind: 'release', app: 'local', version, sha256, size_bytes: size }, key.privateKey);
+      const claims = { sub: s.auth, role: 'authenticated', aal: 'aal2' };
+      const id = await asPrincipal(db, claims, (tx) => callFunction(tx, 'platform_publish_release',
+        [{ app: 'local', version, channel, notes, artifact_url: `/hq/download/${file}`, signature, sha256, size_bytes: size }], false));
+      log(`Release ${version} (${channel}) published, ${(size / 1048576).toFixed(1)} MB`);
+      return send(res, 200, { id, version, sha256, size_bytes: size });
     }
     if (req.method !== 'POST') throw new ApiError('Not found', 404);
     const body = await readJson(req);

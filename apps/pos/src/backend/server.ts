@@ -17,7 +17,9 @@ export interface LicenceStatus {
   payment_instructions: string | null;
 }
 export interface ServerStatus { ready: boolean; pharmacy: string | null; version: string; this_pc: boolean; addresses: string[];
-  licence: LicenceStatus | null; licensing: boolean }
+  licence: LicenceStatus | null; licensing: boolean; update: UpdateStatus | null }
+export interface UpdateStatus { current: string; installing: boolean; last_error: string | null; last_result: string | null; install_window: string;
+  offer: { version?: string; notes?: string; size_bytes?: number; is_rollback?: boolean; must_update?: boolean } | null }
 export interface BackupList { folder: string; copy_to: string | null; list: Array<{ file: string; size: number; at: string }> }
 
 export const savedToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
@@ -100,6 +102,7 @@ export class ServerBackend implements PosBackend {
   ownerTable<T = Record<string, unknown>>(fn: string, ...args: unknown[]) { return this.call<T[]>('owner', fn, args, true); }
   office<T = unknown>(name: string, ...args: unknown[]) { return this.call<T>('owner', `office_${name}`, args); }
 
+  installUpdate() { return post<{ ok: boolean }>('update/install', {}, this.headers()); }
   checkLicence() { return post<LicenceStatus>('licence/check', {}, this.headers()); }
   setLicenceKey(key: string) { return post<LicenceStatus>('licence/key', { key }, this.headers()); }
   payInvoice(invoice: string, method: string, amount: number, reference: string) {

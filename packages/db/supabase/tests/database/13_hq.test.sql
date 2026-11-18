@@ -112,5 +112,48 @@ set local role service_role;
 select is((public.hq_checkin(current_setting('hq.hq_k2'), tests.id('install_1')) ->> 'may_sell')::boolean, false, 'a blocked PC may not sell');
 reset role;
 
+-- ---- Updates: signed releases, channels, rollback ----
+select public.platform_block_install(tests.id('install_1'), false) from (select tests.as_admin(tests.id('auth_admin'))) x;
+reset role;
+select tests.as_admin(tests.id('auth_admin'));
+select throws_ok($$select public.platform_publish_release('{"app":"local","version":"0.2.0","channel":"stable","artifact_url":"/hq/download/a"}')$$,
+                 '22023', null, 'an unsigned MedFlow Local release is refused');
+select throws_ok($$select public.platform_publish_release('{"app":"local","version":"two","channel":"stable","signature":"s","artifact_url":"/a"}')$$,
+                 '22023', null, 'a version must look like 1.2.3');
+select public.platform_publish_release('{"app":"local","version":"0.1.0","channel":"stable","signature":"s1","artifact_url":"/hq/download/v1","sha256":"aa","size_bytes":10}');
+select set_config('hq.rel2', public.platform_publish_release('{"app":"local","version":"0.2.0","channel":"stable","signature":"s2","artifact_url":"/hq/download/v2","sha256":"bb","size_bytes":20}')::text, true);
+select public.platform_publish_release('{"app":"local","version":"0.3.0","channel":"beta","signature":"s3","artifact_url":"/hq/download/v3","sha256":"cc","size_bytes":30}');
+reset role;
+set local role service_role;
+select is(public.hq_checkin(current_setting('hq.hq_k2'), tests.id('install_1'), '{"version":"0.1.0"}') #>> '{update,version}', '0.2.0',
+          'a stable pharmacy on 0.1.0 is offered the newest stable release');
+select is(public.hq_checkin(current_setting('hq.hq_k2'), tests.id('install_1'), '{"version":"0.1.0"}') #>> '{update,signature}', 's2',
+          'the offer carries HQ''s signature');
+select is((public.hq_checkin(current_setting('hq.hq_k2'), tests.id('install_1'), '{"version":"0.2.0"}') #>> '{update,update_available}')::boolean, false,
+          'nothing newer: no update');
+reset role;
+select tests.as_admin(tests.id('auth_admin'));
+select public.platform_set_release_channel((current_setting('hq.hq_t')::jsonb ->> 'tenant_id')::uuid, 'beta');
+reset role;
+set local role service_role;
+select is(public.hq_checkin(current_setting('hq.hq_k2'), tests.id('install_1'), '{"version":"0.2.0"}') #>> '{update,version}', '0.3.0',
+          'a beta pharmacy gets the beta release first');
+reset role;
+select tests.as_admin(tests.id('auth_admin'));
+select public.platform_set_release_channel((current_setting('hq.hq_t')::jsonb ->> 'tenant_id')::uuid, 'stable');
+select public.platform_rollback_release(current_setting('hq.rel2')::uuid, 'bug in 0.2.0');
+reset role;
+set local role service_role;
+select is(public.hq_checkin(current_setting('hq.hq_k2'), tests.id('install_1'), '{"version":"0.2.0"}') #>> '{update,version}', '0.1.0',
+          'a pharmacy on a pulled release is offered the last good one');
+select is((public.hq_checkin(current_setting('hq.hq_k2'), tests.id('install_1'), '{"version":"0.2.0"}') #>> '{update,is_rollback}')::boolean, true,
+          'and is told it is going back');
+select is((public.hq_checkin(current_setting('hq.hq_k2'), tests.id('install_1'), '{"version":"0.1.0"}') #>> '{update,update_available}')::boolean, false,
+          'a pulled release is never offered');
+reset role;
+select tests.as_admin(tests.id('auth_admin'));
+select ok((public.platform_releases() -> 'releases') @> '[{"version":"0.2.0"}]', 'the console lists releases');
+reset role;
+
 select * from finish();
 rollback;

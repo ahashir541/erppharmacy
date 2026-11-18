@@ -16,9 +16,11 @@ import { backupNow, listBackups, restore, scheduleBackups } from './backup.ts';
 import { ApiError, asPrincipal, callFunction, openDatabase } from './db.ts';
 import { isLocal, lanAddresses, readJson, send, serveStatic } from './http.ts';
 import { Licence } from './licence.ts';
+import { startupGuard, startupOk, Updater } from './updater.ts';
 import { counterFor, linkCounter, ownerClaims, pharmacy, setupDemo, setupPharmacy } from './setup.ts';
 
-const VERSION = '0.1.0';
+declare const __MEDFLOW_VERSION__: string | undefined;
+const VERSION = typeof __MEDFLOW_VERSION__ === 'string' ? __MEDFLOW_VERSION__ : '0.0.0-dev';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const home = path.basename(here) === 'dist' ? path.dirname(here) : here;
 
@@ -56,6 +58,7 @@ function log(s: string) {
 }
 
 async function main() {
+  if (!cfg.restore) startupGuard(home, log);
   if (cfg.restore) {
     await restore(path.resolve(cfg.restore), cfg.data, log);
     return;
@@ -63,7 +66,12 @@ async function main() {
   log(`MedFlow Local ${VERSION} starting · data ${cfg.data}`);
   const db: PGlite = await openDatabase(cfg.data, cfg.sql, log);
   const licence = new Licence(db, cfg.hqUrl, VERSION, log);
+  const updater = new Updater(home, VERSION, licence.hqUrl, () => licence.key, () => licence.licenceKey(),
+    () => backupNow(db, cfg.backups, cfg.copyTo, 30, log), log);
+  licence.onLicence = (c) => updater.setOffer(c.update);
+  licence.extraStats = () => { const f = updater.failedVersion(); return f ? { update_failed: f } : {}; };
   await licence.start();
+  if (licence.enabled) updater.start();
   const doBackup = () => backupNow(db, cfg.backups, cfg.copyTo, 30, log);
   scheduleBackups(doBackup, cfg.backups, cfg.backupHour, log);
 
@@ -75,7 +83,7 @@ async function main() {
     if (route === 'status' && req.method === 'GET') {
       const ph = await pharmacy(db);
       return send(res, 200, { ready: !!ph, pharmacy: ph?.name ?? null, version: VERSION, this_pc: isLocal(req), addresses: lanAddresses(cfg.port),
-        licence: ph ? await licence.status() : null, licensing: licence.enabled });
+        licence: ph ? await licence.status() : null, licensing: licence.enabled, update: licence.enabled ? updater.status() : null });
     }
     if (req.method !== 'POST' && route !== 'backups') throw new ApiError('Not found', 404);
     const body = req.method === 'POST' ? await readJson(req) : {};
@@ -110,6 +118,11 @@ async function main() {
       return send(res, 200, { r: await asPrincipal(db, claims, (tx) => callFunction(tx, fn, args, body.rows === true)) });
     }
     if (route === 'licence/check') return send(res, 200, await licence.checkIn());
+    if (route === 'update/install') {
+      await ownerClaims(db, counter, sessionId);
+      await updater.install();
+      return send(res, 200, { ok: true, restarting: true });
+    }
     if (route === 'licence/key') {
       await ownerClaims(db, counter, sessionId);
       return send(res, 200, await licence.checkIn(String(body.key ?? '')));
@@ -162,7 +175,8 @@ async function main() {
     process.exit(err.code === 'EADDRINUSE' ? 3 : 1);
   });
   server.listen(cfg.port, '0.0.0.0', () => {
-    log(`MedFlow is ready on this PC: http://localhost:${cfg.port}`);
+    log(`MedFlow ${VERSION} is ready on this PC: http://localhost:${cfg.port}`);
+    startupOk(home, VERSION, log);
     for (const a of lanAddresses(cfg.port)) log(`Other counters on the shop network open: ${a}`);
   });
   const stop = async () => { log('Stopping…'); server.close(); await db.close().catch(() => {}); process.exit(0); };

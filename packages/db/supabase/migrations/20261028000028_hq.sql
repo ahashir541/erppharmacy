@@ -29,6 +29,11 @@ create table local_installs (
 );
 create index on local_installs (tenant_id, last_checkin_at desc);
 
+-- MedFlow Local updates: a package HQ signed (sha256 + size inside the signed release token).
+alter table app_releases drop constraint if exists app_releases_app_check;
+alter table app_releases add constraint app_releases_app_check check (app in ('desktop', 'web', 'admin', 'mobile', 'local'));
+alter table app_releases add column if not exists sha256 text, add column if not exists size_bytes bigint;
+
 alter table licence_keys enable row level security;
 alter table local_installs enable row level security;
 create policy platform_read on licence_keys for select to authenticated using (app.is_platform_admin());
@@ -103,6 +108,78 @@ declare aid uuid := app.platform_admin();
 begin
   insert into platform_settings (key, value, updated_by) values ('payment_instructions', to_jsonb(coalesce(p_text, '')), aid)
   on conflict (key) do update set value = excluded.value, updated_by = excluded.updated_by, updated_at = now();
+end $$;
+
+-- What a pharmacy on p_current should install: the same channel and rollback rules as
+-- check_for_update, for a tenant HQ knows by its licence key.
+create or replace function app.release_offer(p_tenant uuid, p_app text, p_current text) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  t tenants;
+  r app_releases;
+  minv text;
+  bad boolean;
+begin
+  select * into t from tenants where id = p_tenant;
+  if p_current is null or p_current = '' then return jsonb_build_object('update_available', false); end if;
+  bad := exists (select 1 from app_releases where app = p_app and version = p_current and rolled_back_at is not null);
+  select * into r from app_releases x
+  where x.app = p_app and x.published_at is not null and x.rolled_back_at is null and x.artifact_url is not null
+    and x.channel = any (case t.release_channel when 'internal' then array['internal', 'beta', 'stable'] when 'beta' then array['beta', 'stable']
+                                                 else array['stable'] end)
+    and (case when bad then app.version_cmp(x.version, p_current) < 0 else app.version_cmp(x.version, p_current) > 0 end)
+  order by string_to_array(regexp_replace(split_part(x.version, '-', 1), '[^0-9.]', '', 'g'), '.')::int[] desc
+  limit 1;
+  select value #>> '{}' into minv from platform_settings where key = 'min_app_version.' || p_app;
+  return jsonb_build_object(
+    'update_available', r.id is not null, 'version', r.version, 'notes', r.notes, 'url', r.artifact_url, 'signature', r.signature,
+    'size_bytes', r.size_bytes, 'is_rollback', bad and r.id is not null,
+    'must_update', minv is not null and app.version_cmp(p_current, minv) < 0, 'min_version', minv);
+end $$;
+
+-- A release of MedFlow Local must carry HQ's signature (the HQ server signs it on upload).
+create or replace function public.platform_publish_release(p jsonb) returns uuid
+language plpgsql security definer set search_path = public, app as $$
+declare
+  aid uuid := app.platform_admin();
+  rid uuid;
+begin
+  if (p ->> 'app') in ('desktop', 'local') and coalesce(p ->> 'signature', '') = '' then
+    raise exception 'This release must be signed' using errcode = '22023';
+  end if;
+  if (p ->> 'version') !~ '^[0-9]+[.][0-9]+[.][0-9]+(-[a-z0-9.]+)?$' then raise exception 'Version must look like 1.2.3' using errcode = '22023'; end if;
+  insert into app_releases (app, version, channel, notes, artifact_url, signature, sha256, size_bytes, published_at, created_by)
+  values (p ->> 'app', p ->> 'version', coalesce(p ->> 'channel', 'internal'), coalesce(p ->> 'notes', ''), p ->> 'artifact_url',
+          p ->> 'signature', p ->> 'sha256', (p ->> 'size_bytes')::bigint, now(), aid)
+  on conflict (app, version, channel) do update set notes = excluded.notes, artifact_url = excluded.artifact_url,
+    signature = excluded.signature, sha256 = excluded.sha256, size_bytes = excluded.size_bytes, published_at = now(), rolled_back_at = null
+  returning id into rid;
+  perform app.platform_log(aid, null, 'release_published', p - 'signature');
+  return rid;
+end $$;
+
+create or replace function public.platform_releases(p_app text default 'local') returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare aid uuid := app.platform_admin();
+begin
+  return jsonb_build_object(
+    'releases', (select coalesce(jsonb_agg(jsonb_build_object('id', r.id, 'version', r.version, 'channel', r.channel, 'notes', r.notes,
+                   'size_bytes', r.size_bytes, 'published_at', r.published_at, 'rolled_back_at', r.rolled_back_at,
+                   'pcs', (select count(*) from local_installs i where i.app_version = r.version and i.last_checkin_at > now() - interval '30 days'))
+                   order by r.published_at desc nulls last), '[]') from app_releases r where r.app = p_app),
+    'versions', (select coalesce(jsonb_object_agg(coalesce(v, 'unknown'), n), '{}') from (select app_version v, count(*) n from local_installs
+                   where last_checkin_at > now() - interval '30 days' group by app_version) x),
+    'min_version', (select value #>> '{}' from platform_settings where key = 'min_app_version.' || p_app));
+end $$;
+
+-- A pharmacy may choose a channel: 'beta' pharmacies get new versions first.
+create or replace function public.platform_set_release_channel(p_tenant uuid, p_channel text) returns void
+language plpgsql security definer set search_path = public, app as $$
+declare aid uuid := app.platform_admin();
+begin
+  update tenants set release_channel = p_channel where id = p_tenant;
+  if not found then raise exception 'Pharmacy not found' using errcode = 'P0002'; end if;
+  perform app.platform_log(aid, p_tenant, 'release_channel', jsonb_build_object('channel', p_channel));
 end $$;
 
 -- ---- Console reads ----------------------------------------------------------------------------
@@ -209,7 +286,8 @@ begin
     'invoices', (select coalesce(jsonb_agg(jsonb_build_object('id', i.id, 'invoice_number', i.invoice_number, 'amount', i.amount, 'currency', i.currency,
                    'due_at', i.due_at, 'status', i.status) order by i.due_at), '[]')
                  from platform_invoices i where i.tenant_id = t.id and i.status in ('due', 'overdue', 'submitted')),
-    'payment_instructions', (select value #>> '{}' from platform_settings where key = 'payment_instructions'));
+    'payment_instructions', (select value #>> '{}' from platform_settings where key = 'payment_instructions'),
+    'update', app.release_offer(t.id, 'local', p_info ->> 'version'));
 end $$;
 
 -- The pharmacy says it paid an invoice (by licence key, from its Settings).
@@ -236,11 +314,13 @@ end $$;
 revoke all on function public.platform_create_pharmacy(jsonb), public.platform_reissue_licence_key(uuid),
   public.platform_block_install(uuid, boolean, text), public.platform_set_payment_instructions(text), public.platform_pharmacies(),
   public.platform_pharmacy(uuid), public.platform_plans(), public.platform_payments_to_review(),
+  public.platform_releases(text), public.platform_set_release_channel(uuid, text),
   public.hq_checkin(text, uuid, jsonb), public.hq_submit_payment(text, uuid, text, bigint, text) from public, anon;
-revoke all on function app.new_licence_key(uuid, uuid), app.licence_key_tenant(text) from public;
+revoke all on function app.new_licence_key(uuid, uuid), app.licence_key_tenant(text), app.release_offer(uuid, text, text) from public;
 grant execute on function public.platform_create_pharmacy(jsonb), public.platform_reissue_licence_key(uuid),
   public.platform_block_install(uuid, boolean, text), public.platform_set_payment_instructions(text), public.platform_pharmacies(),
-  public.platform_pharmacy(uuid), public.platform_plans(), public.platform_payments_to_review() to authenticated;
+  public.platform_pharmacy(uuid), public.platform_plans(), public.platform_payments_to_review(),
+  public.platform_releases(text), public.platform_set_release_channel(uuid, text) to authenticated;
 revoke all on function public.hq_checkin(text, uuid, jsonb), public.hq_submit_payment(text, uuid, text, bigint, text) from authenticated;
 grant execute on function public.hq_checkin(text, uuid, jsonb), public.hq_submit_payment(text, uuid, text, bigint, text) to service_role;
 

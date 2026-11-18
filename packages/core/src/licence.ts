@@ -79,6 +79,8 @@ export interface PharmacyLicence {
   announcements: Array<{ id: string; title: string; title_ur: string | null; body: string; body_ur: string | null; severity: string }>;
   invoices: Array<{ id: string; invoice_number: string; amount: number; currency: string; due_at: string; status: string }>;
   payment_instructions: string | null;
+  update?: { update_available: boolean; version?: string; notes?: string; url?: string; signature?: string;
+            size_bytes?: number; is_rollback?: boolean; must_update?: boolean; min_version?: string | null };
 }
 
 /** Signs any claims object: base64url(JSON) "." base64url(Ed25519 signature). */

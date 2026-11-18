@@ -46,3 +46,15 @@ export const toMinor = (text: string): number | null => {
   const v = Number(text.replace(/[, ]/g, ''));
   return Number.isFinite(v) && v >= 0 ? Math.round(v * 100) : null;
 };
+
+/** Uploads a MedFlow Local update package; HQ checks it, signs it and offers it on its channel. */
+export async function uploadRelease(file: File, version: string, channel: string, notes: string) {
+  const res = await fetch('/hq/admin/release', {
+    method: 'POST', body: file,
+    headers: { 'Content-Type': 'application/gzip', Authorization: `Bearer ${hqToken() ?? ''}`, 'X-MedFlow-Version': version,
+               'X-MedFlow-Channel': channel, 'X-MedFlow-Notes': encodeURIComponent(notes) },
+  });
+  const data = await res.json().catch(() => ({})) as { error?: string; version?: string; size_bytes?: number };
+  if (!res.ok) throw new HqError(data.error ?? `Upload failed (${res.status})`, res.status);
+  return data;
+}

@@ -5,7 +5,9 @@
 //   node_modules/        the database engine (PGlite)
 //   node/node.exe        Node itself, so the pharmacy PC needs nothing installed (skip: --no-node)
 //   Install-MedFlow.ps1 and the other Windows scripts, README.txt
-// Options: --server-only (skip building the app), --no-node, --zip
+// Options: --server-only (skip building the app), --no-node, --zip,
+//          --update (also make release/medflow-local-<version>.tar.gz to upload in MedFlow HQ → Updates)
+// The version is apps/server/package.json "version": raise it before each release.
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,6 +19,8 @@ const root = path.resolve(here, '../..');
 const out = path.join(here, 'release', 'MedFlow');
 const flag = (f) => process.argv.includes(f);
 const step = (s) => console.log(`• ${s}`);
+const VERSION = JSON.parse(fs.readFileSync(path.join(here, 'package.json'), 'utf8')).version;
+const TAR = process.platform === 'win32' ? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
 
 fs.mkdirSync(out, { recursive: true });
 
@@ -27,9 +31,9 @@ const hq = fs.existsSync(hqFile) ? JSON.parse(fs.readFileSync(hqFile, 'utf8')) :
 if (hq?.url && hq?.public_key) step(`Licensing on: MedFlow HQ at ${hq.url}`);
 else console.warn('! No hq.json: this MedFlow Local has licensing OFF (anyone can use it). Run build-hq.mjs first for a licensed build.');
 
-step('Server');
+step(`Server ${VERSION}`);
 await build({
-  define: { __MEDFLOW_HQ__: hq?.url && hq?.public_key ? JSON.stringify({ url: hq.url, public_key: hq.public_key }) : 'undefined' },
+  define: { __MEDFLOW_VERSION__: JSON.stringify(VERSION), __MEDFLOW_HQ__: hq?.url && hq?.public_key ? JSON.stringify({ url: hq.url, public_key: hq.public_key }) : 'undefined' },
   entryPoints: [path.join(here, 'src/main.ts')],
   outfile: path.join(out, 'medflow-server.mjs'),
   bundle: true, platform: 'node', format: 'esm', target: 'node20',
@@ -71,10 +75,21 @@ if (!flag('--no-node')) {
 
 step('Windows scripts');
 for (const f of fs.readdirSync(path.join(here, 'windows'))) fs.copyFileSync(path.join(here, 'windows', f), path.join(out, f));
-fs.writeFileSync(path.join(out, 'VERSION.txt'), `MedFlow Local\nbuilt ${new Date().toISOString()}\nnode ${process.version}\n`);
+fs.writeFileSync(path.join(out, 'VERSION.txt'), `MedFlow Local ${VERSION}\nbuilt ${new Date().toISOString()}\nnode ${process.version}\n`);
+fs.writeFileSync(path.join(out, 'version.json'), `${JSON.stringify({ app: 'local', version: VERSION, built_at: new Date().toISOString() })}\n`);
 
 // Never ship a test run's data, backups or logs.
 for (const d of ['data', 'backups', 'logs', 'config.json']) fs.rmSync(path.join(out, d), { recursive: true, force: true });
+
+if (flag('--update')) {
+  // Everything except Node itself (pharmacies keep theirs) and the scripts that are running.
+  step('Update package');
+  const pkg = path.join(here, 'release', `medflow-local-${VERSION}.tar.gz`);
+  fs.rmSync(pkg, { force: true });
+  const items = fs.readdirSync(out).filter((n) => !['node', 'MedFlow-Server.cmd', 'start-hidden.vbs', 'MedFlow.vbs'].includes(n));
+  execSync(`"${TAR}" -czf "${pkg}" -C "${out}" ${items.map((n) => `"${n}"`).join(' ')}`, { stdio: 'inherit' });
+  console.log(`Update package: ${pkg} (${(fs.statSync(pkg).size / 1048576).toFixed(1)} MB) — upload it in MedFlow HQ → Updates`);
+}
 
 if (flag('--zip') && process.platform === 'win32') {
   step('Zip');

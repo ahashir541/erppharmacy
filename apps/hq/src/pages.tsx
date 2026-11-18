@@ -2,9 +2,9 @@
 // database function and goes into the platform audit log with who did it and why.
 import { useState } from 'react';
 import { Modal, PageHead, Stat, Table, dateOf, timeOf, useLoad, useSubmit } from '../../pos/src/office/ui.tsx';
-import { call, errorText, rs, toMinor } from './api.ts';
+import { call, errorText, rs, toMinor, uploadRelease } from './api.ts';
 
-type Go = (page: 'overview' | 'pharmacies' | 'payments' | 'plans' | 'announcements', arg?: string) => void;
+type Go = (page: 'overview' | 'pharmacies' | 'payments' | 'plans' | 'announcements' | 'updates', arg?: string) => void;
 
 interface PharmacyRow {
   id: string; name: string; owner_name: string; owner_phone: string; city: string; status: string; plan: string; plan_name: string;
@@ -189,6 +189,10 @@ function PharmacyDetail(props: { id: string; onBack: () => void }) {
         <Stat label="Plan" value={x.plan} sub={x.subscription ? `${rs(x.subscription.price)} / ${x.subscription.billing_cycle === 'yearly' ? 'year' : 'month'}` : 'not billed yet'} />
         <Stat label="Licence key" value={x.key_hint ? `…${x.key_hint}` : 'none'} sub={<button type="button" className="link-btn" onClick={() => setModal('key')}>New key</button>} />
         <Stat label="Works offline for" value={`${p.offline_licence_days} days`} />
+        <Stat label="Gets updates" value={
+          <select value={String(p.release_channel ?? 'stable')} onChange={(e) => void act(() => call('set_release_channel', p.id, e.target.value))} aria-label="Update channel">
+            <option value="stable">With everyone (stable)</option><option value="beta">First (beta)</option><option value="internal">Test pharmacy (internal)</option>
+          </select>} />
       </div>
       <div className="grid-2">
         <section className="panel">
@@ -447,6 +451,77 @@ export function Announcements() {
         {error && <div className="form-error">{error}</div>}
         <div className="row-actions"><button className="btn primary" disabled={busy}>Send</button></div>
       </form>
+    </>
+  );
+}
+
+// ---- Updates ------------------------------------------------------------------------------------
+interface ReleasesData {
+  releases: Array<{ id: string; version: string; channel: string; notes: string; size_bytes: number | null; published_at: string; rolled_back_at: string | null; pcs: number }>;
+  versions: Record<string, number>; min_version: string | null;
+}
+
+export function Updates() {
+  const data = useLoad(() => call<ReleasesData>('releases', 'local'), []);
+  const [file, setFile] = useState<File | null>(null);
+  const [version, setVersion] = useState('');
+  const [channel, setChannel] = useState('beta');
+  const [notes, setNotes] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const pick = (f: File | undefined) => {
+    setFile(f ?? null);
+    const m = f?.name.match(/medflow-local-([0-9]+\.[0-9]+\.[0-9]+(?:-[a-z0-9.]+)?)\.tar\.gz$/);
+    if (m) setVersion(m[1]!);
+  };
+  const upload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) return;
+    setBusy(true); setErr(null); setMsg(null);
+    try {
+      const r = await uploadRelease(file, version, channel, notes);
+      setMsg(`Version ${r.version} is published on the ${channel} channel. Pharmacies on it install it tonight (1–5 am) after their backup.`);
+      setFile(null); setNotes(''); data.reload();
+    } catch (x) { setErr(errorText(x)); } finally { setBusy(false); }
+  };
+  const pull = async (id: string, v: string) => {
+    if (!window.confirm(`Pull version ${v}? PCs that have not installed it stay where they are; PCs that have it go back to the last good version tonight.`)) return;
+    setErr(null);
+    try { await call('rollback_release', id, 'Pulled in HQ'); data.reload(); } catch (x) { setErr(errorText(x)); }
+  };
+  const versions = Object.entries(data.data?.versions ?? {}).sort((a, b) => b[1] - a[1]);
+  return (
+    <>
+      <PageHead title="Updates" sub="New MedFlow versions reach pharmacies by themselves at night, after their backup" />
+      <div className="stats">
+        {versions.length ? versions.map(([v, n]) => <Stat key={v} label={`PCs on ${v}`} value={n} />) : <Stat label="PCs checking in" value={0} />}
+      </div>
+      <form className="panel stack" onSubmit={(e) => void upload(e)}>
+        <div className="panel-title">Publish a new version</div>
+        <p className="muted small">Make the package with <code>node apps/server/build.mjs --update</code> (raise the version in apps/server/package.json first), then upload
+          the <code>medflow-local-x.y.z.tar.gz</code> file. Publish on <strong>beta</strong> first (pharmacies you set to beta), then publish the same file on <strong>stable</strong> for everyone.</p>
+        <div className="form-grid">
+          <label className="field"><span>Package file</span><input type="file" accept=".gz" onChange={(e) => pick(e.target.files?.[0])} /></label>
+          <label className="field"><span>Version</span><input required value={version} onChange={(e) => setVersion(e.target.value.trim())} placeholder="0.2.0" /></label>
+          <label className="field"><span>Who gets it</span><select value={channel} onChange={(e) => setChannel(e.target.value)}>
+            <option value="internal">Internal (only test pharmacies)</option><option value="beta">Beta (pharmacies set to beta)</option><option value="stable">Stable (everyone)</option>
+          </select></label>
+        </div>
+        <label className="field"><span>What is new (pharmacies see this)</span><textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
+        {msg && <div className="message info">{msg}</div>}
+        {err && <div className="form-error">{err}</div>}
+        <div className="row-actions"><button className="btn primary" disabled={busy || !file || !version}>{busy ? 'Uploading…' : 'Publish'}</button></div>
+      </form>
+      <Table rows={data.data?.releases ?? null} error={data.error} empty="No versions published yet." cols={[
+        { label: 'Version', value: (r) => <><strong>{r.version}</strong><div className="muted small">{r.notes}</div></> },
+        { label: 'Channel', value: (r) => r.channel },
+        { label: 'Published', value: (r) => timeOf(r.published_at) },
+        { label: 'Size', value: (r) => (r.size_bytes ? `${(r.size_bytes / 1048576).toFixed(1)} MB` : '—'), num: true },
+        { label: 'PCs on it', value: (r) => r.pcs, num: true },
+        { label: '', value: (r) => (r.rolled_back_at ? <span className="pill bad">Pulled</span>
+          : <button type="button" className="btn small-btn danger" onClick={() => void pull(r.id, r.version)}>Pull</button>) },
+      ]} />
     </>
   );
 }

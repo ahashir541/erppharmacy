@@ -47,6 +47,10 @@ export class Licence {
   }
 
   get enabled() { return !!BUILT_IN.public_key && !!this.hqUrl; }
+  /** Called with each verified licence (the updater reads its update offer). */
+  onLicence: (c: PharmacyLicence) => void = () => {};
+  get key() { return this.publicKey; }
+  licenceKey() { return this.meta('licence_key'); }
 
   private async meta(key: string): Promise<string | null> {
     return (await this.db.query<{ value: string }>('select value from medflow_local.meta where key = $1', [key])).rows[0]?.value ?? null;
@@ -63,6 +67,7 @@ export class Licence {
     this.publicKey = await importPublicKey(BUILT_IN.public_key);
     const token = await this.meta('licence_token');
     if (token) this.claims = await verifyClaims<PharmacyLicence>(token, this.publicKey);
+    if (this.claims) this.onLicence(this.claims);
     this.lastCheckin = await this.meta('last_checkin_at');
     await this.apply();
     setTimeout(() => void this.checkIn().catch(() => {}), 10_000);
@@ -70,11 +75,14 @@ export class Licence {
     setInterval(() => void this.apply().catch(() => {}), 15 * 60_000);
   }
 
+  /** Extra facts for HQ's health page (e.g. an update that failed here). */
+  extraStats: () => Record<string, unknown> = () => ({});
+
   private async stats() {
     const r = await this.db.query<Record<string, number>>(`select
       (select count(*) from products)::int products, (select count(*) from devices where kind = 'counter' and status = 'active')::int counters,
       (select count(*) from users where status = 'active')::int staff, (select count(*) from sales where sold_at > now() - interval '30 days')::int bills_30_days`);
-    return r.rows[0] ?? {};
+    return { ...(r.rows[0] ?? {}), ...this.extraStats() };
   }
 
   /** Asks HQ for a fresh licence with this key (the saved one unless a new one is given). */
@@ -110,6 +118,7 @@ export class Licence {
       return this.status();
     }
     this.claims = claims;
+    this.onLicence(claims);
     this.lastError = null;
     this.lastCheckin = new Date().toISOString();
     await this.setMeta('licence_key', key);

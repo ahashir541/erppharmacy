@@ -13,7 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { backupNow, scheduleBackups } from './backup.ts';
 import { ApiError, asPrincipal, callFunction, openDatabase, type Claims } from './db.ts';
-import { isLocal, readJson, send, serveStatic } from './http.ts';
+import { clientAddress, isLocal, readJson, send, serveStatic } from './http.ts';
 
 const VERSION = '0.1.0';
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -191,7 +191,7 @@ async function main() {
       return send(res, 200, { ok: true });
     }
     if (route === 'admin/login') {
-      const from = req.socket.remoteAddress ?? '?';
+      const from = clientAddress(req);
       const f = failures.get(from);
       if (f && f.until > Date.now()) throw new ApiError('Too many wrong passwords. Wait a few minutes.', 429);
       const email = String(body.email ?? '').trim().toLowerCase();

@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { backupNow, listBackups, restore, scheduleBackups } from './backup.ts';
 import { ApiError, asPrincipal, callFunction, openDatabase } from './db.ts';
-import { isLocal, lanAddresses, readJson, send, serveStatic } from './http.ts';
+import { clientAddress, isLocal, lanAddresses, readJson, send, serveStatic } from './http.ts';
 import { Licence } from './licence.ts';
 import { startupGuard, startupOk, Updater } from './updater.ts';
 import { counterFor, linkCounter, ownerClaims, pharmacy, setupDemo, setupPharmacy } from './setup.ts';
@@ -101,7 +101,7 @@ async function main() {
       return send(res, 200, { ...r, licence_error });
     }
     if (route === 'link') {
-      const r = await linkCounter(db, req.socket.remoteAddress ?? '?', String(body.pin ?? ''), String(body.name ?? ''));
+      const r = await linkCounter(db, clientAddress(req), String(body.pin ?? ''), String(body.name ?? ''));
       log(`Linked a counter PC ${r.invoice_prefix} from ${req.socket.remoteAddress}`);
       return send(res, 200, r);
     }

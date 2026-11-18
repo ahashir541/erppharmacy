@@ -11,7 +11,23 @@ export function lanAddresses(port: number): string[] {
     .map((a) => `http://${a.address}:${port}`);
 }
 
-export const isLocal = (req: http.IncomingMessage) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '');
+const LOOPBACK = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
+// A tunnel or proxy on this PC (Tailscale Funnel, Cloudflare Tunnel, a reverse proxy) connects from
+// 127.0.0.1 too, but always adds one of these headers; such a request comes from the internet.
+const PROXIED = ['x-forwarded-for', 'forwarded', 'tailscale-funnel-request', 'x-forwarded-host', 'x-real-ip', 'cf-connecting-ip'];
+const proxied = (req: http.IncomingMessage) => PROXIED.some((h) => req.headers[h] !== undefined);
+
+/** Really this PC: a direct connection from 127.0.0.1, not through a tunnel. */
+export const isLocal = (req: http.IncomingMessage) => LOOPBACK.includes(req.socket.remoteAddress ?? '') && !proxied(req);
+
+/** The caller's address, for sign-in limits (the tunnel's X-Forwarded-For when it came through one on this PC). */
+export function clientAddress(req: http.IncomingMessage): string {
+  const direct = req.socket.remoteAddress ?? '?';
+  if (!LOOPBACK.includes(direct)) return direct;
+  const xff = req.headers['x-forwarded-for'];
+  const first = (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim();
+  return first || (proxied(req) ? 'proxied' : direct);
+}
 
 export async function readJson(req: http.IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];

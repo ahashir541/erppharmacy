@@ -72,7 +72,7 @@ Write-Host '  Starting MedFlow...'
 $ok = $false
 for ($i = 0; $i -lt 120; $i++) {
   Start-Sleep -Seconds 1
-  try { Invoke-RestMethod "http://localhost:$Port/api/status" -TimeoutSec 2 | Out-Null; $ok = $true; break } catch { }
+  try { $c = New-Object System.Net.Sockets.TcpClient; $c.Connect('127.0.0.1', $Port); $c.Close(); $ok = $true; break } catch { }
 }
 if ($ok) {
   Write-Host ''

@@ -50,6 +50,9 @@ async function signingKey(): Promise<{ privateKey: CryptoKey; publicRaw: string 
   fs.mkdirSync(cfg.keys, { recursive: true });
   fs.writeFileSync(file, JSON.stringify({ pkcs8, public: publicRaw, created_at: new Date().toISOString() }, null, 2), { mode: 0o600 });
   fs.writeFileSync(path.join(cfg.keys, 'public-key.txt'), `${publicRaw}\n`);
+  // A second copy with the backups, so copying the backups folder somewhere safe also saves the key.
+  fs.mkdirSync(cfg.backups, { recursive: true });
+  fs.copyFileSync(file, path.join(cfg.backups, 'HQ-SIGNING-KEY-keep-secret.json'));
   log(`New HQ signing key created in ${cfg.keys} (keep it private and backed up)`);
   return { privateKey: await crypto.subtle.importKey('pkcs8', Buffer.from(pkcs8, 'base64'), { name: 'Ed25519' }, false, ['sign']), publicRaw };
 }

@@ -56,3 +56,54 @@ export async function licenceHash(token: string): Promise<string> {
   const d = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(token)));
   return Array.from(d, (b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+// ---- The pharmacy's licence from MedFlow HQ (MedFlow Local) ------------------------------------
+// HQ signs what the pharmacy may do; the pharmacy's server checks it with HQ's public key, so a
+// copied or edited licence does not work, and it keeps working offline until valid_until.
+
+export interface PharmacyLicence {
+  kind: 'pharmacy';
+  tenant_id: string;
+  install_id: string;
+  pharmacy: string;
+  plan: string;
+  plan_name: string;
+  status: 'trial' | 'active' | 'grace' | 'read_only' | 'suspended' | 'cancelled';
+  may_sell: boolean;
+  trial_ends_at: string | null;
+  grace_ends_at: string | null;
+  read_only_from: string | null;
+  issued_at: string;
+  valid_until: string;
+  features: Record<string, { enabled: boolean; limit: number | null }>;
+  announcements: Array<{ id: string; title: string; title_ur: string | null; body: string; body_ur: string | null; severity: string }>;
+  invoices: Array<{ id: string; invoice_number: string; amount: number; currency: string; due_at: string; status: string }>;
+  payment_instructions: string | null;
+}
+
+/** Signs any claims object: base64url(JSON) "." base64url(Ed25519 signature). */
+export async function signClaims(claims: object, privateKey: CryptoKey): Promise<string> {
+  const body = b64url(enc.encode(JSON.stringify(claims)));
+  const sig = new Uint8Array(await crypto.subtle.sign('Ed25519', privateKey, enc.encode(body)));
+  return `${body}.${b64url(sig)}`;
+}
+
+/** The claims, if the signature is MedFlow HQ's; null for a forged, edited or broken token. */
+export async function verifyClaims<T>(token: string, publicKey: CryptoKey): Promise<T | null> {
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return null;
+  try {
+    if (!(await crypto.subtle.verify('Ed25519', publicKey, fromB64url(sig), enc.encode(body)))) return null;
+    return JSON.parse(new TextDecoder().decode(fromB64url(body))) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** HQ's public key as text (base64url of the raw 32 bytes), for embedding in MedFlow Local. */
+export async function importPublicKey(raw: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey('raw', fromB64url(raw), { name: 'Ed25519' }, false, ['verify']);
+}
+export async function exportPublicKey(key: CryptoKey): Promise<string> {
+  return b64url(new Uint8Array(await crypto.subtle.exportKey('raw', key)));
+}

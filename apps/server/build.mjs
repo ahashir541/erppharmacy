@@ -20,8 +20,16 @@ const step = (s) => console.log(`• ${s}`);
 
 fs.mkdirSync(out, { recursive: true });
 
+// MedFlow HQ's address and public key, built into the pharmacy's server (hq.json, written by
+// build-hq.mjs). Without it MedFlow Local runs unlicensed (licensing off).
+const hqFile = path.join(here, 'hq.json');
+const hq = fs.existsSync(hqFile) ? JSON.parse(fs.readFileSync(hqFile, 'utf8')) : null;
+if (hq?.url && hq?.public_key) step(`Licensing on: MedFlow HQ at ${hq.url}`);
+else console.warn('! No hq.json: this MedFlow Local has licensing OFF (anyone can use it). Run build-hq.mjs first for a licensed build.');
+
 step('Server');
 await build({
+  define: { __MEDFLOW_HQ__: hq?.url && hq?.public_key ? JSON.stringify({ url: hq.url, public_key: hq.public_key }) : 'undefined' },
   entryPoints: [path.join(here, 'src/main.ts')],
   outfile: path.join(out, 'medflow-server.mjs'),
   bundle: true, platform: 'node', format: 'esm', target: 'node20',

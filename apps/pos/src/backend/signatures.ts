@@ -714,5 +714,37 @@ export const SIGNATURES: Record<string, string[]> = {
   ],
   "office_role_permissions": [
     "p_role"
+  ],
+  "platform_create_pharmacy": [
+    "p"
+  ],
+  "platform_reissue_licence_key": [
+    "p_tenant"
+  ],
+  "platform_block_install": [
+    "p_install",
+    "p_blocked",
+    "p_reason"
+  ],
+  "platform_set_payment_instructions": [
+    "p_text"
+  ],
+  "platform_pharmacies": [],
+  "platform_pharmacy": [
+    "p_tenant"
+  ],
+  "platform_plans": [],
+  "platform_payments_to_review": [],
+  "hq_checkin": [
+    "p_key",
+    "p_install",
+    "p_info"
+  ],
+  "hq_submit_payment": [
+    "p_key",
+    "p_invoice",
+    "p_method",
+    "p_amount",
+    "p_reference"
   ]
 };

@@ -1,9 +1,9 @@
 // Settings on MedFlow Local: where the data is backed up, "Back up now", and the address other
 // counter PCs open to join (same shop network).
 import { useEffect, useState } from 'react';
-import { serverStatus, type BackupList, type ServerBackend, type ServerStatus } from '../backend/server.ts';
-import { errorText } from '../util.ts';
-import { timeOf, type PageProps } from './ui.tsx';
+import { serverStatus, type BackupList, type LicenceStatus, type ServerBackend, type ServerStatus } from '../backend/server.ts';
+import { errorText, rs } from '../util.ts';
+import { Modal, timeOf, type PageProps } from './ui.tsx';
 
 export const isServer = (db: PageProps['db']): db is PageProps['db'] & ServerBackend => typeof (db as Partial<ServerBackend>).backups === 'function';
 
@@ -35,5 +35,91 @@ export function LocalServerPanel(props: PageProps) {
       {error && <div className="form-error">{error}</div>}
       <div className="row-actions"><button type="button" className="btn" disabled={busy} onClick={() => void now()}>{busy ? 'Backing up…' : 'Back up now'}</button></div>
     </section>
+  );
+}
+
+const STATE_TEXT: Record<string, string> = {
+  ok: 'Licensed', offline: 'Licensed (offline)', none: 'No licence key yet', expired: 'Needs to reach MedFlow', stopped: 'Not selling', demo: 'Demo', off: 'Not licensed',
+};
+
+/** Settings on MedFlow Local: the licence from MedFlow HQ, MedFlow's invoices, and paying them. */
+export function LicencePanel(props: PageProps) {
+  const db = props.db as unknown as ServerBackend;
+  const [lic, setLic] = useState<LicenceStatus | null>(null);
+  const [key, setKey] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [paying, setPaying] = useState<LicenceStatus['invoices'][number] | null>(null);
+  useEffect(() => { serverStatus().then((s) => setLic(s.licence)).catch((e) => setError(errorText(e))); }, []);
+  const run = async (fn: () => Promise<LicenceStatus>) => {
+    setBusy(true); setError(null);
+    try { setLic(await fn()); setKey(''); } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
+  };
+  if (!lic || lic.state === 'off' || lic.state === 'demo') return null;
+  return (
+    <section className="panel">
+      <div className="panel-title">MedFlow licence and billing</div>
+      <dl className="facts">
+        <dt>Licence</dt><dd><span className={`pill ${lic.may_sell ? (lic.state === 'ok' ? 'good' : 'warn') : 'bad'}`}>{STATE_TEXT[lic.state] ?? lic.state}</span>{lic.message ? ` ${lic.message}` : ''}</dd>
+        <dt>Plan</dt><dd>{lic.plan_name ?? '—'}{lic.status ? ` · ${lic.status.replace('_', '-')}` : ''}</dd>
+        <dt>Key</dt><dd>{lic.key_hint ?? 'not entered'}</dd>
+        <dt>Last check with MedFlow</dt><dd>{timeOf(lic.last_checkin_at)}</dd>
+        <dt>Works offline until</dt><dd>{timeOf(lic.valid_until)}</dd>
+      </dl>
+      {lic.last_error && <div className="message error">{lic.last_error}</div>}
+      <form className="row-inline" onSubmit={(e) => { e.preventDefault(); void run(() => db.setLicenceKey(key)); }}>
+        <input placeholder={lic.key_hint ? 'New licence key' : 'Licence key MF-XXXX-XXXX-XXXX-XXXX'} value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} />
+        <button className="btn" disabled={busy || key.trim().length < 10}>{lic.key_hint ? 'Change key' : 'Enter key'}</button>
+        <button type="button" className="btn" disabled={busy || !lic.key_hint} onClick={() => void run(() => db.checkLicence())}>{busy ? '…' : 'Check now'}</button>
+      </form>
+      {lic.invoices.length > 0 && (
+        <>
+          <div className="panel-title">MedFlow invoices to pay</div>
+          <ul className="attention">
+            {lic.invoices.map((i) => (
+              <li key={i.id}>
+                <span><strong>{i.invoice_number}</strong> · {rs(i.amount)} · due {new Date(i.due_at).toLocaleDateString('en-GB')}</span>
+                {i.status === 'submitted' ? <span className="pill warn">Payment being checked</span>
+                  : <button type="button" className="btn small-btn primary" onClick={() => setPaying(i)}>I have paid</button>}
+              </li>
+            ))}
+          </ul>
+          {lic.payment_instructions && <p className="muted small pre">{lic.payment_instructions}</p>}
+        </>
+      )}
+      {lic.announcements.map((a) => (
+        <div key={a.id} className={`message ${a.severity === 'info' ? 'info' : 'error'}`}><strong>{a.title}</strong> {a.body}</div>
+      ))}
+      {error && <div className="form-error">{error}</div>}
+      {paying && <PayInvoice invoice={paying} db={db} onClose={() => setPaying(null)} onDone={(s) => { setPaying(null); setLic(s); }} />}
+    </section>
+  );
+}
+
+function PayInvoice(props: { invoice: LicenceStatus['invoices'][number]; db: ServerBackend; onClose: () => void; onDone: (s: LicenceStatus) => void }) {
+  const [method, setMethod] = useState('jazzcash');
+  const [amount, setAmount] = useState(String(props.invoice.amount / 100));
+  const [reference, setReference] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Modal title={`Pay ${props.invoice.invoice_number}`} onClose={props.onClose}>
+      <form className="stack" onSubmit={async (e) => {
+        e.preventDefault(); setBusy(true); setError(null);
+        try { props.onDone(await props.db.payInvoice(props.invoice.id, method, Math.round(Number(amount) * 100), reference)); }
+        catch (err) { setError(errorText(err)); setBusy(false); }
+      }}>
+        <p className="muted">Send the money first, then enter the transaction ID here. MedFlow confirms it, usually the same day.</p>
+        <div className="form-grid">
+          <label className="field"><span>Paid by</span><select value={method} onChange={(e) => setMethod(e.target.value)}>
+            <option value="jazzcash">JazzCash</option><option value="easypaisa">Easypaisa</option><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="other">Other</option>
+          </select></label>
+          <label className="field"><span>Amount (Rs)</span><input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
+        </div>
+        <label className="field"><span>Transaction ID / reference *</span><input required autoFocus value={reference} onChange={(e) => setReference(e.target.value)} /></label>
+        {error && <div className="form-error">{error}</div>}
+        <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>{busy ? '…' : 'Send to MedFlow'}</button></div>
+      </form>
+    </Modal>
   );
 }

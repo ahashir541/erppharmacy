@@ -1,2 +1,5 @@
 .local-data/
 release/
+hq-keys/
+hq.local.json
+hq.json

@@ -9,6 +9,7 @@ import { OpenShift } from './screens/Shift.tsx';
 import { SignIn } from './screens/SignIn.tsx';
 import { LinkCounter, OwnerSignIn } from './screens/CloudOwner.tsx';
 import { LinkThisPc, SetupWizard } from './screens/LocalSetup.tsx';
+import { LicenceBar } from './screens/LicenceBar.tsx';
 import { savedToken, ServerBackend, serverMode, serverStatus, type ServerStatus } from './backend/server.ts';
 import { errorText } from './util.ts';
 
@@ -159,6 +160,7 @@ export function App() {
   }
 
   const props: AppProps = { backend, ctx, lang, t, reload };
+  const screen = (() => {
   const toggleLang = () => setLang((l) => (l === 'en' ? 'ur' : 'en'));
 
   if (!session) {
@@ -177,4 +179,6 @@ export function App() {
   }
   return <Pos {...props} session={session} onSignOut={() => void signOut()} onToggleLang={toggleLang}
               onBackOffice={session.staff.kind === 'owner' ? () => setMode('office') : undefined} />;
+  })();
+  return <>{screen}{serverMode && <LicenceBar />}</>;
 }

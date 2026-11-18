@@ -234,3 +234,12 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 .setup-dots span { width: 28px; height: 4px; border-radius: 4px; background: var(--color-border); }
 .setup-dots span.on { background: var(--color-brand); }
 .setup-dots span.done { background: color-mix(in srgb, var(--color-brand) 50%, transparent); }
+
+/* MedFlow Local: licence and news from MedFlow, at the bottom of every screen */
+.licence-bar { position: fixed; inset-inline: 12px; bottom: 12px; z-index: 40; display: grid; gap: 6px; pointer-events: none; }
+.licence-line { pointer-events: auto; justify-self: center; max-width: min(900px, 100%); display: flex; gap: 10px; align-items: center; padding: 8px 14px;
+  border-radius: 10px; font-size: 14px; box-shadow: var(--shadow); background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text); }
+.licence-line.info { border-inline-start: 4px solid var(--color-info); }
+.licence-line.warn { border-inline-start: 4px solid var(--color-warning); background: var(--color-warning-soft); }
+.licence-line.bad { border-inline-start: 4px solid var(--color-danger); background: var(--color-danger-soft); }
+.pre { white-space: pre-wrap; }

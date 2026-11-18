@@ -170,3 +170,5 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 
 /* Stock count */
 .count-input { width: 80px; text-align: end; }
+.panel .row-inline { flex-wrap: wrap; }
+.panel .row-inline > input { flex: 1 1 220px; min-width: 0; }

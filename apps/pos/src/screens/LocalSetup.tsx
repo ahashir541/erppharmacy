@@ -13,7 +13,7 @@ const codeFrom = (city: string, branch: string) => {
 export function SetupWizard(props: { status: ServerStatus; onDone: () => void }) {
   const [step, setStep] = useState<'choose' | 'shop' | 'owner' | 'counter'>('choose');
   const [f, setF] = useState({ pharmacy: '', address: '', city: '', phone: '', branch_name: 'Main branch', branch_code: '', owner_name: '', owner_phone: '',
-    pin: '', pin2: '', counter_name: 'Counter 1', footer: 'Get well soon. Medicines once sold can be returned within 7 days with the bill.' });
+    pin: '', pin2: '', counter_name: 'Counter 1', licence_key: '', footer: 'Get well soon. Medicines once sold can be returned within 7 days with the bill.' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value }));
@@ -30,7 +30,13 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
 
   const run = async (body: Record<string, unknown>) => {
     setBusy(true); setError(null);
-    try { await setupServer(body); props.onDone(); } catch (err) { setError(errorText(err)); setBusy(false); }
+    try {
+      const licenceError = await setupServer(body);
+      if (licenceError) window.alert(`MedFlow is set up, but the licence key could not be checked: ${licenceError}
+
+Enter it later in Settings → Licence.`);
+      props.onDone();
+    } catch (err) { setError(errorText(err)); setBusy(false); }
   };
   const next = (to: typeof step) => (e: React.FormEvent) => {
     e.preventDefault(); setError(null);
@@ -102,6 +108,11 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
             <p className="muted small">Bills will be numbered {f.branch_code || 'KHI1'}-C1-000001, -000002…</p>
             <label className="field"><span>Name of this PC</span><input value={f.counter_name} onChange={set('counter_name')} /></label>
             <label className="field"><span>Message at the bottom of bills</span><input value={f.footer} onChange={set('footer')} /></label>
+            {props.status.licensing && (
+              <label className="field"><span>Licence key from MedFlow (you can also enter it later, within 7 days)</span>
+                <input value={f.licence_key} placeholder="MF-XXXX-XXXX-XXXX-XXXX" autoComplete="off"
+                       onChange={(e) => setF((x) => ({ ...x, licence_key: e.target.value.toUpperCase() }))} /></label>
+            )}
             {error && <div className="form-error">{error}</div>}
             <div className="row-actions"><button type="button" className="btn ghost" onClick={() => setStep('owner')}>Back</button>
               <button className="btn primary" disabled={busy}>{busy ? 'Setting up…' : 'Start using MedFlow'}</button></div>

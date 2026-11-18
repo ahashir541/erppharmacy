@@ -14,13 +14,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { backupNow, listBackups, restore, scheduleBackups } from './backup.ts';
 import { ApiError, asPrincipal, callFunction, openDatabase } from './db.ts';
+import { isLocal, lanAddresses, readJson, send, serveStatic } from './http.ts';
+import { Licence } from './licence.ts';
 import { counterFor, linkCounter, ownerClaims, pharmacy, setupDemo, setupPharmacy } from './setup.ts';
 
 const VERSION = '0.1.0';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const home = path.basename(here) === 'dist' ? path.dirname(here) : here;
 
-interface Config { port: number; data: string; backups: string; copyTo: string | null; backupHour: number; public: string; sql: string; logs: string }
+interface Config { hqUrl: string | null; port: number; data: string; backups: string; copyTo: string | null; backupHour: number; public: string; sql: string; logs: string }
 
 function loadConfig(): Config & { restore: string | null } {
   let file: Partial<Config> = {};
@@ -31,6 +33,7 @@ function loadConfig(): Config & { restore: string | null } {
   const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] ?? null : null; };
   const abs = (p: string) => (path.isAbsolute(p) ? p : path.resolve(home, p));
   return {
+    hqUrl: arg('hq') ?? file.hqUrl ?? null,
     port: Number(arg('port') ?? file.port ?? 5199),
     data: abs(arg('data') ?? file.data ?? 'data'),
     backups: abs(arg('backups') ?? file.backups ?? 'backups'),
@@ -52,49 +55,6 @@ function log(s: string) {
   try { fs.appendFileSync(logFile, `${line}\n`); } catch { /* disk full: keep running */ }
 }
 
-function lanAddresses(port: number): string[] {
-  return Object.values(os.networkInterfaces()).flat()
-    .filter((a): a is os.NetworkInterfaceInfo => !!a && a.family === 'IPv4' && !a.internal)
-    .map((a) => `http://${a.address}:${port}`);
-}
-
-const isLocal = (req: http.IncomingMessage) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '');
-
-async function readJson(req: http.IncomingMessage): Promise<Record<string, unknown>> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const c of req) {
-    size += (c as Buffer).length;
-    if (size > 25 * 1048576) throw new ApiError('Too much data in one request', 413);
-    chunks.push(c as Buffer);
-  }
-  if (!size) return {};
-  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>; } catch { throw new ApiError('Invalid JSON'); }
-}
-
-function send(res: http.ServerResponse, status: number, body: unknown) {
-  const text = JSON.stringify(body ?? null);
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-  res.end(text);
-}
-
-const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml',
-  '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.wasm': 'application/wasm', '.data': 'application/octet-stream',
-  '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.webmanifest': 'application/manifest+json',
-};
-
-function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
-  const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0]!);
-  let file = path.normalize(path.join(cfg.public, urlPath));
-  if (!file.startsWith(cfg.public)) { res.writeHead(403).end(); return; }
-  if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(cfg.public, 'index.html');
-  if (!fs.existsSync(file)) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('MedFlow app files are missing (public folder).'); return; }
-  const hashed = urlPath.startsWith('/assets/');
-  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] ?? 'application/octet-stream', 'Cache-Control': hashed ? 'public, max-age=31536000, immutable' : 'no-cache' });
-  fs.createReadStream(file).pipe(res);
-}
-
 async function main() {
   if (cfg.restore) {
     await restore(path.resolve(cfg.restore), cfg.data, log);
@@ -102,6 +62,8 @@ async function main() {
   }
   log(`MedFlow Local ${VERSION} starting · data ${cfg.data}`);
   const db: PGlite = await openDatabase(cfg.data, cfg.sql, log);
+  const licence = new Licence(db, cfg.hqUrl, VERSION, log);
+  await licence.start();
   const doBackup = () => backupNow(db, cfg.backups, cfg.copyTo, 30, log);
   scheduleBackups(doBackup, cfg.backups, cfg.backupHour, log);
 
@@ -112,7 +74,8 @@ async function main() {
 
     if (route === 'status' && req.method === 'GET') {
       const ph = await pharmacy(db);
-      return send(res, 200, { ready: !!ph, pharmacy: ph?.name ?? null, version: VERSION, this_pc: isLocal(req), addresses: lanAddresses(cfg.port) });
+      return send(res, 200, { ready: !!ph, pharmacy: ph?.name ?? null, version: VERSION, this_pc: isLocal(req), addresses: lanAddresses(cfg.port),
+        licence: ph ? await licence.status() : null, licensing: licence.enabled });
     }
     if (req.method !== 'POST' && route !== 'backups') throw new ApiError('Not found', 404);
     const body = req.method === 'POST' ? await readJson(req) : {};
@@ -121,7 +84,13 @@ async function main() {
       if (!isLocal(req)) throw new ApiError('Set up MedFlow on the main PC itself (where MedFlow Local is installed)', 403);
       const r = body.mode === 'demo' ? await setupDemo(db) : await setupPharmacy(db, body as never);
       log(body.mode === 'demo' ? 'Set up with the Demo Pharmacy' : `Set up pharmacy "${String(body.pharmacy)}"`);
-      return send(res, 200, r);
+      let licence_error: string | null = null;
+      if (body.mode !== 'demo' && licence.enabled) {
+        const key = String(body.licence_key ?? '').trim();
+        if (key) await licence.checkIn(key).catch((e: Error) => { licence_error = e.message; });
+        else await licence.apply();
+      }
+      return send(res, 200, { ...r, licence_error });
     }
     if (route === 'link') {
       const r = await linkCounter(db, req.socket.remoteAddress ?? '?', String(body.pin ?? ''), String(body.name ?? ''));
@@ -139,6 +108,16 @@ async function main() {
       if (body.as !== 'owner' && fn.startsWith('office_')) throw new ApiError('Sign in as the owner on this counter', 403);
       const claims = body.as === 'owner' ? await ownerClaims(db, counter, sessionId) : device;
       return send(res, 200, { r: await asPrincipal(db, claims, (tx) => callFunction(tx, fn, args, body.rows === true)) });
+    }
+    if (route === 'licence/check') return send(res, 200, await licence.checkIn());
+    if (route === 'licence/key') {
+      await ownerClaims(db, counter, sessionId);
+      return send(res, 200, await licence.checkIn(String(body.key ?? '')));
+    }
+    if (route === 'licence/payment') {
+      await ownerClaims(db, counter, sessionId);
+      await licence.submitPayment(String(body.invoice ?? ''), String(body.method ?? 'other'), Number(body.amount ?? 0), String(body.reference ?? ''));
+      return send(res, 200, await licence.status());
     }
     if (route === 'approval-status') {
       const r = await asPrincipal(db, device, async (tx) => (await tx.query<{ status: string }>('select status from approval_requests where id = $1', [String(body.id)])).rows[0]?.status);
@@ -166,7 +145,7 @@ async function main() {
 
   const server = http.createServer((req, res) => {
     const url = req.url ?? '/';
-    if (!url.startsWith('/api/')) { serveStatic(req, res); return; }
+    if (!url.startsWith('/api/')) { serveStatic(cfg.public, req, res); return; }
     const route = url.slice(5).split('?')[0]!;
     api(req, res, route).catch((err) => {
       if (err instanceof ApiError) {

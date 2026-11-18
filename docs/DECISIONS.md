@@ -247,3 +247,17 @@ before go-live.
   nightly backups, 30 kept, with an optional second copy away from the PC.
   Schema updates must be new migration files: an installed shop only applies
   migrations it has not run yet.
+
+## 2026-11-18 — MedFlow HQ (Owner's decision: sell MedFlow on monthly plans)
+
+- **D57. Hybrid SaaS: data at the pharmacy, control at HQ.** The owner wants to sell MedFlow
+  to many pharmacies on monthly plans and control plans, features and updates centrally, while
+  pharmacies keep working when the internet or power fails. Each pharmacy runs MedFlow Local; the
+  platform owner runs MedFlow HQ (the same schema, `tenants` = customers). A pharmacy's server
+  checks in with its licence key and receives a licence signed with HQ's Ed25519 key (status,
+  plan, features and limits, announcements, invoices), valid offline for `offline_licence_days`
+  (15). The local server mirrors status and features into its own database, so the existing rules
+  (`assert_tenant_writable`, `assert_within_limit`) enforce them. No key: 7 days, then read-only.
+  HQ receives counts only, never money or patient data. Licence keys are stored as SHA-256 only.
+  The HQ console signs in with email and password (scrypt), 5 tries then a 10-minute wait,
+  12-hour sessions; platform functions still require the platform-admin claims with aal2.

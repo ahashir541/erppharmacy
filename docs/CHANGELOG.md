@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### MedFlow HQ: sell MedFlow on monthly plans (2026-11-18)
+
+- D57. `apps/hq` (your console) and `apps/server/src/hq.ts` (your server): add a pharmacy and get
+  its licence key (copy or WhatsApp), plans and prices, per-pharmacy features and limits, status
+  (trial, active, grace, read-only at closing time, suspended), billing with invoices, payment
+  references from pharmacies and "Money received", announcements, last check-in and version per PC,
+  block a PC, new key. Guide: `docs/MEDFLOW_HQ.md`.
+- Migration 0028: licence keys (hash only), installs, `platform_create_pharmacy`,
+  `hq_checkin` and `hq_submit_payment` (service role only), console reads. 30 new database checks.
+- MedFlow Local: licence key in the setup wizard and Settings, check-in at start, every 6 hours
+  and on "Check now", signed licence verified with HQ's public key, status and features mirrored
+  into the local database, 15 days offline, 7 days without a key, a licence bar on every screen,
+  MedFlow invoices and "I have paid" in Settings. Builds without `hq.json` have licensing off.
+
 ### MedFlow Local: free, permanent, on the shop PC (2026-11-17)
 
 - The owner's decision (D56): run MedFlow on the pharmacy's own main PC instead of

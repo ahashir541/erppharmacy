@@ -8,7 +8,16 @@ import {
 export const serverMode = import.meta.env.VITE_MEDFLOW_SERVER === '1';
 const TOKEN_KEY = 'medflow.local.counter';
 
-export interface ServerStatus { ready: boolean; pharmacy: string | null; version: string; this_pc: boolean; addresses: string[] }
+export interface LicenceStatus {
+  state: 'off' | 'demo' | 'none' | 'ok' | 'offline' | 'expired' | 'stopped'; message: string; status: string | null; plan_name: string | null;
+  may_sell: boolean; valid_until: string | null; trial_ends_at: string | null; grace_ends_at: string | null; read_only_from: string | null;
+  key_hint: string | null; last_checkin_at: string | null; last_error: string | null; no_key_until: string | null;
+  announcements: Array<{ id: string; title: string; title_ur: string | null; body: string; body_ur: string | null; severity: string }>;
+  invoices: Array<{ id: string; invoice_number: string; amount: number; currency: string; due_at: string; status: string }>;
+  payment_instructions: string | null;
+}
+export interface ServerStatus { ready: boolean; pharmacy: string | null; version: string; this_pc: boolean; addresses: string[];
+  licence: LicenceStatus | null; licensing: boolean }
 export interface BackupList { folder: string; copy_to: string | null; list: Array<{ file: string; size: number; at: string }> }
 
 export const savedToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
@@ -31,7 +40,11 @@ async function post<T>(path: string, body: unknown, headers: Record<string, stri
 }
 
 export const serverStatus = () => post<ServerStatus>('status', null, {}, 'GET');
-export async function setupServer(body: Record<string, unknown>) { saveToken((await post<{ token: string }>('setup', body)).token); }
+export async function setupServer(body: Record<string, unknown>): Promise<string | null> {
+  const r = await post<{ token: string; licence_error?: string | null }>('setup', body);
+  saveToken(r.token);
+  return r.licence_error ?? null;
+}
 export async function linkThisPc(pin: string, name: string) { saveToken((await post<{ token: string }>('link', { pin, name })).token); }
 
 export class ServerBackend implements PosBackend {
@@ -87,5 +100,10 @@ export class ServerBackend implements PosBackend {
   ownerTable<T = Record<string, unknown>>(fn: string, ...args: unknown[]) { return this.call<T[]>('owner', fn, args, true); }
   office<T = unknown>(name: string, ...args: unknown[]) { return this.call<T>('owner', `office_${name}`, args); }
 
+  checkLicence() { return post<LicenceStatus>('licence/check', {}, this.headers()); }
+  setLicenceKey(key: string) { return post<LicenceStatus>('licence/key', { key }, this.headers()); }
+  payInvoice(invoice: string, method: string, amount: number, reference: string) {
+    return post<LicenceStatus>('licence/payment', { invoice, method, amount, reference }, this.headers());
+  }
   backups(now = false) { return post<BackupList>('backups', {}, this.headers(), now ? 'POST' : 'GET'); }
 }

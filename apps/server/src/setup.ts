@@ -56,7 +56,7 @@ export async function setupPharmacy(db: PGlite, f: NewPharmacy): Promise<{ token
       values ($1, $2, 'owner', true, $3, $4, 'active') returning id`, [tid, ownerAuth, owner, f.owner_phone?.trim() || null])).rows[0]!.id;
     const bid = (await tx.query<{ id: string }>(`
       insert into branches (tenant_id, code, name, address, city, phone, created_by) values ($1, $2, $3, $4, $5, $6, $7) returning id`,
-      [tid, code, branch, f.address?.trim() || null, f.city?.trim() || null, f.phone?.trim() || null, uid])).rows[0]!.id;
+      [tid, code, branch, f.address?.trim() ?? '', f.city?.trim() ?? '', f.phone?.trim() || null, uid])).rows[0]!.id;
     await tx.query('select app.seed_tenant_defaults($1, $2)', [tid, uid]);
     await tx.query('select app.ensure_expense_categories($1)', [tid]);
     await tx.query('insert into user_pins (user_id, tenant_id, pin_hash) values ($1, $2, $3)', [uid, tid, pinHash]);

@@ -76,8 +76,8 @@ const MIME: Record<string, string> = {
   '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.webmanifest': 'application/manifest+json',
 };
 
-export function serveStatic(root: string, req: http.IncomingMessage, res: http.ServerResponse) {
-  const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0]!);
+export function serveStatic(root: string, req: http.IncomingMessage, res: http.ServerResponse, prefix = '') {
+  const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0]!).slice(prefix.length) || '/';
   let file = path.normalize(path.join(root, urlPath));
   if (!file.startsWith(root)) { res.writeHead(403).end(); return; }
   if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(root, 'index.html');

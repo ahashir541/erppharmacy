@@ -50,7 +50,7 @@ export async function setupPharmacy(db: PGlite, f: NewPharmacy): Promise<{ token
     const tid = (await tx.query<{ id: string }>(`
       insert into tenants (name, owner_name, owner_phone, owner_email, city, status, plan_id, trial_ends_at)
       select $1, $2, $3, 'owner@medflow.local', $4, 'active', id, null from plans where code = 'pro' returning id`,
-      [name, owner, f.owner_phone?.trim() || null, f.city?.trim() || null])).rows[0]!.id;
+      [name, owner, f.owner_phone?.trim() ?? '', f.city?.trim() ?? ''])).rows[0]!.id;
     const uid = (await tx.query<{ id: string }>(`
       insert into users (tenant_id, auth_user_id, kind, is_primary_owner, full_name, phone, status)
       values ($1, $2, 'owner', true, $3, $4, 'active') returning id`, [tid, ownerAuth, owner, f.owner_phone?.trim() || null])).rows[0]!.id;

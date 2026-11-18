@@ -53,11 +53,12 @@ if ($admin) {
 
 # 5. Desktop icon: MedFlow in its own window (Edge app mode), or the default browser
 $desktop = [Environment]::GetFolderPath('Desktop')
-$edge = @("${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe", "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
 $shell = New-Object -ComObject WScript.Shell
 $lnk = $shell.CreateShortcut((Join-Path $desktop 'MedFlow.lnk'))
-if ($edge) { $lnk.TargetPath = $edge; $lnk.Arguments = "--app=http://localhost:$Port" } else { $lnk.TargetPath = "http://localhost:$Port" }
-$lnk.IconLocation = if ($edge) { "$edge,0" } else { '' }
+$lnk.TargetPath = "$env:WINDIR\System32\wscript.exe"
+$lnk.Arguments = "`"$Target\MedFlow.vbs`""
+$lnk.WorkingDirectory = $Target
+$lnk.IconLocation = "$Target\MedFlow.ico,0"
 $lnk.Description = 'MedFlow pharmacy'
 $lnk.Save()
 $b = $shell.CreateShortcut((Join-Path $desktop 'MedFlow Backups.lnk'))

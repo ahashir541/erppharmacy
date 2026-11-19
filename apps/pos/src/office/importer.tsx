@@ -12,11 +12,12 @@ const LABEL: Record<ImportField, string> = {
   manufacturer: 'Company', category: 'Category', barcode: 'Barcode', base_unit: 'Smallest unit', units_per_strip: 'Tablets per strip',
   strips_per_box: 'Strips per box', retail_price: 'Selling price', rack: 'Rack', reorder_level: 'Reorder level', min_stock: 'Min stock',
   max_stock: 'Max stock', is_controlled: 'Controlled (yes/no)', rx_required: 'Needs prescription (yes/no)',
+  stock_qty: 'Quantity in stock', stock_unit: 'Quantity is in (box / strip / tablet)', batch_number: 'Batch no.', expiry_date: 'Expiry', unit_cost: 'Cost price (per quantity unit)',
 };
 
-const TEMPLATE = 'Medicine name,Generic,Strength,Company,Barcode,Smallest unit,Tablets per strip,Strips per box,Selling price,Price per,Rack,Reorder level,Controlled,Prescription\r\n'
-  + 'Panadol 500mg Tablet,Paracetamol,500mg,Haleon,8961000000001,tablet,10,20,380,box,R1-S1,50,no,no\r\n'
-  + 'Calpol Syrup 120mg/5ml,Paracetamol,120mg/5ml,Haleon,8961000000002,bottle,,,145,bottle,R2-S3,5,no,no\r\n';
+const TEMPLATE = 'Medicine name,Generic,Strength,Company,Barcode,Smallest unit,Tablets per strip,Strips per box,Selling price,Price per,Rack,Reorder level,Controlled,Prescription,Quantity,Quantity unit,Batch,Expiry,Cost price\r\n'
+  + 'Panadol 500mg Tablet,Paracetamol,500mg,Haleon,8961000000001,tablet,10,20,380,box,R1-S1,50,no,no,12,box,PD2401,2027-06-30,330\r\n'
+  + 'Calpol Syrup 120mg/5ml,Paracetamol,120mg/5ml,Haleon,8961000000002,bottle,,,145,bottle,R2-S3,5,no,no,20,bottle,CP118,03/2027,125\r\n';
 
 export function ImportProducts(props: PageProps & { onClose: () => void; onDone: () => void }) {
   const [data, setData] = useState<string[][] | null>(null);
@@ -26,7 +27,7 @@ export function ImportProducts(props: PageProps & { onClose: () => void; onDone:
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
-  const [result, setResult] = useState<{ created: number; updated: number; unchanged: number; errors: Array<{ row: number; error: string }> } | null>(null);
+  const [result, setResult] = useState<{ created: number; updated: number; unchanged: number; stocked: number; errors: Array<{ row: number; error: string }> } | null>(null);
 
   const headers = data?.[0] ?? [];
   const body = data?.slice(1) ?? [];
@@ -47,7 +48,7 @@ export function ImportProducts(props: PageProps & { onClose: () => void; onDone:
   const run = async () => {
     if (!built) return;
     setBusy(true); setError(null);
-    const total = { created: 0, updated: 0, unchanged: 0, errors: [...built.problems] };
+    const total = { created: 0, updated: 0, unchanged: 0, stocked: 0, errors: [...built.problems] };
     try {
       const parts = chunk(built.rows, 1000);
       for (const [i, part] of parts.entries()) {
@@ -57,6 +58,25 @@ export function ImportProducts(props: PageProps & { onClose: () => void; onDone:
         total.updated += Number(r.updated ?? 0);
         total.unchanged += Number(r.unchanged ?? 0);
         for (const e of r.errors ?? []) total.errors.push({ row: Number(e.row ?? 0) + i * 1000, error: String(e.error ?? e.message ?? JSON.stringify(e)) });
+      }
+      // Opening stock for the rows that had a quantity: find each medicine, then add its batch.
+      const withStock = built.rows.map((r, n) => ({ r, n })).filter((x) => x.r.stock);
+      if (withStock.length) {
+        setProgress('Adding stock…');
+        type P = { id: string; brand_name: string };
+        const ids = new Map<string, string>();
+        for (const p of await props.db.office<P[]>('products', props.branchId, '')) ids.set(p.brand_name.toLowerCase(), p.id);
+        for (const [k, x] of withStock.entries()) {
+          setProgress(`Adding stock ${k + 1} of ${withStock.length}…`);
+          const name = x.r.brand_name.toLowerCase();
+          if (!ids.has(name)) for (const p of await props.db.office<P[]>('products', props.branchId, x.r.brand_name)) ids.set(p.brand_name.toLowerCase(), p.id);
+          const id = ids.get(name);
+          if (!id) { total.errors.push({ row: x.n + 1, error: 'medicine not found after import, stock not added' }); continue; }
+          try {
+            await props.db.ownerCall('receive_opening_stock', props.branchId, [{ product_id: id, ...x.r.stock }], null);
+            total.stocked++;
+          } catch (err) { total.errors.push({ row: x.n + 1, error: `stock not added: ${errorText(err)}` }); }
+        }
       }
       setResult(total);
     } catch (err) { setError(errorText(err)); }
@@ -107,10 +127,11 @@ export function ImportProducts(props: PageProps & { onClose: () => void; onDone:
           <div className="panel-title">First rows</div>
           <div className="table-wrap">
             <table className="table">
-              <thead><tr><th>Medicine</th><th>Generic</th><th>Packs</th><th className="num">Price</th></tr></thead>
+              <thead><tr><th>Medicine</th><th>Generic</th><th>Packs</th><th className="num">Price</th><th className="num">Stock</th></tr></thead>
               <tbody>{built.rows.slice(0, 5).map((r, i) => (
                 <tr key={i}><td>{r.brand_name}</td><td>{r.generic ?? ''}</td><td>{r.base_unit}{r.units.map((u) => ` · ${u.unit} ${u.factor}`).join('')}</td>
-                  <td className="num">{r.retail_price !== undefined ? `Rs ${(r.retail_price / 100).toFixed(2)} / ${r.retail_unit}` : ''}</td></tr>
+                  <td className="num">{r.retail_price !== undefined ? `Rs ${(r.retail_price / 100).toFixed(2)} / ${r.retail_unit}` : ''}</td>
+                  <td className="num">{r.stock ? `${r.stock.qty} ${r.stock.unit} · exp ${r.stock.expiry_date}` : ''}</td></tr>
               ))}</tbody>
             </table>
           </div>
@@ -132,13 +153,14 @@ export function ImportProducts(props: PageProps & { onClose: () => void; onDone:
           <div className="stats">
             <div className="stat good"><div className="stat-label">New medicines</div><div className="stat-value">{result.created}</div></div>
             <div className="stat"><div className="stat-label">Updated</div><div className="stat-value">{result.updated}</div></div>
+            <div className="stat"><div className="stat-label">Stock added</div><div className="stat-value">{result.stocked}</div></div>
             <div className={`stat${result.errors.length ? ' bad' : ''}`}><div className="stat-label">Rows with problems</div><div className="stat-value">{result.errors.length}</div></div>
           </div>
           {result.errors.length > 0 && (
             <div className="table-wrap"><table className="table"><thead><tr><th className="num">Row</th><th>Problem</th></tr></thead>
               <tbody>{result.errors.slice(0, 200).map((e, i) => <tr key={i}><td className="num">{e.row + 1}</td><td>{e.error}</td></tr>)}</tbody></table></div>
           )}
-          <p className="muted small">Next: add stock with "Add stock" on each medicine, or receive your first delivery in Purchases.</p>
+          <p className="muted small">{result.stocked ? 'Stock is on the shelf in MedFlow. New deliveries go through Purchases.' : 'Next: add stock with "Add stock" on each medicine, or put Quantity, Batch and Expiry columns in the file.'}</p>
           <div className="row-actions"><button type="button" className="btn primary" onClick={props.onDone}>Done</button></div>
         </div>
       )}

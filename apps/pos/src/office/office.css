@@ -181,12 +181,12 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .sidebar .icon-btn, .sidebar .link-btn { color: rgba(255, 255, 255, 0.85); }
 .sidebar .icon-btn:hover, .sidebar .link-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
 .sidebar .muted { color: rgba(255, 255, 255, 0.65); }
-.nav-group-label { color: rgba(255, 255, 255, 0.55); }
-.nav-item { color: rgba(255, 255, 255, 0.86); }
-.nav-item:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
-.nav-item.on { background: #fff; color: var(--color-brand); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
-.nav-item.soon .nav-label { color: rgba(255, 255, 255, 0.5); }
-.nav-soon { color: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.3); }
+.sidebar .nav-group-label { color: rgba(255, 255, 255, 0.55); }
+.sidebar .nav-item { color: rgba(255, 255, 255, 0.86); }
+.sidebar .nav-item:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.sidebar .nav-item.on { background: #fff; color: var(--color-brand); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
+.sidebar .nav-item.soon .nav-label { color: rgba(255, 255, 255, 0.5); }
+.sidebar .nav-soon { color: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.3); }
 .sidebar-foot { border-top-color: rgba(255, 255, 255, 0.14); }
 
 .office-top { border-bottom: 0; box-shadow: 0 1px 0 var(--color-border), 0 4px 12px rgba(19, 32, 46, 0.04); position: relative; z-index: 1; }
@@ -200,3 +200,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .stat:nth-child(4n + 3) { border-top-color: var(--color-success); }
 .stat:nth-child(4n + 4) { border-top-color: var(--color-warning); }
 .stat-value { color: var(--color-text); }
+
+/* A dropdown inside a stat card (e.g. HQ "Gets updates"): normal text size, fits the card. */
+.stat-value select { width: 100%; font-size: var(--text-md); font-weight: 500; padding: 8px 10px; margin-top: 4px; }
+.stat { min-width: 0; }

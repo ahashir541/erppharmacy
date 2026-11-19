@@ -2,7 +2,7 @@ import { verifyPin } from '@medflow/core';
 import { useEffect, useRef, useState } from 'react';
 import type { Staff } from '../backend/types.ts';
 
-/** A PIN box with an on-screen keypad (touch screens) that also takes the keyboard. Checks the PIN on this PC. */
+/** A PIN box: type the PIN on the keyboard and press Enter. Checks the PIN on this PC. */
 export function PinPad(props: {
   staff: Staff;
   title: string;
@@ -37,11 +37,6 @@ export function PinPad(props: {
       input.current?.focus();
     }
   };
-  const press = (d: string) => {
-    const next = (pin + d).slice(0, 6);
-    setPin(next);
-  };
-
   return (
     <div className="pinpad">
       <div className="pinpad-title">{props.title}</div>
@@ -56,20 +51,14 @@ export function PinPad(props: {
         disabled={!!locked || busy}
         onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
         onKeyDown={(e) => { if (e.key === 'Enter') void submit(); }}
+        placeholder="••••"
         aria-label={props.title}
       />
       {locked && <div className="form-error">Locked until {new Date(props.staff.locked_until!).toLocaleTimeString()}</div>}
       {error && <div className="form-error">{error}</div>}
-      <div className="keys">
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-          <button key={d} type="button" className="key" onClick={() => press(d)} disabled={!!locked || busy}>{d}</button>
-        ))}
-        <button type="button" className="key muted-key" onClick={() => setPin(pin.slice(0, -1))} disabled={busy}>⌫</button>
-        <button type="button" className="key" onClick={() => press('0')} disabled={!!locked || busy}>0</button>
-        <button type="button" className="key ok-key" onClick={() => void submit()} disabled={!!locked || busy || pin.length < 4}>
-          {busy ? '…' : props.submitText}
-        </button>
-      </div>
+      <button type="button" className="btn primary pin-submit" onClick={() => void submit()} disabled={!!locked || busy || pin.length < 4}>
+        {busy ? '…' : props.submitText}
+      </button>
     </div>
   );
 }

@@ -6,6 +6,7 @@ export const IMPORT_FIELDS = [
   'brand_name', 'brand_name_ur', 'generic', 'strength', 'dosage_form', 'manufacturer', 'category',
   'barcode', 'base_unit', 'units_per_strip', 'strips_per_box', 'retail_price', 'rack',
   'reorder_level', 'min_stock', 'max_stock', 'is_controlled', 'rx_required',
+  'stock_qty', 'stock_unit', 'batch_number', 'expiry_date', 'unit_cost',
 ] as const;
 export type ImportField = (typeof IMPORT_FIELDS)[number];
 export type ColumnMapping = Partial<Record<ImportField, number>>;
@@ -29,6 +30,8 @@ export interface ImportRow {
   max_stock?: number;
   is_controlled?: boolean;
   rx_required?: boolean;
+  /** Stock already on the shelf (optional): becomes opening stock after the import. */
+  stock?: { qty: number; unit: string; batch_number: string; expiry_date: string; total_cost?: number };
 }
 
 export interface RowProblem {
@@ -70,7 +73,7 @@ export function parseCsv(text: string): string[][] {
 
 // Header words seen in Pakistani distributor and pharmacy files.
 const SYNONYMS: Record<ImportField, string[]> = {
-  brand_name: ['brand', 'brand name', 'product', 'product name', 'item', 'item name', 'name', 'medicine', 'description'],
+  brand_name: ['medicine name', 'brand', 'brand name', 'product', 'product name', 'item', 'item name', 'name', 'medicine', 'description'],
   brand_name_ur: ['urdu', 'urdu name', 'name urdu', 'brand urdu'],
   generic: ['generic', 'generic name', 'salt', 'formula', 'composition', 'molecule'],
   strength: ['strength', 'potency', 'dose', 'mg'],
@@ -78,7 +81,7 @@ const SYNONYMS: Record<ImportField, string[]> = {
   manufacturer: ['manufacturer', 'company', 'mfg', 'mfr', 'maker', 'principal'],
   category: ['category', 'group', 'class', 'department'],
   barcode: ['barcode', 'bar code', 'ean', 'upc', 'gtin'],
-  base_unit: ['unit', 'base unit', 'uom'],
+  base_unit: ['smallest unit', 'unit', 'base unit', 'uom'],
   units_per_strip: ['units per strip', 'tablets per strip', 'tabs per strip', 'strip size', 'pack size', 'strip'],
   strips_per_box: ['strips per box', 'strips per pack', 'box size', 'strips', 'box'],
   retail_price: ['retail', 'retail price', 'price', 'mrp', 'sale price', 'selling price', 'rp'],
@@ -88,6 +91,11 @@ const SYNONYMS: Record<ImportField, string[]> = {
   max_stock: ['max', 'max stock', 'maximum'],
   is_controlled: ['controlled', 'narcotic', 'schedule', 'is controlled'],
   rx_required: ['rx', 'prescription', 'rx required', 'prescription required'],
+  stock_qty: ['quantity', 'qty', 'stock', 'stock qty', 'balance', 'closing stock', 'on hand', 'in stock'],
+  stock_unit: ['quantity unit', 'qty unit', 'stock unit', 'quantity in'],
+  batch_number: ['batch', 'batch no', 'batch number', 'lot', 'lot no'],
+  expiry_date: ['expiry', 'expiry date', 'exp', 'exp date', 'expires'],
+  unit_cost: ['cost', 'cost price', 'purchase price', 'trade price', 'tp', 'unit cost'],
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -125,6 +133,34 @@ function parseWhole(text: string, label: string): number | null {
   if (t === '') return null;
   if (!/^\d+$/.test(t)) throw new RangeError(`${label} must be a whole number: "${text}"`);
   return Number(t);
+}
+
+/** Expiry as written in shops: 2027-03-31, 31/03/2027, 03/2027, Mar-2027, or an Excel date number. -> YYYY-MM-DD */
+export function parseExpiry(text: string): string | null {
+  const t = text.trim();
+  if (!t) return null;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const lastDay = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const ok = (y: number, m: number, d: number) => {
+    if (y < 100) y += 2000;
+    if (m < 1 || m > 12 || d < 1 || d > lastDay(y, m) || y < 2000 || y > 2100) throw new RangeError(`not a date: "${text}"`);
+    return `${y}-${pad(m)}-${pad(d)}`;
+  };
+  let m: RegExpExecArray | null;
+  if ((m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(t))) return ok(+m[1]!, +m[2]!, +m[3]!);
+  if ((m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/.exec(t))) return ok(+m[3]!, +m[2]!, +m[1]!);
+  if ((m = /^(\d{1,2})[-/.](\d{4})$/.exec(t))) { const y = +m[2]!, mo = +m[1]!; return ok(y, mo, lastDay(y, mo)); }
+  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  if ((m = /^([a-z]{3})[a-z]*[-/ .]+(\d{2,4})$/i.exec(t))) {
+    const mo = months.indexOf(m[1]!.toLowerCase()) + 1;
+    let y = +m[2]!; if (y < 100) y += 2000;
+    if (mo > 0) return ok(y, mo, lastDay(y, mo));
+  }
+  if (/^\d{5}(\.\d+)?$/.test(t)) { // Excel serial date
+    const d = new Date(Date.UTC(1899, 11, 30) + Math.floor(+t) * 86_400_000);
+    return ok(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+  }
+  throw new RangeError(`expiry not understood: "${text}" (use 2027-03-31 or 03/2027)`);
 }
 
 function parseFlag(text: string): boolean | undefined {
@@ -198,6 +234,17 @@ export function buildImportRows(
       if (controlled !== undefined) row.is_controlled = controlled;
       const rx = parseFlag(cell(r, 'rx_required'));
       if (rx !== undefined) row.rx_required = rx;
+      const qty = parseWhole(cell(r, 'stock_qty'), 'quantity');
+      if (qty !== null && qty > 0) {
+        const expiry = parseExpiry(cell(r, 'expiry_date'));
+        if (!expiry) throw new RangeError('quantity given but no expiry date');
+        const unitText = (cell(r, 'stock_unit') || base).toLowerCase();
+        const unit = ['tablet', 'tab', 'tabs', 'capsule', 'cap', 'piece', 'pcs', 'unit', 'single'].includes(unitText) ? base : unitText;
+        if (unit !== base && !units.some((u) => u.unit === unit)) throw new RangeError(`quantity unit "${unitText}" is not a pack of this medicine`);
+        const cost = parseMoneyToMinor(cell(r, 'unit_cost'));
+        row.stock = { qty, unit, batch_number: cell(r, 'batch_number') || 'OPENING', expiry_date: expiry,
+          ...(cost !== null && cost >= 0 ? { total_cost: cost * qty } : {}) };
+      }
       rows.push(row);
     } catch (e) {
       problems.push({ row: n + 1, error: (e as Error).message });

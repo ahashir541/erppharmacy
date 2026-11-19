@@ -273,3 +273,45 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 .licence-result.bad { background: var(--color-danger-soft); border-color: #f2b8b8; color: var(--color-danger); }
 .licence-result.warn { background: var(--color-warning-soft); border-color: #f5d39b; color: var(--color-warning); }
 .licence-result span { color: var(--color-text-2); }
+
+/* Setup and link cards: fields use the full width, not squeezed into the middle. */
+.setup-card { justify-items: stretch; padding: 32px 36px; }
+.setup-card > .brand-mark, .setup-card > .done-check, .setup-card > .big-btn { justify-self: start; }
+.setup-card .field input, .setup-card .field select { width: 100%; }
+
+/* ---- Sign in: brand panel + staff and PIN ---- */
+.signin2 { min-height: 100%; display: grid; grid-template-columns: minmax(320px, 40%) 1fr; background: var(--color-bg); }
+.signin2-hero { position: relative; overflow: hidden; color: #fff; padding: 40px 48px; display: flex; flex-direction: column; justify-content: space-between; gap: 32px;
+  background: radial-gradient(600px 400px at 110% 110%, rgba(255, 255, 255, 0.12), transparent 60%),
+              radial-gradient(500px 300px at -10% -10%, rgba(45, 212, 191, 0.35), transparent 60%),
+              linear-gradient(160deg, #0f766e 0%, #0b4f4a 100%); }
+.signin2-hero::after { content: ''; position: absolute; right: -80px; top: 35%; width: 280px; height: 280px; border-radius: 50%; border: 36px solid rgba(255, 255, 255, 0.06); }
+.signin2-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
+.signin2-brand .brand-mark { background: #fff; color: var(--color-brand); width: 36px; height: 36px; border-radius: 10px; font-size: 18px; box-shadow: none; }
+.signin2-welcome { display: grid; gap: 8px; position: relative; z-index: 1; }
+.signin2-greet { font-size: var(--text-lg); color: rgba(255, 255, 255, 0.8); }
+.signin2-pharmacy { font-size: 40px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+.signin2-place { font-size: var(--text-md); color: rgba(255, 255, 255, 0.8); }
+.signin2-clock { display: grid; gap: 2px; position: relative; z-index: 1; }
+.signin2-clock strong { font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.signin2-clock span { color: rgba(255, 255, 255, 0.75); }
+.signin2-main { display: flex; flex-direction: column; padding: 20px 32px 32px; min-width: 0; }
+.signin2-top { display: flex; justify-content: flex-end; }
+.signin2-box { flex: 1; display: grid; align-content: center; gap: 20px; width: min(440px, 100%); margin: 0 auto; }
+.signin2-box h1 { font-size: var(--text-2xl); margin: 0; }
+.signin2-staff { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: 300px; overflow: auto; padding: 4px; margin: -4px; }
+.signin2-person { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--radius-md); border: 2px solid var(--color-border); background: var(--color-surface);
+  cursor: pointer; text-align: start; transition: border-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease); }
+.signin2-person:hover { border-color: color-mix(in srgb, var(--color-brand) 45%, var(--color-border)); }
+.signin2-person.on { border-color: var(--color-brand); box-shadow: 0 0 0 4px var(--color-brand-soft); }
+.signin2-person-text { display: grid; }
+.signin2-person-text span { color: var(--color-text-muted); font-size: var(--text-sm); text-transform: capitalize; }
+.signin2-pin { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-2); padding: 20px; display: grid; gap: 12px; }
+.signin2-pin .pin-placeholder { padding: 40px 0; }
+@media (max-width: 860px) {
+  .signin2 { grid-template-columns: 1fr; }
+  .signin2-hero { padding: 24px; gap: 16px; }
+  .signin2-pharmacy { font-size: 28px; }
+  .signin2-clock { display: none; }
+  .signin2-main { padding: 16px; }
+}

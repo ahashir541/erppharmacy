@@ -1,4 +1,4 @@
-// MedFlow Local, first start on the main PC: set up the pharmacy (or the demo pharmacy) in three
+// MedFlow Local, first start on the main PC: set up the pharmacy in three
 // short steps. On any other PC of the shop: link it as a counter with the owner's PIN.
 import { checkPin } from '@medflow/core';
 import { useState } from 'react';
@@ -90,13 +90,10 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
         {step === 'choose' && (
           <>
             <h1>Welcome to MedFlow</h1>
-            <p className="muted">Your pharmacy's records stay on this PC, backed up every night. No internet or monthly fee needed.</p>
+            <p className="muted">Your pharmacy's records stay on this PC and are backed up every night. Selling keeps working when the internet is down.</p>
             <div className="setup-choices">
               <button type="button" className="setup-choice" onClick={() => setStep('shop')}>
                 <strong>Set up my pharmacy</strong><span className="muted small">Your shop name, owner and PIN. Takes 2 minutes.</span>
-              </button>
-              <button type="button" className="setup-choice" disabled={busy} onClick={() => void run({ mode: 'demo' })}>
-                <strong>{busy ? 'Setting up…' : 'Try the demo pharmacy'}</strong><span className="muted small">28 medicines and 4 staff to practise with. Demo PINs: owner 1470.</span>
               </button>
             </div>
           </>

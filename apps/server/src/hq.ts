@@ -27,7 +27,6 @@ const cfg = {
   backups: abs(arg('backups') ?? 'hq-backups'),
   releases: abs(arg('releases') ?? 'hq-releases'),
   public: abs(arg('public') ?? 'hq-public'),
-  demo: abs(arg('demo') ?? 'demo-public'),
   sql: abs(arg('sql') ?? 'sql'),
   logs: abs('logs'),
 };
@@ -226,9 +225,6 @@ async function main() {
 
   ready((req, res) => {
     const url = req.url ?? '/';
-    // /demo: MedFlow's Demo Pharmacy, running entirely in the visitor's browser (no data reaches HQ).
-    if (url === '/demo') { res.writeHead(301, { Location: '/demo/' }).end(); return; }
-    if (url.startsWith('/demo/')) { serveStatic(cfg.demo, req, res, '/demo'); return; }
     if (!url.startsWith('/hq/')) { serveStatic(cfg.public, req, res); return; }
     const route = url.slice(4).split('?')[0]!;
     api(req, res, route).catch((err) => {

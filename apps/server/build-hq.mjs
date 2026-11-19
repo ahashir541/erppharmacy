@@ -43,12 +43,6 @@ fs.cpSync(fs.realpathSync(path.join(here, 'node_modules/@electric-sql/pglite')),
 step('HQ console');
 execSync(`npx vite build --outDir "${path.join(out, 'hq-public')}" --emptyOutDir`, { cwd: path.join(root, 'apps/hq'), stdio: 'inherit' });
 
-step('Demo MedFlow (/demo: runs in the visitor\'s browser)');
-const posDir = path.join(root, 'apps/pos');
-const demoEnv = { ...process.env, VITE_MEDFLOW_SERVER: '', VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' };
-execSync('node scripts/gen-signatures.mjs', { cwd: posDir, stdio: 'inherit', env: demoEnv });
-execSync(`npx vite build --base /demo/ --outDir "${path.join(out, 'demo-public')}" --emptyOutDir`, { cwd: posDir, stdio: 'inherit', env: demoEnv });
-
 if (!process.argv.includes('--no-node')) {
   step(`Node ${process.version}`);
   fs.mkdirSync(path.join(out, 'node'), { recursive: true });

@@ -17,7 +17,7 @@ import { ApiError, asPrincipal, callFunction, openDatabase } from './db.ts';
 import { claimPort, clientAddress, isLocal, lanAddresses, readJson, send, serveStatic } from './http.ts';
 import { Licence } from './licence.ts';
 import { startupGuard, startupOk, Updater } from './updater.ts';
-import { counterFor, linkCounter, ownerClaims, pharmacy, setupDemo, setupPharmacy } from './setup.ts';
+import { counterFor, linkCounter, ownerClaims, pharmacy, setupPharmacy } from './setup.ts';
 
 declare const __MEDFLOW_VERSION__: string | undefined;
 const VERSION = typeof __MEDFLOW_VERSION__ === 'string' ? __MEDFLOW_VERSION__ : '0.0.0-dev';
@@ -91,7 +91,8 @@ async function main() {
 
     if (route === 'setup') {
       if (!isLocal(req)) throw new ApiError('Set up MedFlow on the main PC itself (where MedFlow Local is installed)', 403);
-      const r = body.mode === 'demo' ? await setupDemo(db) : await setupPharmacy(db, body as never);
+      if (body.mode === 'demo') { send(res, 400, { error: 'The demo pharmacy is not part of MedFlow Local.' }); return; }
+      const r = await setupPharmacy(db, body as never);
       log(body.mode === 'demo' ? 'Set up with the Demo Pharmacy' : `Set up pharmacy "${String(body.pharmacy)}"`);
       let licence_error: string | null = null;
       if (body.mode !== 'demo' && licence.enabled) {

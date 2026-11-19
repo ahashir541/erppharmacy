@@ -151,7 +151,7 @@ export function App() {
       <div className="boot">
         <div className="boot-card">
           <div className="brand-mark">M</div>
-          <div className="boot-title">MedFlow POS</div>
+          <div className="boot-title">MedFlow</div>
           <div className="spinner" />
           <div className="muted">{progress || tr('pos.loading', lang)}</div>
         </div>

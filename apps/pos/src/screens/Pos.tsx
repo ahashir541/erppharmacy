@@ -259,7 +259,9 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
   return (
     <div className="pos">
       <header className="topbar">
-        <div className="brand"><span className="brand-mark">M</span> MedFlow</div>
+        {props.onBackOffice
+          ? <button type="button" className="brand brand-home" title="Dashboard" onClick={props.onBackOffice}><span className="brand-mark">M</span> MedFlow</button>
+          : <div className="brand"><span className="brand-mark">M</span> MedFlow</div>}
         <div className="topbar-place">{ctx.pharmacy} · {ctx.branch.name} · {ctx.device.name}</div>
         <div className="topbar-right">
           <span className="sync-pill">● {t('sync.synced')}</span>

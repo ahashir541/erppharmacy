@@ -66,8 +66,10 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
     <div className={`office${collapsed ? ' collapsed' : ''}`}>
       <aside className="sidebar" aria-label="Main menu">
         <div className="sidebar-head">
-          <span className="brand-mark">M</span>
-          {!collapsed && <span className="brand-name">MedFlow</span>}
+          <button type="button" className="brand-home" title="Dashboard" onClick={() => go('dashboard')}>
+            <span className="brand-mark">M</span>
+            {!collapsed && <span className="brand-name">MedFlow</span>}
+          </button>
           <button type="button" className="icon-btn collapse-btn" aria-label={collapsed ? 'Expand menu' : 'Collapse menu'} onClick={() => setCollapsed((c) => !c)}>{collapsed ? '»' : '«'}</button>
         </div>
         <nav>

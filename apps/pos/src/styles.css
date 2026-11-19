@@ -315,3 +315,8 @@ h2 { font-size: 19px; margin: 0 0 8px; }
   .signin2-clock { display: none; }
   .signin2-main { padding: 16px; }
 }
+
+/* The logo goes home (dashboard). */
+.brand-home { display: flex; align-items: center; gap: 8px; flex: 1; background: none; border: 0; padding: 4px; margin: -4px; border-radius: var(--radius-sm); cursor: pointer; color: inherit; font: inherit; text-align: start; }
+.brand-home:hover { background: rgba(127, 127, 127, 0.1); }
+.brand.brand-home { flex: 0 0 auto; font-weight: 700; font-size: 17px; }

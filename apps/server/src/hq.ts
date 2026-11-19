@@ -6,7 +6,7 @@
 // backed up: a new key means every pharmacy needs an update before its licence can renew.
 import type { PGlite } from '@electric-sql/pglite';
 import { exportPublicKey, signClaims } from '@medflow/core';
-import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, createPublicKey, randomBytes, randomUUID, scryptSync, timingSafeEqual, verify as verifySignature } from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -36,6 +36,31 @@ function log(s: string) {
   console.log(line);
   try { fs.appendFileSync(path.join(cfg.logs, 'medflow-hq.log'), `${line}\n`); } catch { /* keep running */ }
 }
+
+// ---- Sign in with Google: check Google's signed ID token here, on HQ (never trust the browser) ----
+let googleKeys: { at: number; keys: Array<{ kid: string } & Record<string, unknown>> } | null = null;
+async function verifyGoogleToken(idToken: string, clientId: string): Promise<{ email: string; name: string | null }> {
+  const parts = idToken.split('.');
+  if (parts.length !== 3) throw new ApiError('Google sign-in failed. Try again.', 403);
+  const header = JSON.parse(Buffer.from(parts[0]!, 'base64url').toString()) as { kid?: string; alg?: string };
+  const p = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString()) as Record<string, unknown>;
+  if (header.alg !== 'RS256' || !header.kid) throw new ApiError('Google sign-in failed. Try again.', 403);
+  if (!googleKeys || Date.now() - googleKeys.at > 3600_000 || !googleKeys.keys.some((k) => k.kid === header.kid)) {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/certs');
+    if (!r.ok) throw new ApiError('MedFlow HQ could not reach Google. Check the internet and try again.', 503);
+    googleKeys = { at: Date.now(), keys: ((await r.json()) as { keys: Array<{ kid: string }> }).keys };
+  }
+  const jwk = googleKeys.keys.find((k) => k.kid === header.kid);
+  if (!jwk) throw new ApiError('Google sign-in failed. Try again.', 403);
+  const good = verifySignature('RSA-SHA256', Buffer.from(`${parts[0]}.${parts[1]}`), createPublicKey({ key: jwk as never, format: 'jwk' }), Buffer.from(parts[2]!, 'base64url'));
+  const now = Date.now() / 1000;
+  if (!good || p.aud !== clientId || !['accounts.google.com', 'https://accounts.google.com'].includes(String(p.iss))
+      || typeof p.exp !== 'number' || p.exp < now - 60 || p.email_verified !== true || typeof p.email !== 'string') {
+    throw new ApiError('Google sign-in could not be confirmed. Try again.', 403);
+  }
+  return { email: p.email.toLowerCase(), name: typeof p.name === 'string' ? p.name : null };
+}
+const GOOGLE_CLIENT_ID = /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/;
 
 async function signingKey(): Promise<{ privateKey: CryptoKey; publicRaw: string }> {
   const file = path.join(cfg.keys, 'signing-key.json');
@@ -87,6 +112,12 @@ async function main() {
   const { server, ready } = await claimPort(cfg.port, 'MedFlow HQ is starting, one moment…', log);
   const db = await openDatabase(cfg.data, cfg.sql, log);
   await db.exec(`create table if not exists medflow_local.hq_passwords (admin_id uuid primary key, email text not null unique, hash text not null)`);
+  await db.exec(`create table if not exists medflow_local.hq_settings (key text primary key, value text not null)`);
+  const getSetting = async (k: string) => (await db.query<{ value: string }>('select value from medflow_local.hq_settings where key = $1', [k])).rows[0]?.value ?? null;
+  const putSetting = async (k: string, v: string | null) => {
+    if (v === null) await db.query('delete from medflow_local.hq_settings where key = $1', [k]);
+    else await db.query('insert into medflow_local.hq_settings (key, value) values ($1, $2) on conflict (key) do update set value = excluded.value', [k, v]);
+  };
   const key = await signingKey();
   log(`HQ public key (built into MedFlow Local): ${key.publicRaw}`);
 
@@ -108,7 +139,8 @@ async function main() {
 
   const api = async (req: http.IncomingMessage, res: http.ServerResponse, route: string) => {
     if (route === 'status' && req.method === 'GET') {
-      return send(res, 200, { app: 'medflow-hq', version: VERSION, has_admin: await hasAdmin(), this_pc: isLocal(req), public_key: key.publicRaw });
+      return send(res, 200, { app: 'medflow-hq', version: VERSION, has_admin: await hasAdmin(), this_pc: isLocal(req), public_key: key.publicRaw,
+        google_client_id: await getSetting('google_client_id'), password_from_internet: (await getSetting('password_only_this_pc')) !== 'true' });
     }
     // ---- A pharmacy downloads an update (its licence key proves it is a customer) ----
     if (route.startsWith('download/') && req.method === 'GET') {
@@ -195,6 +227,7 @@ async function main() {
       const from = clientAddress(req);
       const f = failures.get(from);
       if (f && f.until > Date.now()) throw new ApiError('Too many wrong passwords. Wait a few minutes.', 429);
+      if (!isLocal(req) && (await getSetting('password_only_this_pc')) === 'true') throw new ApiError('From outside the HQ computer, use Sign in with Google.', 403);
       const email = String(body.email ?? '').trim().toLowerCase();
       const row = (await db.query<{ hash: string; auth_user_id: string; is_active: boolean }>(`
         select p.hash, a.auth_user_id, a.is_active from medflow_local.hq_passwords p join platform_admins a on a.id = p.admin_id where p.email = $1`, [email])).rows[0];
@@ -209,10 +242,54 @@ async function main() {
       log(`HQ admin signed in from ${from}`);
       return send(res, 200, { token });
     }
+    if (route === 'admin/google') {
+      const clientId = await getSetting('google_client_id');
+      if (!clientId) throw new ApiError('Sign in with Google is not turned on yet.', 400);
+      const from = clientAddress(req);
+      const f = failures.get(from);
+      if (f && f.until > Date.now()) throw new ApiError('Too many failed sign-ins. Wait a few minutes.', 429);
+      const g = await verifyGoogleToken(String(body.credential ?? ''), clientId);
+      const row = (await db.query<{ auth_user_id: string; is_active: boolean }>(
+        'select auth_user_id, is_active from platform_admins where lower(email) = $1', [g.email])).rows[0];
+      if (!row || !row.is_active) {
+        const n = (f?.n ?? 0) + 1;
+        failures.set(from, { n: n >= 5 ? 0 : n, until: n >= 5 ? Date.now() + 10 * 60_000 : 0 });
+        log(`HQ Google sign-in refused for ${g.email} from ${from}`);
+        throw new ApiError(`${g.email} is not the MedFlow HQ owner account.`, 403);
+      }
+      failures.delete(from);
+      const token = randomBytes(32).toString('base64url');
+      sessions.set(token, { auth: row.auth_user_id, until: Date.now() + 12 * 3600_000 });
+      log(`HQ admin signed in with Google (${g.email}) from ${from}`);
+      return send(res, 200, { token });
+    }
     const bearer = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
     const s = sessions.get(bearer);
     if (!s || s.until < Date.now()) { sessions.delete(bearer); throw new ApiError('Sign in to MedFlow HQ', 401); }
     if (route === 'admin/logout') { sessions.delete(bearer); return send(res, 200, { ok: true }); }
+    if (route === 'admin/signin-options') {
+      const me = (await db.query<{ id: string; email: string }>('select id, email from platform_admins where auth_user_id = $1', [s.auth])).rows[0]!;
+      if (body.save === true) {
+        if (!isLocal(req)) throw new ApiError('Change sign-in options on the HQ computer itself.', 403);
+        const clientId = String(body.google_client_id ?? '').trim();
+        const email = String(body.email ?? me.email).trim().toLowerCase();
+        const onlyHere = body.password_only_this_pc === true;
+        if (clientId && !GOOGLE_CLIENT_ID.test(clientId)) throw new ApiError('That does not look like a Google Client ID (it ends in .apps.googleusercontent.com).');
+        if (!/^\S+@\S+\.\S+$/.test(email)) throw new ApiError('Enter your Google email.');
+        if (onlyHere && !clientId) throw new ApiError('Turn on Sign in with Google first, then you can switch off passwords from the internet.');
+        await db.transaction(async (tx) => {
+          await tx.query('update platform_admins set email = $1 where id = $2', [email, me.id]);
+          await tx.query('update medflow_local.hq_passwords set email = $1 where admin_id = $2', [email, me.id]);
+          await tx.query('update auth.users set email = $1 where id = $2', [email, s.auth]);
+        });
+        await putSetting('google_client_id', clientId || null);
+        await putSetting('password_only_this_pc', onlyHere ? 'true' : null);
+        log(`HQ sign-in options changed: Google ${clientId ? 'on' : 'off'}, password from internet ${onlyHere ? 'off' : 'on'}, owner ${email}`);
+        me.email = email;
+      }
+      return send(res, 200, { email: me.email, google_client_id: await getSetting('google_client_id'),
+        password_only_this_pc: (await getSetting('password_only_this_pc')) === 'true', this_pc: isLocal(req) });
+    }
     if (route === 'admin/call') {
       const fn = String(body.fn ?? '');
       if (!/^platform_[a-z_]+$/.test(fn)) throw new ApiError('Unknown function', 400);

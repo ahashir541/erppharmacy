@@ -196,6 +196,11 @@ async function main() {
     if (route === 'checkin') {
       const claims = await asService(db, (tx) => callFunction(tx, 'hq_checkin', [String(body.key ?? ''), body.install_id ?? null, body.info ?? {}], false));
       const token = await signClaims(claims as object, key.privateKey);
+      // Keep the pharmacy's backup key (escrow), so you can help them open a backup on a new PC.
+      const bk = typeof body.backup_key === 'string' && /^MFBK-[0-9A-F]{8}(-[0-9A-F]{8}){7}$/.test(body.backup_key) ? body.backup_key : null;
+      if (bk && typeof body.install_id === 'string') {
+        await db.query('update local_installs set backup_key = $1 where id = $2 and backup_key is distinct from $1', [bk, body.install_id]).catch(() => {});
+      }
       return send(res, 200, { token });
     }
     if (route === 'payment') {

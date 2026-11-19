@@ -204,3 +204,5 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 /* A dropdown inside a stat card (e.g. HQ "Gets updates"): normal text size, fits the card. */
 .stat-value select { width: 100%; font-size: var(--text-md); font-weight: 500; padding: 8px 10px; margin-top: 4px; }
 .stat { min-width: 0; }
+
+.key-code { font: 12.5px var(--font-mono); background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 4px; padding: 2px 6px; word-break: break-all; user-select: all; }

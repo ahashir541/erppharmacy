@@ -20,7 +20,7 @@ export interface ServerStatus { ready: boolean; pharmacy: string | null; version
   licence: LicenceStatus | null; licensing: boolean; update: UpdateStatus | null }
 export interface UpdateStatus { current: string; installing: boolean; last_error: string | null; last_result: string | null; install_window: string;
   offer: { version?: string; notes?: string; size_bytes?: number; is_rollback?: boolean; must_update?: boolean } | null }
-export interface BackupList { folder: string; copy_to: string | null; list: Array<{ file: string; size: number; at: string }> }
+export interface BackupList { folder: string; copy_to: string | null; list: Array<{ file: string; size: number; at: string }>; recovery_key?: string }
 
 export const savedToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
 export const saveToken = (t: string) => { try { localStorage.setItem(TOKEN_KEY, t); } catch { /* private window */ } };

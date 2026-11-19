@@ -19,7 +19,7 @@ export interface UpdateStatus { current: string; offer: UpdateOffer | null; inst
   last_result: string | null; install_window: string }
 
 export const TAR = process.platform === 'win32' ? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
-const KEEP = new Set(['data', 'backups', 'logs', 'config.json', 'node', 'updates', 'MedFlow-Server.cmd', 'start-hidden.vbs', 'MedFlow.vbs']);
+const KEEP = new Set(['data', 'backups', 'logs', 'config.json', 'backup-key.txt', 'node', 'updates', 'MedFlow-Server.cmd', 'start-hidden.vbs', 'MedFlow.vbs']);
 const PROGRAM = (name: string) => !KEEP.has(name) && !name.startsWith('data-before-restore');
 
 /** Runs before anything else at start: counts start attempts after an update and rolls back. */

@@ -12,7 +12,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { backupNow, listBackups, restore, scheduleBackups } from './backup.ts';
+import { backupKey, backupNow, keyText, listBackups, parseKey, restore, scheduleBackups } from './backup.ts';
 import { ApiError, asPrincipal, callFunction, openDatabase } from './db.ts';
 import { claimPort, clientAddress, isLocal, lanAddresses, readJson, send, serveStatic } from './http.ts';
 import { Licence } from './licence.ts';
@@ -26,7 +26,7 @@ const home = path.basename(here) === 'dist' ? path.dirname(here) : here;
 
 interface Config { hqUrl: string | null; port: number; data: string; backups: string; copyTo: string | null; backupHour: number; public: string; sql: string; logs: string }
 
-function loadConfig(): Config & { restore: string | null } {
+function loadConfig(): Config & { restore: string | null; key: string | null } {
   let file: Partial<Config> = {};
   const cfgPath = path.join(home, 'config.json');
   if (fs.existsSync(cfgPath)) {
@@ -45,6 +45,7 @@ function loadConfig(): Config & { restore: string | null } {
     sql: abs(arg('sql') ?? file.sql ?? 'sql'),
     logs: abs(file.logs ?? 'logs'),
     restore: arg('restore'),
+    key: arg('key'),
   };
 }
 
@@ -60,20 +61,22 @@ function log(s: string) {
 async function main() {
   if (!cfg.restore) startupGuard(home, log);
   if (cfg.restore) {
-    await restore(path.resolve(cfg.restore), cfg.data, log);
+    await restore(path.resolve(cfg.restore), cfg.data, log, cfg.key ? parseKey(cfg.key) : backupKey(home));
     return;
   }
   log(`MedFlow Local ${VERSION} starting · data ${cfg.data}`);
   const { server, ready } = await claimPort(cfg.port, 'MedFlow is starting, one moment…', log);
   const db: PGlite = await openDatabase(cfg.data, cfg.sql, log);
+  const bkey = backupKey(home);
   const licence = new Licence(db, cfg.hqUrl, VERSION, log);
+  licence.backupKey = keyText(bkey);
   const updater = new Updater(home, VERSION, licence.hqUrl, () => licence.key, () => licence.licenceKey(),
-    () => backupNow(db, cfg.backups, cfg.copyTo, 30, log), log);
+    () => backupNow(db, cfg.backups, cfg.copyTo, 30, log, bkey), log);
   licence.onLicence = (c) => updater.setOffer(c.update);
   licence.extraStats = () => { const f = updater.failedVersion(); return f ? { update_failed: f } : {}; };
   await licence.start();
   if (licence.enabled) updater.start();
-  const doBackup = () => backupNow(db, cfg.backups, cfg.copyTo, 30, log);
+  const doBackup = () => backupNow(db, cfg.backups, cfg.copyTo, 30, log, bkey);
   scheduleBackups(doBackup, cfg.backups, cfg.backupHour, log);
 
   const api = async (req: http.IncomingMessage, res: http.ServerResponse, route: string) => {
@@ -154,7 +157,7 @@ async function main() {
     if (route === 'backups') {
       await ownerClaims(db, counter, sessionId);
       if (req.method === 'POST') await doBackup();
-      return send(res, 200, { folder: cfg.backups, copy_to: cfg.copyTo, list: listBackups(cfg.backups).slice(0, 30) });
+      return send(res, 200, { folder: cfg.backups, copy_to: cfg.copyTo, list: listBackups(cfg.backups).slice(0, 30), recovery_key: keyText(bkey) });
     }
     throw new ApiError('Not found', 404);
   };

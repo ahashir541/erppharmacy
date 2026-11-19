@@ -29,6 +29,7 @@ export function LocalServerPanel(props: PageProps) {
         <dt>Last backup</dt><dd>{last ? `${timeOf(last.at)} · ${(last.size / 1048576).toFixed(1)} MB` : list ? 'None yet' : '…'}</dd>
         <dt>Backups kept</dt><dd>{list ? `${list.list.length} in ${list.folder}` : '…'}</dd>
         <dt>Second copy</dt><dd>{list ? (list.copy_to ?? 'Not set (see README: copyTo)') : '…'}</dd>
+        <dt>Backup key</dt><dd>{list?.recovery_key ? <><code className="key-code">{list.recovery_key}</code><div className="muted small">Backups are encrypted. Write this key down and keep it safe: you need it to open a backup on another PC. MedFlow HQ keeps a copy too.</div></> : '…'}</dd>
         <dt>Other counters open</dt><dd>{status ? (status.addresses.join(', ') || 'No shop network found') : '…'}</dd>
       </dl>
       <p className="muted small">A backup is made every night at 11 pm. On another PC of the shop, open the address above in Chrome or Edge and link it with your PIN.</p>

@@ -162,7 +162,7 @@ interface Detail {
   subscription: { plan_id: string; billing_cycle: string; price: number; status: string; current_period_end: string } | null;
   invoices: Array<{ id: string; invoice_number: string; amount: number; period_start: string; period_end: string; due_at: string; status: string }>;
   payments: Array<{ id: string; method: string; amount: number; reference: string; submitted_at: string; status: string }>;
-  installs: Array<{ id: string; machine: string | null; app_version: string | null; first_seen_at: string; last_checkin_at: string; checkins: number; stats: Record<string, unknown>; blocked_at: string | null }>;
+  installs: Array<{ id: string; machine: string | null; app_version: string | null; first_seen_at: string; last_checkin_at: string; checkins: number; stats: Record<string, unknown>; blocked_at: string | null; backup_key?: string | null }>;
   features: Array<{ code: string; name: string; module: string; enabled: boolean; limit: number | null; override: { enabled: boolean; limit: number | null; reason: string } | null }>;
   log: Array<{ action: string; details: Record<string, unknown>; occurred_at: string }>;
 }
@@ -223,6 +223,7 @@ function PharmacyDetail(props: { id: string; onBack: () => void }) {
           <Table rows={x.installs} empty="Not installed yet (no check-in with this key)." cols={[
             { label: 'PC', value: (i) => <><strong>{i.machine ?? 'PC'}</strong><div className="muted small">v{i.app_version ?? '?'} · since {dateOf(i.first_seen_at)}</div></> },
             { label: 'Last check-in', value: (i) => ago(i.last_checkin_at) },
+            { label: 'Backup key', value: (i) => (i.backup_key ? <code className="key-code" title="Give this to the owner only, to open a backup on a new PC">{i.backup_key}</code> : <span className="muted small">not sent yet</span>) },
             { label: 'Use', value: (i) => <span className="muted small">{Object.entries(i.stats ?? {}).map(([k, v]) => `${k.replace(/_/g, ' ')} ${String(v)}`).join(' · ')}</span> },
             { label: '', value: (i) => <button type="button" className={`btn small-btn${i.blocked_at ? '' : ' danger'}`}
                 onClick={() => void act(() => call('block_install', i.id, !i.blocked_at, i.blocked_at ? null : 'Blocked from HQ'))}>{i.blocked_at ? 'Unblock' : 'Block'}</button> },

@@ -49,6 +49,8 @@ export class Licence {
   get enabled() { return !!BUILT_IN.public_key && !!this.hqUrl; }
   /** Called with each verified licence (the updater reads its update offer). */
   onLicence: (c: PharmacyLicence) => void = () => {};
+  /** Kept by MedFlow HQ so the owner can open a backup on a new PC. */
+  backupKey: string | null = null;
   get key() { return this.publicKey; }
   licenceKey() { return this.meta('licence_key'); }
 
@@ -96,7 +98,7 @@ export class Licence {
     try {
       res = await fetch(`${this.hqUrl}/hq/checkin`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(20_000),
-        body: JSON.stringify({ key, install_id: await this.meta('install_id'), info: { version: this.version, machine: os.hostname(), stats: await this.stats() } }),
+        body: JSON.stringify({ key, install_id: await this.meta('install_id'), backup_key: this.backupKey, info: { version: this.version, machine: os.hostname(), stats: await this.stats() } }),
       });
     } catch {
       this.lastError = 'No internet or MedFlow HQ not reachable. MedFlow keeps working offline.';

@@ -56,9 +56,13 @@ export function clientAddress(req: http.IncomingMessage): string {
 export async function readJson(req: http.IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
   let size = 0;
+  const limit = 25 * 1048576;
+  // Too big: answer 413 and close this connection (the unread rest of the body would garble the next request on it).
+  const tooBig = () => { (req as http.IncomingMessage & { tooBig?: boolean }).tooBig = true; return new ApiError('Too much data in one request', 413); };
+  if (Number(req.headers['content-length'] ?? 0) > limit) throw tooBig();
   for await (const c of req) {
     size += (c as Buffer).length;
-    if (size > 25 * 1048576) throw new ApiError('Too much data in one request', 413);
+    if (size > limit) throw tooBig();
     chunks.push(c as Buffer);
   }
   if (!size) return {};
@@ -98,6 +102,7 @@ export const SECURITY_HEADERS: Record<string, string> = {
 
 export function send(res: http.ServerResponse, status: number, body: unknown) {
   const text = JSON.stringify(body ?? null);
+  if ((res.req as http.IncomingMessage & { tooBig?: boolean } | undefined)?.tooBig) res.setHeader('Connection', 'close');
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(text);
 }

@@ -37,6 +37,12 @@ const page = await browser.newPage({ viewport: { width: 1366, height: 800 } });
 const problems = [];
 page.on('console', (m) => { if (m.type() === 'error') problems.push(m.text()); });
 page.on('pageerror', (e) => problems.push(e.message));
+let captured = null;  // the post_sale call, for the load test
+page.on('request', (r) => {
+  if (r.method() === 'POST' && r.url().endsWith('/api/call')) {
+    try { const b = JSON.parse(r.postData() ?? '{}'); if (b.fn === 'post_sale') captured = { body: b, headers: r.headers() }; } catch { /* other call */ }
+  }
+});
 
 try {
   // ---- Security headers ----
@@ -117,6 +123,61 @@ try {
   const saved = await row.waitFor({ timeout: 15_000 }).then(() => true, () => false);
   check('the sale is saved and listed under Sales & invoices', saved, saved ? (await row.innerText()).replace(/\s+/g, ' ').slice(0, 90) : total.trim().slice(0, 40));
 
+  // ---- Load: 10 counters at once, searching and selling, against the same server ----
+  if (captured) {
+    const { randomUUID } = await import('node:crypto');
+    const hdr = { 'Content-Type': 'application/json', authorization: captured.headers.authorization, 'x-medflow-session': captured.headers['x-medflow-session'] };
+    const callApi = (body) => fetch(`${base}/api/call`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
+    const timed = async (fn) => { const t = performance.now(); const r = await fn(); return { ms: performance.now() - t, ok: r.ok }; };
+    const pct = (xs, p) => { const a = [...xs].sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(a.length * p))]; };
+    const words = ['pan', 'aug', 'risek', 'glu', 'para', 'amox', 'cef', 'nor', 'zet', 'bet'];
+    // A shop's real pace: 5 counters, each searching as someone types (one search every ~300 ms).
+    const searches = (await Promise.all(Array.from({ length: 5 }, (_, c) => (async () => {
+      const out = []; for (let i = 0; i < 40; i++) { out.push(await timed(() => callApi({ as: 'device', fn: 'pos_search', args: [words[(c + i) % words.length], 25], rows: false }))); await new Promise((r) => setTimeout(r, 300)); }
+      return out; })()))).flat();
+    // Stress, far beyond a real shop: 10 counters searching nonstop (reported, not pass/fail).
+    const stress = (await Promise.all(Array.from({ length: 10 }, (_, c) => (async () => {
+      const out = []; for (let i = 0; i < 30; i++) out.push(await timed(() => callApi({ as: 'device', fn: 'pos_search', args: [words[(c + i) % words.length], 25], rows: false })));
+      return out; })()))).flat().map((r) => r.ms);
+    console.log(`INFO  stress: 300 nonstop searches from 10 counters · median ${pct(stress, 0.5).toFixed(0)} ms · 95% ${pct(stress, 0.95).toFixed(0)} ms`);
+    let seq = 1;
+    const sale = () => { const a = structuredClone(captured.body); const x = a.args[0];
+      x.id = randomUUID(); x.local_seq = ++seq; x.sold_at = new Date().toISOString(); x.lines = x.lines.map((l) => ({ ...l, id: randomUUID() })); return a; };
+    const sales = (await Promise.all(Array.from({ length: 10 }, () => (async () => {
+      const out = []; for (let i = 0; i < 3; i++) out.push(await timed(() => callApi(sale()))); return out; })()))).flat();
+    const sOk = searches.filter((r) => r.ok).length; const bOk = sales.filter((r) => r.ok).length;
+    const sMs = searches.map((r) => r.ms); const bMs = sales.map((r) => r.ms);
+    check('load: 200 searches from 5 counters at shop pace, 95% under 500 ms', sOk === 200 && pct(sMs, 0.95) < 500,
+      `${sOk}/200 ok · median ${pct(sMs, 0.5).toFixed(0)} ms · 95% ${pct(sMs, 0.95).toFixed(0)} ms · slowest ${Math.max(...sMs).toFixed(0)} ms`);
+    check('load: 30 sales from 10 counters at once, 95% under 2 s', bOk === 30 && pct(bMs, 0.95) < 2000,
+      `${bOk}/30 ok · median ${pct(bMs, 0.5).toFixed(0)} ms · 95% ${pct(bMs, 0.95).toFixed(0)} ms`);
+
+    // ---- Security self-test (OWASP-style probes) ----
+    const raw = (p, init = {}) => fetch(`${base}${p}`, init);
+    const body = (b, h = {}) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', ...h }, body: JSON.stringify(b) });
+    const st = async (p, init) => (await raw(p, init)).status;
+    check('security: API refuses a call with no token', [401, 403].includes(await st('/api/call', body({ as: 'device', fn: 'pos_search', args: ['pan', 5] }))));
+    check('security: API refuses a forged token', [401, 403].includes(await st('/api/call', body({ as: 'device', fn: 'pos_search', args: ['pan', 5] }, { authorization: 'Bearer forged-token-123' }))));
+    const ownerNoSession = await raw('/api/call', body({ as: 'owner', fn: 'office_products', args: [null, ''] }, { authorization: hdr.authorization }));
+    check('security: owner functions need the owner\'s session', !ownerNoSession.ok, `status ${ownerNoSession.status}`);
+    const odd = await raw('/api/call', body({ as: 'device', fn: 'pg_sleep', args: [5] }, hdr));
+    const odd2 = await raw('/api/call', body({ as: 'device', fn: 'platform_delete_pharmacy', args: [null, 'x'] }, hdr));
+    check('security: unknown or admin functions are refused', !odd.ok && !odd2.ok, `${odd.status}, ${odd2.status}`);
+    const inj = await callApi({ as: 'device', fn: 'pos_search', args: ["'); drop table products; --", 25], rows: false });
+    const still = await (await callApi({ as: 'device', fn: 'pos_search', args: ['panadol', 25], rows: false })).json();
+    check('security: SQL injection in search does nothing', inj.status < 500 && Array.isArray(still.r) && still.r.length > 0);
+    const trav = await Promise.all(['/..%2fbackup-key.txt', '/%2e%2e/backup-key.txt', '/../config.json', '/..%5cbackup-key.txt'].map((p) => raw(p).then((r) => r.text())));
+    check('security: no file outside the app folder can be read', trav.every((t) => !t.includes('MFBK-')));
+    const big = await raw('/api/call', { method: 'POST', headers: { 'Content-Type': 'application/json', ...hdr }, body: 'x'.repeat(30 * 1024 * 1024) }).then((r) => r.status, () => 'closed');
+    const alive = (await raw('/api/status')).ok;
+    check('security: a 30 MB request is refused and MedFlow keeps running', big !== 200 && alive, `answer ${big}`);
+    const bk = await raw('/api/backups', { headers: { authorization: hdr.authorization } });
+    check('security: backup list and key need the owner', !bk.ok || !(await bk.text()).includes('MFBK-'), `status ${bk.status}`);
+    const apiHdr = (await raw('/api/status')).headers;
+    check('security: API answers carry the security headers too', apiHdr.get('x-content-type-options') === 'nosniff' && !!apiHdr.get('content-security-policy'));
+  }
+
+  if (process.env.E2E_DUMP && captured) fs.writeFileSync(process.env.E2E_DUMP, JSON.stringify(captured, null, 1));
   check('no errors in the browser console', problems.length === 0, problems.slice(0, 3).join(' | '));
 } catch (e) {
   check(`unexpected: ${e.message.split('\n')[0]}`, false);

@@ -1,0 +1,50 @@
+{
+ "framework": null,
+ "installCommand": "",
+ "buildCommand": "",
+ "outputDirectory": ".",
+ "headers": [
+  {
+   "source": "/(.*)",
+   "headers": [
+    {
+     "key": "Content-Security-Policy",
+     "value": "default-src 'self'; script-src 'self' 'sha256-P3k6b30QtYMF/rYhdp+lyeBtCQX8ty3adDyKFRnKahE=' 'sha256-TkoXKMYZyEbkZHR0eAFpD3x4EoMf9spK2kRXoL5Xf7k='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+    },
+    {
+     "key": "X-Content-Type-Options",
+     "value": "nosniff"
+    },
+    {
+     "key": "X-Frame-Options",
+     "value": "DENY"
+    },
+    {
+     "key": "Referrer-Policy",
+     "value": "strict-origin-when-cross-origin"
+    },
+    {
+     "key": "Permissions-Policy",
+     "value": "camera=(), microphone=(), geolocation=()"
+    },
+    {
+     "key": "Strict-Transport-Security",
+     "value": "max-age=31536000"
+    }
+   ]
+  },
+  {
+   "source": "/download/(.*)",
+   "headers": [
+    {
+     "key": "Content-Disposition",
+     "value": "attachment"
+    },
+    {
+     "key": "Cache-Control",
+     "value": "public, max-age=3600"
+    }
+   ]
+  }
+ ]
+}

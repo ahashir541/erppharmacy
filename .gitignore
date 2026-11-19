@@ -50,3 +50,6 @@ Thumbs.db
 dist-cloud/
 .vercel/
 .env.local
+site/download/
+site/.vercel/
+site/.env.local

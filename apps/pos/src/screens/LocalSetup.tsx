@@ -2,7 +2,7 @@
 // short steps. On any other PC of the shop: link it as a counter with the owner's PIN.
 import { checkPin } from '@medflow/core';
 import { useState } from 'react';
-import { linkThisPc, setupServer, type ServerStatus } from '../backend/server.ts';
+import { linkThisPc, serverStatus, setupServer, type LicenceStatus, type ServerStatus } from '../backend/server.ts';
 import { errorText } from '../util.ts';
 
 const codeFrom = (city: string, branch: string) => {
@@ -16,6 +16,7 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
     pin: '', pin2: '', counter_name: 'Counter 1', licence_key: '', footer: 'Get well soon. Medicines once sold can be returned within 7 days with the bill.' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [finished, setFinished] = useState<{ licence: LicenceStatus | null; error: string | null; keyEntered: boolean } | null>(null);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value }));
 
   if (!props.status.this_pc) {
@@ -32,10 +33,9 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
     setBusy(true); setError(null);
     try {
       const licenceError = await setupServer(body);
-      if (licenceError) window.alert(`MedFlow is set up, but the licence key could not be checked: ${licenceError}
-
-Enter it later in Settings → Licence.`);
-      props.onDone();
+      const licence = await serverStatus().then((s) => s.licence).catch(() => null);
+      setFinished({ licence, error: licenceError, keyEntered: Boolean(String(body.licence_key ?? '').trim()) });
+      setBusy(false);
     } catch (err) { setError(errorText(err)); setBusy(false); }
   };
   const next = (to: typeof step) => (e: React.FormEvent) => {
@@ -49,6 +49,39 @@ Enter it later in Settings → Licence.`);
     setStep(to);
   };
   const dots = ['shop', 'owner', 'counter'] as const;
+
+  if (finished) {
+    const lic = finished.licence;
+    const good = !finished.error && lic && (lic.state === 'ok' || lic.state === 'offline');
+    const until = (v: string | null) => (v ? new Date(v).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : null);
+    return (
+      <div className="boot">
+        <div className="boot-card setup-card">
+          <div className="done-check" aria-hidden>✓</div>
+          <h1>MedFlow is set up</h1>
+          {props.status.licensing && (good ? (
+            <div className="licence-result good">
+              <strong>Licence key verified</strong>
+              <span>{lic!.plan_name ? `Plan: ${lic!.plan_name}` : 'Your pharmacy is licensed.'}
+                {lic!.trial_ends_at ? ` · Free trial until ${until(lic!.trial_ends_at)}` : ''}</span>
+            </div>
+          ) : finished.keyEntered ? (
+            <div className="licence-result bad">
+              <strong>The licence key was not accepted</strong>
+              <span>{finished.error ?? lic?.message ?? 'MedFlow could not check it.'}</span>
+              <span className="small">You can still use MedFlow. Enter the key again in Settings → Licence.</span>
+            </div>
+          ) : (
+            <div className="licence-result warn">
+              <strong>No licence key entered</strong>
+              <span>Enter it in Settings → Licence{lic?.no_key_until ? ` before ${until(lic.no_key_until)}` : ' within 7 days'}.</span>
+            </div>
+          ))}
+          <button type="button" className="btn primary big-btn" onClick={props.onDone}>Open MedFlow</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="boot">

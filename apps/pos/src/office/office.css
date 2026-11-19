@@ -172,3 +172,31 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .count-input { width: 80px; text-align: end; }
 .panel .row-inline { flex-wrap: wrap; }
 .panel .row-inline > input { flex: 1 1 220px; min-width: 0; }
+
+/* ---- Look: brand sidebar, coloured cards, softer panels ---- */
+.sidebar { background: linear-gradient(180deg, #0f766e 0%, #0b4f4a 100%); border-inline-end: 0; color: #fff; }
+.sidebar-head { border-bottom-color: rgba(255, 255, 255, 0.14); }
+.sidebar .brand-mark { background: #fff; color: var(--color-brand); }
+.sidebar .brand-name { color: #fff; letter-spacing: 0.01em; }
+.sidebar .icon-btn, .sidebar .link-btn { color: rgba(255, 255, 255, 0.85); }
+.sidebar .icon-btn:hover, .sidebar .link-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
+.sidebar .muted { color: rgba(255, 255, 255, 0.65); }
+.nav-group-label { color: rgba(255, 255, 255, 0.55); }
+.nav-item { color: rgba(255, 255, 255, 0.86); }
+.nav-item:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.nav-item.on { background: #fff; color: var(--color-brand); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
+.nav-item.soon .nav-label { color: rgba(255, 255, 255, 0.5); }
+.nav-soon { color: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.3); }
+.sidebar-foot { border-top-color: rgba(255, 255, 255, 0.14); }
+
+.office-top { border-bottom: 0; box-shadow: 0 1px 0 var(--color-border), 0 4px 12px rgba(19, 32, 46, 0.04); position: relative; z-index: 1; }
+.branch-switch strong { color: var(--color-brand); }
+.office-content { background: radial-gradient(1200px 400px at 100% -10%, var(--color-brand-soft), transparent 70%), var(--color-bg); }
+.page-head h1 { font-size: var(--text-3xl); letter-spacing: -0.01em; }
+
+.stat { border: 0; border-top: 4px solid var(--color-brand); position: relative; overflow: hidden; transition: transform var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease); }
+.stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+.stat:nth-child(4n + 2) { border-top-color: var(--color-info); }
+.stat:nth-child(4n + 3) { border-top-color: var(--color-success); }
+.stat:nth-child(4n + 4) { border-top-color: var(--color-warning); }
+.stat-value { color: var(--color-text); }

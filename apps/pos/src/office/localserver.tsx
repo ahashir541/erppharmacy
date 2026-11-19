@@ -49,6 +49,7 @@ export function LicencePanel(props: PageProps) {
   const [key, setKey] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ good: boolean; text: string } | null>(null);
   const [paying, setPaying] = useState<LicenceStatus['invoices'][number] | null>(null);
   const [upd, setUpd] = useState<UpdateStatus | null>(null);
   const [installing, setInstalling] = useState(false);
@@ -67,9 +68,16 @@ export function LicencePanel(props: PageProps) {
       setError('MedFlow did not come back yet. Wait a minute and reload the page.');
     } catch (e) { setError(errorText(e)); setInstalling(false); }
   };
-  const run = async (fn: () => Promise<LicenceStatus>) => {
-    setBusy(true); setError(null);
-    try { setLic(await fn()); setKey(''); } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
+  const run = async (fn: () => Promise<LicenceStatus>, what: 'key' | 'check') => {
+    setBusy(true); setError(null); setNotice(null);
+    try {
+      const l = await fn();
+      setLic(l); setKey('');
+      const good = l.state === 'ok' || l.state === 'offline';
+      setNotice(good
+        ? { good, text: what === 'key' ? `Licence key verified.${l.plan_name ? ` Plan: ${l.plan_name}.` : ''}` : 'Checked with MedFlow just now: all good.' }
+        : { good, text: l.last_error ?? l.message ?? 'MedFlow did not accept this key.' });
+    } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
   };
   if (!lic || lic.state === 'off' || lic.state === 'demo') return null;
   return (
@@ -82,11 +90,12 @@ export function LicencePanel(props: PageProps) {
         <dt>Last check with MedFlow</dt><dd>{timeOf(lic.last_checkin_at)}</dd>
         <dt>Works offline until</dt><dd>{timeOf(lic.valid_until)}</dd>
       </dl>
-      {lic.last_error && <div className="message error">{lic.last_error}</div>}
-      <form className="row-inline" onSubmit={(e) => { e.preventDefault(); void run(() => db.setLicenceKey(key)); }}>
+      {notice ? <div className={`licence-result ${notice.good ? 'good' : 'bad'}`}><strong>{notice.good ? '✓ ' : ''}{notice.text}</strong></div>
+        : lic.last_error && <div className="message error">{lic.last_error}</div>}
+      <form className="row-inline" onSubmit={(e) => { e.preventDefault(); void run(() => db.setLicenceKey(key), 'key'); }}>
         <input placeholder={lic.key_hint ? 'New licence key' : 'Licence key MF-XXXX-XXXX-XXXX-XXXX'} value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} />
         <button className="btn" disabled={busy || key.trim().length < 10}>{lic.key_hint ? 'Change key' : 'Enter key'}</button>
-        <button type="button" className="btn" disabled={busy || !lic.key_hint} onClick={() => void run(() => db.checkLicence())}>{busy ? '…' : 'Check now'}</button>
+        <button type="button" className="btn" disabled={busy || !lic.key_hint} onClick={() => void run(() => db.checkLicence(), 'check')}>{busy ? '…' : 'Check now'}</button>
       </form>
       {lic.invoices.length > 0 && (
         <>

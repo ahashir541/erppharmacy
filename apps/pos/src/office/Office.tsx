@@ -96,7 +96,6 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
             <span aria-hidden>⌕</span> Search or jump to… <kbd>Ctrl K</kbd>
           </button>
           <button type="button" className="link-btn" onClick={props.onToggleLang}>{props.lang === 'ur' ? 'English' : 'اردو'}</button>
-          <span className="sync-pill" title="All changes saved">● Synced</span>
           <button type="button" className="btn primary" onClick={props.onOpenPos}>New sale</button>
         </header>
         <main className="office-content">

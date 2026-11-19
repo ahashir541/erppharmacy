@@ -137,7 +137,8 @@ export function applyDisplayPrefs() {
   try {
     const theme = localStorage.getItem(LS.theme);
     const contrast = localStorage.getItem(LS.contrast);
-    if (theme && theme !== 'system') document.documentElement.dataset.theme = theme; else delete document.documentElement.dataset.theme;
+    if (theme) localStorage.removeItem(LS.theme); // light only now; forget an old dark choice
+    delete document.documentElement.dataset.theme;
     if (contrast === 'high') document.documentElement.dataset.contrast = 'high'; else delete document.documentElement.dataset.contrast;
   } catch { /* private window */ }
 }
@@ -156,7 +157,6 @@ const ALERTS: Array<[string, string, string | null]> = [
 export function Settings(props: PageProps) {
   const biz = useLoad(() => props.db.office<{ business: { name: string; owner_name: string; owner_phone: string; city: string; status: string; trial_ends_at: string | null;
     branch: string; address: string; phone: string | null; footer: string | null; width: number | null; rounding: number | null }; rules: Array<{ kind: string; enabled: boolean; threshold: number | null }>; devices: Array<{ name: string; last_seen_at: string | null; last_sync_at: string | null; app_version: string | null; status: string }> }>('settings', props.branchId), []);
-  const [theme, setTheme] = useState(() => { try { return localStorage.getItem(LS.theme) ?? 'system'; } catch { return 'system'; } });
   const [contrast, setContrast] = useState(() => { try { return localStorage.getItem(LS.contrast) ?? 'normal'; } catch { return 'normal'; } });
   const b = biz.data?.business;
   const rules = { data: biz.data?.rules ?? null, reload: biz.reload };
@@ -170,9 +170,9 @@ export function Settings(props: PageProps) {
     if (width !== null) await props.db.ownerCall('set_setting', 'pos.receipt_width', width, null);
     if (rounding !== null) await props.db.ownerCall('set_setting', 'pos.bill_rounding_minor', String(rounding === '0' ? 0 : 100), null);
   }, () => { setSaved('Saved. New bills use these settings.'); biz.reload(); });
-  const pref = (k: 'theme' | 'contrast', v: string) => {
+  const pref = (k: 'contrast', v: string) => {
     try { localStorage.setItem(LS[k], v); } catch { /* ignore */ }
-    if (k === 'theme') setTheme(v); else setContrast(v);
+    setContrast(v);
     applyDisplayPrefs();
   };
   const setRule = async (kind: string, enabled: boolean, threshold: number | null) => {
@@ -210,7 +210,6 @@ export function Settings(props: PageProps) {
         </section>
         <section className="panel">
           <div className="panel-title">Display (this PC)</div>
-          <div className="seg"><span>Theme</span>{['system', 'light', 'dark'].map((v) => <button key={v} type="button" className={`chip${theme === v ? ' on' : ''}`} onClick={() => pref('theme', v)}>{v}</button>)}</div>
           <div className="seg"><span>Contrast</span>{['normal', 'high'].map((v) => <button key={v} type="button" className={`chip${contrast === v ? ' on' : ''}`} onClick={() => pref('contrast', v)}>{v}</button>)}</div>
           <p className="muted small">High contrast makes text darker and borders stronger, for older staff or bright shops.</p>
         </section>

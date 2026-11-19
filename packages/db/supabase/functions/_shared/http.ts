@@ -1,6 +1,34 @@
 // Small helpers shared by MedFlow Edge Functions (Deno).
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.57.4';
 
+/**
+ * Browsers call these functions from the MedFlow website on another domain, so every answer needs
+ * CORS headers and the browser's OPTIONS "preflight" must be answered first. Allowed sites come from
+ * the MEDFLOW_ORIGINS secret (comma-separated); calls carry a Bearer token, never cookies.
+ */
+function corsHeaders(req: Request): Record<string, string> {
+  const allowed = (Deno.env.get('MEDFLOW_ORIGINS') ?? '').split(',').map((o) => o.trim()).filter(Boolean);
+  const origin = req.headers.get('Origin') ?? '';
+  return {
+    'Access-Control-Allow-Origin': allowed.length === 0 ? '*' : allowed.includes(origin) ? origin : allowed[0]!,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin',
+  };
+}
+
+/** Deno.serve with CORS: answers the preflight and adds the headers to every response. */
+export function serve(handler: (req: Request) => Promise<Response>): void {
+  Deno.serve(async (req) => {
+    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(req) });
+    let res: Response;
+    try { res = await handler(req); } catch (err) { res = json({ error: (err as Error).message ?? 'Server error' }, 500); }
+    for (const [k, v] of Object.entries(corsHeaders(req))) res.headers.set(k, v);
+    return res;
+  });
+}
+
 export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,

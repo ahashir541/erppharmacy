@@ -75,11 +75,12 @@ export function Team(props: PageProps) {
         { label: 'PIN', value: (r) => (r.has_pin ? <span className="pill good">Set</span> : <span className="pill warn">Not set</span>) },
         { label: 'Last active', value: (r) => timeOf(r.last_seen) },
         { label: 'Status', value: (r) => (r.status === 'active' ? <span className="pill good">Active</span> : <span className="pill bad">Disabled</span>) },
-        { label: '', value: (r) => (r.kind === 'owner' ? null : (
+        { label: '', value: (r) => (
           <div className="row-actions">
-            <button type="button" className="btn small-btn" onClick={() => setPinFor(r)}>Set PIN</button>
-            <button type="button" className={`btn small-btn${r.status === 'active' ? ' danger' : ''}`} onClick={() => void toggle(r)}>{r.status === 'active' ? 'Disable' : 'Enable'}</button>
-          </div>)) },
+            {/* The owner needs a PIN too, to sell at a counter; only staff can be disabled. */}
+            <button type="button" className="btn small-btn" onClick={() => setPinFor(r)}>{r.has_pin ? 'Change PIN' : 'Set PIN'}</button>
+            {r.kind !== 'owner' && <button type="button" className={`btn small-btn${r.status === 'active' ? ' danger' : ''}`} onClick={() => void toggle(r)}>{r.status === 'active' ? 'Disable' : 'Enable'}</button>}
+          </div>) },
       ]} />}
       {adding && <AddStaff {...props} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); reload(); }} />}
       {pinFor && <SetPin {...props} member={pinFor} onClose={() => setPinFor(null)} onSaved={() => { setPinFor(null); reload(); }} />}

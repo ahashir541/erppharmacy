@@ -47,3 +47,6 @@ legacy/expenses_*.csv
 Thumbs.db
 .vscode/
 .idea/
+dist-cloud/
+.vercel/
+.env.local

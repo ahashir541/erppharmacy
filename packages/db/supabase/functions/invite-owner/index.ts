@@ -5,9 +5,9 @@
 //   POST { owner_user_id }
 // The owner opens the email, sets a password, sets up 2FA, and the web app
 // calls public.accept_owner_invite.
-import { adminClient, callerClient, json, UUID } from '../_shared/http.ts';
+import { serve, adminClient, callerClient, json, UUID } from '../_shared/http.ts';
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Use POST' }, 405);
   const caller = callerClient(req);
   if (!caller) return json({ error: 'Sign in first' }, 401);

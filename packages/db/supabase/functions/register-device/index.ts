@@ -7,9 +7,9 @@
 // 2. With the service role, create the PC's Supabase Auth user and attach it.
 // 3. Return the PC's sign-in once. The owner enters it in the counter app's
 //    setup screen, which stores it in Windows Credential Manager.
-import { adminClient, callerClient, json, randomSecret, UUID } from '../_shared/http.ts';
+import { serve, adminClient, callerClient, json, randomSecret, UUID } from '../_shared/http.ts';
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Use POST' }, 405);
   const owner = callerClient(req);
   if (!owner) return json({ error: 'Sign in first' }, 401);

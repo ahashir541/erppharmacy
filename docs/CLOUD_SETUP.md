@@ -13,6 +13,23 @@ Everything else is already built and tested.
 | Owner sign-in | Email, password and a 6-digit code from an authenticator app |
 | Counter PCs | Linked once by the owner; staff then use their PIN |
 
+## Live now (19 November 2026)
+
+| Part | Where |
+|---|---|
+| Supabase project | `medflow` (ref `sxdvifionzpvybugnvbk`, Mumbai). Database password: `C:\MedFlowHQ\hq-keys\cloud-secrets.txt` |
+| Website | https://medflow-psi-orpin.vercel.app (Vercel project `medflow`) |
+| Test | `node apps/server/e2e/cloud.e2e.mjs --site <website> --ref <ref>` (13 checks: owner sign-in with 2FA, import, counter link, sale, data locked without sign-in) |
+
+Learned while going live (already fixed in this repository):
+- In `config.toml`, `[auth.email] enable_signup` must be **true**: on a hosted project it switches the whole email login.
+  New sign-ups stay blocked by `[auth] enable_signup = false`.
+- The Edge Functions answer the browser's CORS preflight; allowed sites are the `MEDFLOW_ORIGINS` secret
+  (`supabase secrets set MEDFLOW_ORIGINS=https://your-site,...`).
+- The owner sets their own counter PIN in Team (Set PIN on their own row).
+- Updating the website: build `apps/pos` with the two `VITE_SUPABASE_*` values into `dist-cloud`, then `vercel deploy --prod --cwd dist-cloud`.
+- **Free plan:** a project with no activity for a week is paused, and there are no daily backups. Before real pharmacies use the cloud, upgrade the project to **Pro**.
+
 ## 1. Create the Supabase project (5 minutes)
 
 1. Go to <https://supabase.com>, sign up (Google sign-in is fine) and choose **New project**.

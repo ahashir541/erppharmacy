@@ -7,7 +7,8 @@
   "scripts": {
     "build": "node build.mjs",
     "start": "node build.mjs --server-only --no-node && node release/MedFlow/medflow-server.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e": "node e2e/medflow.e2e.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.2.17",
@@ -17,6 +18,7 @@
     "@medflow/config": "workspace:*",
     "@types/node": "22.18.6",
     "esbuild": "0.21.5",
+    "playwright-core": "1.56.1",
     "typescript": "5.9.3"
   }
 }

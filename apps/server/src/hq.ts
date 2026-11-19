@@ -289,10 +289,13 @@ async function main() {
         });
         await putSetting('google_client_id', clientId || null);
         await putSetting('password_only_this_pc', onlyHere ? 'true' : null);
+        const contact = String(body.security_contact ?? '').trim();
+        if (contact && !/^(\S+@\S+\.\S+|https:\/\/\S+)$/.test(contact)) throw new ApiError('Security contact must be an email or an https:// link.');
+        await putSetting('security_contact', contact || null);
         log(`HQ sign-in options changed: Google ${clientId ? 'on' : 'off'}, password from internet ${onlyHere ? 'off' : 'on'}, owner ${email}`);
         me.email = email;
       }
-      return send(res, 200, { email: me.email, google_client_id: await getSetting('google_client_id'),
+      return send(res, 200, { email: me.email, google_client_id: await getSetting('google_client_id'), security_contact: await getSetting('security_contact'),
         password_only_this_pc: (await getSetting('password_only_this_pc')) === 'true', this_pc: isLocal(req) });
     }
     if (route === 'admin/call') {
@@ -307,6 +310,32 @@ async function main() {
 
   ready((req, res) => {
     const url = req.url ?? '/';
+    // RFC 9116: where to report a security problem. Off until the owner sets a contact in HQ.
+    if (url.split('?')[0] === '/.well-known/security.txt' || url.split('?')[0] === '/security.txt') {
+      void getSetting('security_contact').then((c) => {
+        if (!c) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not set up'); return; }
+        const expires = new Date(Date.now() + 180 * 86_400_000).toISOString();
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'max-age=86400' }).end(
+          `Contact: ${/^https?:/.test(c) ? c : `mailto:${c}`}
+Expires: ${expires}
+Preferred-Languages: en, ur
+Policy: https://${req.headers.host}/security-policy
+`);
+      }, () => res.writeHead(500).end());
+      return;
+    }
+    if (url.split('?')[0] === '/security-policy') {
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }).end(
+        [
+          'MedFlow security policy',
+          '',
+          'If you find a security problem in MedFlow, please tell us privately at the contact in /.well-known/security.txt.',
+          'Do not access data that is not yours, do not disrupt pharmacies, and give us 90 days to fix it before telling anyone else.',
+          'We will reply within 5 working days and credit you if you wish.',
+          '',
+        ].join('\n'));
+      return;
+    }
     if (!url.startsWith('/hq/')) { serveStatic(cfg.public, req, res); return; }
     const route = url.slice(4).split('?')[0]!;
     api(req, res, route).catch((err) => {

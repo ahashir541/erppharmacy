@@ -155,11 +155,11 @@ function SignIn(props: { status: HqStatus; onDone: () => void }) {
 
 function SignInSettings() {
   const [o, setO] = useState<SignInOptions | null>(null);
-  const [f, setF] = useState({ email: '', google_client_id: '', password_only_this_pc: false });
+  const [f, setF] = useState({ email: '', google_client_id: '', password_only_this_pc: false, security_contact: '' });
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const load = (x: SignInOptions) => { setO(x); setF({ email: x.email, google_client_id: x.google_client_id ?? '', password_only_this_pc: x.password_only_this_pc }); };
+  const load = (x: SignInOptions) => { setO(x); setF({ email: x.email, google_client_id: x.google_client_id ?? '', password_only_this_pc: x.password_only_this_pc, security_contact: x.security_contact ?? '' }); };
   useEffect(() => { getSignInOptions().then(load).catch((e) => setError(errorText(e))); }, []);
   if (!o) return error ? <div className="form-error">{error}</div> : <div className="spinner" />;
   const origins = Array.from(new Set([window.location.origin, 'http://localhost:5299']));
@@ -171,6 +171,7 @@ function SignInSettings() {
         <dl className="facts">
           <dt>Owner account</dt><dd>{o.email}</dd>
           <dt>Sign in with Google</dt><dd>{o.google_client_id ? <span className="pill good">On</span> : <span className="pill warn">Off</span>}</dd>
+          <dt>Security contact (security.txt)</dt><dd>{o.security_contact ? <span className="pill good">{o.security_contact}</span> : <span className="pill warn">Not set</span>}</dd>
           <dt>Password from the internet</dt><dd>{o.password_only_this_pc ? <span className="pill good">Off (Google only)</span> : <span className="pill warn">Allowed</span>}</dd>
         </dl>
       </section>
@@ -187,6 +188,8 @@ function SignInSettings() {
           <input value={f.google_client_id} placeholder="1234567890-abc123.apps.googleusercontent.com" onChange={(e) => setF({ ...f, google_client_id: e.target.value.trim() })} /></label>
         <label className="check"><input type="checkbox" checked={f.password_only_this_pc} onChange={(e) => setF({ ...f, password_only_this_pc: e.target.checked })} />
           <span>From the internet, allow Google sign-in only (the password still works on this HQ computer)</span></label>
+        <label className="field"><span>Security contact, shown publicly in /.well-known/security.txt (an email or https:// link; empty = off)</span>
+          <input value={f.security_contact} placeholder="security@yourcompany.com" onChange={(e) => setF({ ...f, security_contact: e.target.value.trim() })} /></label>
         {error && <div className="form-error">{error}</div>}
         {saved && <div className="licence-result good"><strong>{saved}</strong></div>}
         <div className="row-actions"><button className="btn primary" disabled={busy || !o.this_pc}>{busy ? 'Saving…' : 'Save'}</button></div>

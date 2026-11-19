@@ -38,13 +38,13 @@ async function req<T>(path: string, body?: unknown, method = 'POST'): Promise<T>
 
 export interface HqStatus { app: string; version: string; has_admin: boolean; this_pc: boolean; public_key: string;
   google_client_id: string | null; password_from_internet: boolean }
-export interface SignInOptions { email: string; google_client_id: string | null; password_only_this_pc: boolean; this_pc: boolean }
+export interface SignInOptions { email: string; google_client_id: string | null; password_only_this_pc: boolean; this_pc: boolean; security_contact: string | null }
 export const hqStatus = () => req<HqStatus>('status', null, 'GET');
 export const setupAdmin = (name: string, email: string, password: string) => req('admin/setup', { name, email, password });
 export async function signIn(email: string, password: string) { setToken((await req<{ token: string }>('admin/login', { email, password })).token); }
 export async function googleSignIn(credential: string) { setToken((await req<{ token: string }>('admin/google', { credential })).token); }
 export const getSignInOptions = () => req<SignInOptions>('admin/signin-options', {});
-export const saveSignInOptions = (o: { email: string; google_client_id: string; password_only_this_pc: boolean }) => req<SignInOptions>('admin/signin-options', { ...o, save: true });
+export const saveSignInOptions = (o: { email: string; google_client_id: string; password_only_this_pc: boolean; security_contact: string }) => req<SignInOptions>('admin/signin-options', { ...o, save: true });
 export async function signOut() { await req('admin/logout').catch(() => {}); setToken(null); }
 
 /** platform_<name>(...args) as the signed-in platform owner. */

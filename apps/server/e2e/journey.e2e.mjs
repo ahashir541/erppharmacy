@@ -205,4 +205,6 @@ try {
 const failed = results.filter((x) => !x).length;
 console.log(`\n${results.length - failed} passed, ${failed} failed · test files in ${S}`);
 kids.forEach((k) => { try { k.kill(); } catch { /* gone */ } });
+// Clean up (a run leaves hundreds of MB); keep the folder only when something failed, to look at.
+if (!failed && !process.argv.includes('--keep')) { await new Promise((r) => setTimeout(r, 1500)); try { fs.rmSync(S, { recursive: true, force: true }); } catch { /* still in use */ } }
 process.exit(failed ? 1 : 0);

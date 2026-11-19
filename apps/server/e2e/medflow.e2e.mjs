@@ -152,6 +152,27 @@ try {
     check('load: 30 sales from 10 counters at once, 95% under 2 s', bOk === 30 && pct(bMs, 0.95) < 2000,
       `${bOk}/30 ok · median ${pct(bMs, 0.5).toFixed(0)} ms · 95% ${pct(bMs, 0.95).toFixed(0)} ms`);
 
+    // ---- A big pharmacy: 10,000 medicines (1,000 with stock), then a search that matches thousands ----
+    const owner = (fn, ...args) => callApi({ as: 'owner', fn, args, rows: false });
+    const bigCat = Array.from({ length: 10_000 }, (_, i) => ({ brand_name: `Zzload ${String(i).padStart(5, '0')} Tablet`, generic: 'Paracetamol',
+      base_unit: 'tablet', units: [{ unit: 'strip', factor: 10 }, { unit: 'box', factor: 100 }], retail_price: 5000 + i, retail_unit: 'box' }));
+    let imported = 0;
+    for (let i = 0; i < bigCat.length; i += 1000) { const r = await owner('import_products', bigCat.slice(i, i + 1000), null); if (r.ok) imported += Number((await r.json()).r?.created ?? 0); }
+    const ctx = await (await callApi({ as: 'device', fn: 'pos_context', args: [], rows: false })).json();
+    const branchId = ctx.r?.branch?.id;
+    const listed = await (await owner('office_products', branchId, 'Zzload')).json();
+    const stockRows = (listed.r ?? []).slice(0, 1000).map((p, i) => ({ product_id: p.id, batch_number: `LD${i}`, expiry_date: '2028-06-30', qty: 5, unit: 'box' }));
+    const stockOk = (await owner('receive_opening_stock', branchId, stockRows, null)).ok;
+    const solo = []; for (let i = 0; i < 20; i++) solo.push((await timed(() => callApi({ as: 'device', fn: 'pos_search', args: [['para', 'zzload 0', 'tablet', 'pa'][i % 4], 25], rows: false }))).ms);
+    check('big pharmacy: one cashier searching, 95% under 300 ms', pct(solo, 0.95) < 300, `median ${pct(solo, 0.5).toFixed(0)} ms · 95% ${pct(solo, 0.95).toFixed(0)} ms`);
+    const bigSearch = (await Promise.all(Array.from({ length: 5 }, () => (async () => {
+      const out = []; for (let i = 0; i < 20; i++) { out.push(await timed(() => callApi({ as: 'device', fn: 'pos_search', args: ['para', 25], rows: false }))); await new Promise((r) => setTimeout(r, 300)); }
+      return out; })()))).flat();
+    const bMs2 = bigSearch.map((r) => r.ms);
+    check('big pharmacy: 10,000 medicines; a search matching thousands, 95% under 500 ms (5 counters)',
+      imported === 10_000 && stockOk && bigSearch.every((r) => r.ok) && pct(bMs2, 0.95) < 500,
+      `${imported} imported, stock on ${stockRows.length} · median ${pct(bMs2, 0.5).toFixed(0)} ms · 95% ${pct(bMs2, 0.95).toFixed(0)} ms`);
+
     // ---- Security self-test (OWASP-style probes) ----
     const raw = (p, init = {}) => fetch(`${base}${p}`, init);
     const body = (b, h = {}) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', ...h }, body: JSON.stringify(b) });
@@ -189,4 +210,6 @@ try {
 }
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed} passed, ${failed} failed`);
+// Clean up (a run leaves hundreds of MB); keep the folder only when something failed, to look at.
+if (!failed && !process.argv.includes('--keep')) { await new Promise((r) => setTimeout(r, 1500)); try { fs.rmSync(scratch, { recursive: true, force: true }); } catch { /* still in use */ } }
 process.exit(failed ? 1 : 0);

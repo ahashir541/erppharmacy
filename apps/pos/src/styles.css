@@ -324,3 +324,6 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 /* PIN: typed on the keyboard, no on-screen keypad. */
 .pin-submit { width: 100%; padding: 12px; font-size: var(--text-lg); }
 .pin-input::placeholder { color: var(--color-border); letter-spacing: 12px; }
+
+/* Panels keep their rows at natural height (no stretched gaps) and never let text spill out. */
+.panel { align-content: start; min-width: 0; }

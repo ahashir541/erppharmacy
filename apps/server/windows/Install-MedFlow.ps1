@@ -23,7 +23,8 @@ Start-Sleep -Seconds 1
 New-Item -ItemType Directory -Force -Path $Target | Out-Null
 if ((Resolve-Path $src).Path -ne (Resolve-Path $Target).Path) {
   foreach ($item in Get-ChildItem -LiteralPath $src -Force) {
-    if ($item.Name -in @('data', 'backups', 'logs', 'config.json')) { continue }
+    # Never overwrite what belongs to this pharmacy: its data, backups, settings and backup key.
+    if ($item.Name -in @('data', 'backups', 'logs', 'config.json', 'backup-key.txt', 'updates') -or $item.Name -like 'data-*') { continue }
     Copy-Item -LiteralPath $item.FullName -Destination $Target -Recurse -Force
   }
 }

@@ -79,7 +79,10 @@ fs.writeFileSync(path.join(out, 'VERSION.txt'), `MedFlow Local ${VERSION}\nbuilt
 fs.writeFileSync(path.join(out, 'version.json'), `${JSON.stringify({ app: 'local', version: VERSION, built_at: new Date().toISOString() })}\n`);
 
 // Never ship a test run's data, backups or logs.
-for (const d of ['data', 'backups', 'logs', 'config.json']) fs.rmSync(path.join(out, d), { recursive: true, force: true });
+// Never ship anything a running MedFlow made: a pharmacy's data, backups, its backup key, updates.
+const RUNTIME = ['data', 'backups', 'logs', 'config.json', 'backup-key.txt', 'updates'];
+for (const d of RUNTIME) fs.rmSync(path.join(out, d), { recursive: true, force: true });
+for (const d of fs.readdirSync(out)) if (/^data-/.test(d)) fs.rmSync(path.join(out, d), { recursive: true, force: true });
 
 if (flag('--update')) {
   // Everything except Node itself (pharmacies keep theirs) and the scripts that are running.
@@ -90,6 +93,9 @@ if (flag('--update')) {
   execSync(`"${TAR}" -czf "${pkg}" -C "${out}" ${items.map((n) => `"${n}"`).join(' ')}`, { stdio: 'inherit' });
   console.log(`Update package: ${pkg} (${(fs.statSync(pkg).size / 1048576).toFixed(1)} MB) — upload it in MedFlow HQ → Updates`);
 }
+
+const leftovers = fs.readdirSync(out).filter((d) => RUNTIME.includes(d) || /^data-/.test(d));
+if (leftovers.length) throw new Error(`Refusing to package runtime files: ${leftovers.join(', ')}`);
 
 if (flag('--zip') && process.platform === 'win32') {
   step('Zip');

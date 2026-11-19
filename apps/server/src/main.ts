@@ -183,4 +183,8 @@ async function main() {
   process.on('SIGTERM', () => void stop());
 }
 
-main().catch((err) => { log(`MedFlow Local could not start: ${(err as Error).stack ?? err}`); process.exit(1); });
+main().catch((err) => {
+  if (cfg.restore) log(`Restore failed: ${(err as Error).message ?? err}. Your current data was not changed.`);
+  else log(`MedFlow Local could not start: ${(err as Error).stack ?? err}`);
+  process.exit(1);
+});

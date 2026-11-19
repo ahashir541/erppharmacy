@@ -8,7 +8,8 @@
     "build": "node build.mjs",
     "start": "node build.mjs --server-only --no-node && node release/MedFlow/medflow-server.mjs",
     "typecheck": "tsc --noEmit",
-    "e2e": "node e2e/medflow.e2e.mjs"
+    "e2e": "node e2e/medflow.e2e.mjs",
+    "journey": "node e2e/journey.e2e.mjs --keys C:/MedFlowHQ/hq-keys"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.2.17",

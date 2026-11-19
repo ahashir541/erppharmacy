@@ -189,8 +189,8 @@ export function Settings(props: PageProps) {
           <div className="panel-title">Business</div>
           {b ? (
             <dl className="facts">
-              <dt>Pharmacy</dt><dd>{b.name}</dd><dt>Owner</dt><dd>{b.owner_name} · {b.owner_phone}</dd>
-              <dt>Branch</dt><dd>{b.branch}, {b.address}</dd><dt>Phone</dt><dd>{b.phone}</dd>
+              <dt>Pharmacy</dt><dd>{b.name}</dd><dt>Owner</dt><dd>{[b.owner_name, b.owner_phone].filter(Boolean).join(' · ') || '—'}</dd>
+              <dt>Branch</dt><dd>{[b.branch, b.address].filter(Boolean).join(', ') || '—'}</dd><dt>Phone</dt><dd>{b.phone || '—'}</dd>
               <dt>Plan</dt><dd>{b.status === 'trial' ? `Free trial until ${timeOf(b.trial_ends_at)}` : b.status === 'active' ? 'Active' : b.status}</dd>
             </dl>
           ) : <div className="loading-row"><span className="spinner small" /></div>}

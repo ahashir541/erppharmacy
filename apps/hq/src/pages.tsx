@@ -169,7 +169,7 @@ interface Detail {
 
 function PharmacyDetail(props: { id: string; onBack: () => void }) {
   const d = useLoad(() => call<Detail>('pharmacy', props.id), [props.id]);
-  const [modal, setModal] = useState<null | 'status' | 'billing' | 'key'>(null);
+  const [modal, setModal] = useState<null | 'status' | 'billing' | 'key' | 'delete'>(null);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const x = d.data;
@@ -181,6 +181,7 @@ function PharmacyDetail(props: { id: string; onBack: () => void }) {
       <PageHead title={p.name} sub={`${[p.owner_name, p.city, p.owner_phone].filter(Boolean).join(' · ')}`}>
         <button type="button" className="btn ghost" onClick={props.onBack}>← All pharmacies</button>
         <button type="button" className="btn" onClick={() => setModal('status')}>Change status</button>
+        <button type="button" className="btn danger-outline" onClick={() => setModal('delete')}>Delete</button>
         <button type="button" className="btn primary" onClick={() => setModal('billing')}>{x.subscription ? 'Change plan / price' : 'Start billing'}</button>
       </PageHead>
       {err && <div className="form-error">{err}</div>}
@@ -253,6 +254,8 @@ function PharmacyDetail(props: { id: string; onBack: () => void }) {
           { label: 'Details', value: (l) => <span className="muted small">{Object.entries(l.details ?? {}).filter(([k]) => k !== 'name').map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join(' · ')}</span> },
         ]} />
       </section>
+      {modal === 'delete' && <DeleteModal id={p.id} name={p.name} status={p.status} onClose={() => setModal(null)}
+        onCancelFirst={() => setModal('status')} onDone={props.onBack} />}
       {modal === 'status' && <StatusModal id={p.id} current={p.status} onClose={() => setModal(null)} onDone={() => { setModal(null); d.reload(); }} />}
       {modal === 'billing' && <BillingModal id={p.id} plan={x.plan} onClose={() => setModal(null)} onDone={() => { setModal(null); d.reload(); }} />}
       {modal === 'key' && (
@@ -267,6 +270,38 @@ function PharmacyDetail(props: { id: string; onBack: () => void }) {
         </Modal>
       )}
     </>
+  );
+}
+
+function DeleteModal(props: { id: string; name: string; status: string; onClose: () => void; onCancelFirst: () => void; onDone: () => void }) {
+  const [typed, setTyped] = useState('');
+  const { busy, error, submit } = useSubmit(() => call('delete_pharmacy', props.id, typed), props.onDone);
+  if (props.status !== 'cancelled') {
+    return (
+      <Modal title={`Delete ${props.name}?`} onClose={props.onClose}>
+        <div className="stack">
+          <p>To delete a pharmacy, first set its status to <strong>Cancelled</strong>. That stops MedFlow at their shop; deleting then removes it from HQ for good.</p>
+          <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Close</button>
+            <button type="button" className="btn primary" onClick={props.onCancelFirst}>Change status</button></div>
+        </div>
+      </Modal>
+    );
+  }
+  const match = typed.trim().toLowerCase() === props.name.trim().toLowerCase();
+  return (
+    <Modal title={`Delete ${props.name}?`} onClose={props.onClose}>
+      <form className="stack" onSubmit={submit}>
+        <div className="licence-result bad">
+          <strong>This cannot be undone.</strong>
+          <span>The pharmacy, its licence key, invoices, payments and history are removed from MedFlow HQ. Their MedFlow at the shop stops working with this key. Their own records on their PC are not touched.</span>
+        </div>
+        <label className="field"><span>Type <strong>{props.name}</strong> to confirm</span>
+          <input autoFocus value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" /></label>
+        {error && <div className="form-error">{error}</div>}
+        <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Keep it</button>
+          <button className="btn danger" disabled={busy || !match}>{busy ? 'Deleting…' : 'Delete for good'}</button></div>
+      </form>
+    </Modal>
   );
 }
 

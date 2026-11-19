@@ -753,5 +753,9 @@ export const SIGNATURES: Record<string, string[]> = {
     "p_method",
     "p_amount",
     "p_reference"
+  ],
+  "platform_delete_pharmacy": [
+    "p_tenant",
+    "p_confirm_name"
   ]
 };

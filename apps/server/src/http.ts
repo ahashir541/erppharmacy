@@ -26,6 +26,7 @@ export async function claimPort(port: number, starting: string, log: (s: string)
   let handler: ((req: http.IncomingMessage, res: http.ServerResponse) => void) | null = null;
   const http_ = await import('node:http');
   const server = http_.createServer((req, res) => {
+    for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
     if (handler) { handler(req, res); return; }
     res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '3' });
     res.end(JSON.stringify({ error: starting, starting: true }));
@@ -63,6 +64,37 @@ export async function readJson(req: http.IncomingMessage): Promise<Record<string
   if (!size) return {};
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>; } catch { throw new ApiError('Invalid JSON'); }
 }
+
+/**
+ * Sent with every response from MedFlow Local and MedFlow HQ (OWASP secure headers).
+ * The pages load only their own files, Google Fonts, and (HQ sign-in) Google Identity Services.
+ * 'wasm-unsafe-eval' lets the browser run the WebAssembly database in the browser-only mode;
+ * 'unsafe-inline' is for style attributes only (React style={}), never for scripts.
+ */
+export const SECURITY_HEADERS: Record<string, string> = {
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob: https://*.googleusercontent.com",
+    "connect-src 'self' https://accounts.google.com/gsi/",
+    "frame-src https://accounts.google.com/gsi/",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join('; '),
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
+  'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+  // Browsers honour this only over HTTPS (HQ through Tailscale); on the shop's local HTTP it is ignored.
+  'Strict-Transport-Security': 'max-age=31536000',
+};
 
 export function send(res: http.ServerResponse, status: number, body: unknown) {
   const text = JSON.stringify(body ?? null);

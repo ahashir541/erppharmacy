@@ -235,3 +235,20 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
   .wa-today-row .btn { grid-column: 1 / -1; }
   .wa-snip { max-width: 200px; }
 }
+
+/* Stat cards: plain, no coloured top borders */
+.office .stat, .office .stat.good, .office .stat.warn, .office .stat.bad, .office .stat:nth-child(n) { border: 1px solid var(--color-border); }
+
+/* Sidebar: scrolls inside the navy, with no separate grey scroll bar */
+.sidebar nav { scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior: contain; }
+.sidebar nav::-webkit-scrollbar { display: none; }
+
+/* The window never scrolls as a whole: the menu and the top bar stay put and only the page in the
+   middle scrolls (like desktop software). */
+.office { height: 100vh; height: 100dvh; grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.office > .sidebar, .office-main { min-height: 0; height: 100%; overflow: hidden; }
+.office-content { min-height: 0; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #c9c6dd transparent; }
+.office-content::-webkit-scrollbar { width: 10px; }
+.office-content::-webkit-scrollbar-thumb { background: #c9c6dd; border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+.office-content::-webkit-scrollbar-track { background: transparent; }
+@media print { .office, .office-main, .office-content { height: auto !important; overflow: visible !important; } }

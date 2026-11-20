@@ -5,7 +5,7 @@
 // pharmacy from selling on the cloud stop it here. Offline it keeps working until valid_until.
 // No key yet: 7 days to enter one, then read-only. The Demo Pharmacy needs no key.
 import type { PGlite } from '@electric-sql/pglite';
-import { importPublicKey, verifyClaims, type PharmacyLicence } from '@medflow/core';
+import { importPublicKey, verifyClaims, type EraseOrder, type PharmacyLicence } from '@medflow/core';
 import { randomUUID } from 'node:crypto';
 import os from 'node:os';
 import { DEMO } from '../../pos/src/demo/seed.ts';
@@ -49,6 +49,8 @@ export class Licence {
   get enabled() { return !!BUILT_IN.public_key && !!this.hqUrl; }
   /** Called with each verified licence (the updater reads its update offer). */
   onLicence: (c: PharmacyLicence) => void = () => {};
+  /** HQ deleted this pharmacy: back up, then erase this PC's records (set by the server). */
+  onErase: (pharmacy: string | null) => Promise<void> = async () => {};
   /** Kept by Nuskha HQ so the owner can open a backup on a new PC. */
   backupKey: string | null = null;
   get key() { return this.publicKey; }
@@ -73,7 +75,7 @@ export class Licence {
     this.lastCheckin = await this.meta('last_checkin_at');
     await this.apply();
     setTimeout(() => void this.checkIn().catch(() => {}), 10_000);
-    setInterval(() => void this.checkIn().catch(() => {}), 6 * 3600_000);
+    setInterval(() => void this.checkIn().catch(() => {}), 3600_000); // hourly: HQ's changes arrive quickly
     setInterval(() => void this.apply().catch(() => {}), 15 * 60_000);
   }
 
@@ -113,8 +115,16 @@ export class Licence {
       if (res.status === 403) this.log(`Licence: HQ refused the key: ${this.lastError}`);
       return this.status();
     }
-    const claims = await verifyClaims<PharmacyLicence>(body.token, this.publicKey);
-    if (!claims || claims.kind !== 'pharmacy' || claims.install_id !== (await this.meta('install_id'))) {
+    const signed = await verifyClaims<PharmacyLicence | EraseOrder>(body.token, this.publicKey);
+    const myInstall = await this.meta('install_id');
+    if (signed && signed.kind === 'erase' && signed.install_id === myInstall) {
+      // Only a signed order from HQ for this very PC erases it.
+      this.log(`Licence: Nuskha HQ deleted ${signed.pharmacy ?? 'this pharmacy'}; erasing this PC's records (backups stay).`);
+      await this.onErase(signed.pharmacy);
+      throw new ApiError('This pharmacy was removed from Nuskha. Its records on this PC are being erased; backups are kept.', 410);
+    }
+    const claims = signed && signed.kind === 'pharmacy' ? signed : null;
+    if (!claims || claims.install_id !== myInstall) {
       this.lastError = 'The answer from Nuskha HQ was not signed correctly';
       if (newKey) throw new ApiError(this.lastError, 400);
       return this.status();

@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { buildWindow } from './desktop-build.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -74,7 +75,11 @@ if (!flag('--no-node')) {
 }
 
 step('Windows scripts');
-for (const f of fs.readdirSync(path.join(here, 'windows'))) fs.copyFileSync(path.join(here, 'windows', f), path.join(out, f));
+for (const f of fs.readdirSync(path.join(here, 'windows'))) {
+  if (fs.statSync(path.join(here, 'windows', f)).isFile()) fs.copyFileSync(path.join(here, 'windows', f), path.join(out, f));
+}
+step('Windows program');
+buildWindow(out, { icon: path.join(here, 'windows', 'MedFlow.ico') });
 fs.writeFileSync(path.join(out, 'VERSION.txt'), `Nuskha Local ${VERSION}\nbuilt ${new Date().toISOString()}\nnode ${process.version}\n`);
 fs.writeFileSync(path.join(out, 'version.json'), `${JSON.stringify({ app: 'local', version: VERSION, built_at: new Date().toISOString() })}\n`);
 

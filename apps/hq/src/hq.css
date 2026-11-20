@@ -14,3 +14,10 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 
 .btn.danger-outline { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 40%, var(--color-border)); }
 .btn.danger-outline:hover:not(:disabled) { background: var(--color-danger-soft); border-color: var(--color-danger); }
+
+/* Setup help that is only needed once: folded away after it is done */
+.help-steps > summary { cursor: pointer; list-style: none; }
+.help-steps > summary::-webkit-details-marker { display: none; }
+.help-steps > summary::after { content: '▾'; margin-inline-start: 6px; transition: transform .2s; }
+.help-steps:not([open]) > summary::after { transform: rotate(-90deg); }
+.help-steps[open] > summary { margin-bottom: var(--space-2); }

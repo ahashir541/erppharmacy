@@ -546,3 +546,99 @@ html:not(.js-motion) .sec-head h2::after { transform: translateX(-50%) scaleX(1)
 .post .pcard { border-radius: 18px 18px 0 0; }
 .post .cover { display: none; }
 @media (prefers-reduced-motion: reduce) { .pcard .pbg { transition: none; } }
+
+
+/* Problems: the picture card on its own, the answer written under it */
+.pain { background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+.pain .pcard { border-radius: 22px; box-shadow: 0 18px 40px rgba(14, 10, 40, .22); transition: box-shadow .35s, transform .35s; }
+.pain:hover { box-shadow: none; transform: none; }
+.pain:hover .pcard { box-shadow: 0 26px 56px rgba(14, 10, 40, .32); transform: translateY(-5px); }
+.pain .fix { background: none; border: 0; color: var(--ink); padding: 16px 4px 0; font-weight: 500; align-items: flex-start; }
+.pain .fix i { width: 30px; height: 30px; font-size: 14px; margin-top: 1px; }
+
+/* Home: features as a compact grid of titles; the details are on /features.html */
+#features .feature p { display: none; }
+#features .feature { align-items: center; }
+#features .feature h3 { margin: 0; }
+.features-more { display: flex; justify-content: center; margin-top: 26px; }
+
+/* Features page: tabs, a large real screen, and a lightbox */
+.fhero .sec-head { margin-bottom: 0; }
+.fhero h1 { font-size: clamp(30px, 4.2vw, 46px); }
+.ftabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 34px; }
+.ftab { border: 1.5px solid var(--line); background: #fff; color: var(--navy); font: 600 14.5px/1 var(--body); padding: 11px 18px; border-radius: 999px; cursor: pointer; transition: background .25s, color .25s, border-color .25s, transform .25s; }
+.ftab:hover { border-color: var(--navy); transform: translateY(-2px); }
+.ftab.on { background: var(--navy); border-color: var(--navy); color: #fff; box-shadow: 0 8px 20px rgba(26, 20, 70, .25); }
+.ftab:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.fpanel { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: center; }
+.fpanel.on { animation: fpanel-in .45s var(--ease-out, ease); }
+@keyframes fpanel-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.fcopy h2 { font-size: clamp(26px, 3vw, 36px); margin: 8px 0 10px; }
+.fcopy .checks { margin: 18px 0 24px; }
+.fshot { position: relative; display: block; width: 100%; padding: 0; border: 0; background: #fff; border-radius: 16px; overflow: hidden; cursor: zoom-in; text-align: left;
+  box-shadow: 0 30px 70px rgba(26, 20, 70, .22), 0 0 0 1px var(--line); transition: transform .4s var(--ease-out, ease), box-shadow .4s; }
+.fshot:hover { transform: translateY(-6px) scale(1.01); box-shadow: 0 40px 90px rgba(26, 20, 70, .3), 0 0 0 1px var(--line); }
+.fbar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: #f1f0f8; border-bottom: 1px solid var(--line); }
+.fbar i { width: 10px; height: 10px; border-radius: 50%; background: #d6d3e8; }
+.fbar em { font-style: normal; font-size: 12.5px; color: var(--muted); margin-left: 8px; }
+.fshot img { display: block; width: 100%; height: auto; }
+.fzoom { position: absolute; right: 14px; bottom: 14px; background: rgba(26, 20, 70, .88); color: #fff; font: 600 12.5px/1 var(--body); padding: 8px 12px; border-radius: 999px; opacity: 0; transform: translateY(6px); transition: opacity .3s, transform .3s; }
+.fshot:hover .fzoom, .fshot:focus-visible .fzoom { opacity: 1; transform: none; }
+.lightbox { position: fixed; inset: 0; z-index: 200; background: rgba(10, 7, 32, .86); display: grid; place-items: center; padding: 24px; }
+.lightbox[hidden] { display: none; }
+.lightbox img { max-width: min(1600px, 100%); max-height: 100%; border-radius: 12px; box-shadow: 0 30px 80px rgba(0, 0, 0, .5); }
+.lb-close { position: absolute; top: 14px; right: 18px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; color: var(--navy); font-size: 26px; cursor: pointer; }
+@media (max-width: 960px) {
+  .fpanel { grid-template-columns: 1fr; gap: 24px; }
+  .fshot { order: -1; }
+}
+@media (max-width: 760px) {
+  .ftabs { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 22px; padding: 4px 16px; scroll-snap-type: x proximity; }
+  .ftabs::-webkit-scrollbar { display: none; }
+  .ftab { flex: none; scroll-snap-align: start; padding: 10px 14px; font-size: 13.5px; }
+  .fzoom { opacity: 1; transform: none; font-size: 11.5px; padding: 6px 10px; }
+  .pain .fix { font-size: 14.5px; }
+}
+
+/* Header: the logo never shrinks under the menu; on laptop widths "Contact" lives in the footer and WhatsApp button */
+.logo { flex: none; }
+@media (max-width: 1440px) and (min-width: 1025px) { .mainnav > a[href="/#contact"] { display: none; } .mainnav > a, .dd > button { padding-inline: 8px; } }
+
+
+/* Home: four feature cards with real screens; everything else on /features.html */
+.features.four { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+.fcard { display: grid; grid-template-rows: auto 1fr; background: #fff; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; text-decoration: none; color: inherit;
+  box-shadow: var(--shadow); transition: transform .35s var(--ease-out, ease), box-shadow .35s; }
+.fcard:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.fthumb { display: block; aspect-ratio: 16 / 10; overflow: hidden; background: var(--lav); border-bottom: 1px solid var(--line); }
+.fthumb img { width: 100%; height: 100%; object-fit: cover; object-position: top left; transition: transform .8s var(--ease-out, ease); }
+.fcard:hover .fthumb img { transform: scale(1.06); }
+.fbody { display: grid; gap: 6px; padding: 18px 20px 20px; align-content: start; }
+.fbody b { font: 600 19px/1.25 var(--head); color: var(--navy); }
+.fbody span { color: var(--ink-2); font-size: 15px; line-height: 1.5; }
+.fbody em { font-style: normal; font-weight: 600; color: var(--amber-ink); margin-top: 4px; transition: letter-spacing .25s; }
+.fcard:hover .fbody em { letter-spacing: .03em; }
+/* Compliance: four short points instead of one long paragraph */
+main > section.compliance { min-height: 0; }
+.comp { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.comp > div { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; gap: 8px; align-content: start; transition: transform .3s, box-shadow .3s; }
+.comp > div:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.comp .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--navy); color: var(--amber); display: grid; place-items: center; }
+.comp b { font: 600 17px/1.3 var(--head); color: var(--navy); }
+.comp p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+@media (max-width: 1024px) { .features.four, .comp { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .features.four { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fbody { padding: 12px 12px 14px; } .fbody b { font-size: 15.5px; } .fbody span { font-size: 13px; }
+  .comp { grid-template-columns: 1fr 1fr; gap: 10px; } .comp > div { padding: 14px; } .comp b { font-size: 15px; } .comp p { font-size: 13px; }
+}
+/* Thumbnails: zoom into the page itself, not the whole window */
+.fthumb img { transform: scale(1.6); transform-origin: 82% 6%; }
+.fcard:hover .fthumb img { transform: scale(1.7); }
+
+
+/* Speed: reveals are quick and short; the hero is never held back */
+.js-motion .reveal { translate: 0 14px; transition: opacity .45s var(--ease-out) var(--d, 0s), translate .45s var(--ease-out) var(--d, 0s), transform .35s var(--ease-out), box-shadow .35s var(--ease-out), border-color .25s, background .25s, color .25s; }
+.js-motion .reveal.now { transition: none; }
+/* The first screen shows at once: no entrance animation holding the hero back */
+.hero .copy > *, .devices { animation: none !important; opacity: 1 !important; }

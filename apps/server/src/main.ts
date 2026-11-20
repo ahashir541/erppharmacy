@@ -64,6 +64,16 @@ async function main() {
     await restore(path.resolve(cfg.restore), cfg.data, log, cfg.key ? parseKey(cfg.key) : backupKey(home));
     return;
   }
+  // HQ deleted this pharmacy (see licence.onErase): erase the records before opening them. The
+  // encrypted backups, the backup key and the settings stay.
+  const eraseMark = path.join(home, 'erase-pending.json');
+  if (fs.existsSync(eraseMark)) {
+    log(`Erasing this PC's records as Nuskha HQ asked (${fs.readFileSync(eraseMark, 'utf8').trim()}); backups stay in ${cfg.backups}`);
+    fs.rmSync(cfg.data, { recursive: true, force: true });
+    // Older copies of the records kept by updates (data-<version>) go too.
+    for (const d of fs.readdirSync(home)) if (/^data-/.test(d)) fs.rmSync(path.join(home, d), { recursive: true, force: true });
+    fs.rmSync(eraseMark, { force: true });
+  }
   log(`Nuskha Local ${VERSION} starting · data ${cfg.data}`);
   const { server, ready } = await claimPort(cfg.port, 'Nuskha is starting, one moment…', log);
   const db: PGlite = await openDatabase(cfg.data, cfg.sql, log);
@@ -78,6 +88,12 @@ async function main() {
   if (licence.enabled) updater.start();
   const doBackup = () => backupNow(db, cfg.backups, cfg.copyTo, 30, log, bkey);
   scheduleBackups(doBackup, cfg.backups, cfg.backupHour, log);
+  licence.onErase = async (pharmacy) => {
+    try { await doBackup(); } catch (e) { log(`Last backup before erasing failed: ${(e as Error).message}`); }
+    fs.writeFileSync(eraseMark, JSON.stringify({ pharmacy, at: new Date().toISOString() }));
+    // Stop; Nuskha starts again by itself (MedFlow-Server.cmd), erases, and shows the setup screen.
+    setTimeout(() => { server.close(); void db.close().catch(() => {}).finally(() => process.exit(0)); }, 500);
+  };
 
   const api = async (req: http.IncomingMessage, res: http.ServerResponse, route: string) => {
     const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;

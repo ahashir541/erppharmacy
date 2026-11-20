@@ -83,6 +83,14 @@ export interface PharmacyLicence {
             size_bytes?: number; is_rollback?: boolean; must_update?: boolean; min_version?: string | null };
 }
 
+/** HQ's signed order to a PC of a deleted pharmacy: erase its records (backups stay). */
+export interface EraseOrder {
+  kind: 'erase';
+  install_id: string | null;
+  pharmacy: string | null;
+  issued_at: string;
+}
+
 /** Signs any claims object: base64url(JSON) "." base64url(Ed25519 signature). */
 export async function signClaims(claims: object, privateKey: CryptoKey): Promise<string> {
   const body = b64url(enc.encode(JSON.stringify(claims)));

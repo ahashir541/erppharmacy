@@ -17,6 +17,10 @@ Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyC
   Where-Object { $_.CommandLine -like '*medflow-hq.mjs*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Start-Sleep -Seconds 1
 
+# The Nuskha HQ window closes during an update, so its files can be replaced.
+Get-Process -Name 'Nuskha HQ' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
+
 # 2. Copy the program (never the data, the key or the backups)
 New-Item -ItemType Directory -Force -Path $Target | Out-Null
 if ((Resolve-Path $src).Path -ne (Resolve-Path $Target).Path) {
@@ -38,10 +42,10 @@ Write-Host '  Nuskha HQ will start by itself when you sign in to Windows'
 $desktop = [Environment]::GetFolderPath('Desktop')
 $shell = New-Object -ComObject WScript.Shell
 $lnk = $shell.CreateShortcut((Join-Path $desktop 'Nuskha HQ.lnk'))
-$lnk.TargetPath = "$env:WINDIR\System32\wscript.exe"
-$lnk.Arguments = "`"$Target\MedFlowHQ.vbs`""
+if (Test-Path "$Target\Nuskha HQ.exe") { $lnk.TargetPath = "$Target\Nuskha HQ.exe"; $lnk.Arguments = '' }
+else { $lnk.TargetPath = "$env:WINDIR\System32\wscript.exe"; $lnk.Arguments = "`"$Target\MedFlowHQ.vbs`"" }
 $lnk.WorkingDirectory = $Target
-$lnk.IconLocation = "$Target\MedFlowHQ.ico,0"
+$lnk.IconLocation = $(if (Test-Path "$Target\Nuskha HQ.exe") { "$Target\Nuskha HQ.exe,0" } else { "$Target\MedFlowHQ.ico,0" })
 $lnk.Description = 'Nuskha HQ console'
 $lnk.Save()
 Write-Host '  Desktop icon: Nuskha HQ'

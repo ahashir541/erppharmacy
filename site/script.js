@@ -25,9 +25,9 @@ const SITE = {
 };
 
 const POSTS = [
-  { href: '/blog/reduce-expired-medicine-losses.html', title: 'How to cut expired-medicine losses in your pharmacy', cats: ['Pharmacy operations'], excerpt: 'Five habits, and the reports that make them easy, to stop money expiring on your shelves.', img: '/img/products-sm.webp', eyebrow: 'Five habits to', l1: 'Stop', l2: 'Expiry', box: 'Losses' },
-  { href: '/blog/udhaar-khata-under-control.html', title: 'Keeping udhaar under control without losing customers', cats: ['Healthcare in Pakistan', 'Money'], excerpt: 'Credit is part of how Pakistani pharmacies keep loyal customers. Here is how to give it safely.', img: '/img/dashboard-sm.webp', eyebrow: 'Keep customers, keep', l1: 'Udhaar', l2: 'Under control', box: 'Safely' },
-  { href: '/blog/local-or-cloud-pharmacy-software.html', title: 'Local or cloud: which pharmacy software is right for you?', cats: ['Technology'], excerpt: 'Load-shedding, internet, branches and privacy: how to choose where your records should live.', img: '/img/pos-sm.webp', eyebrow: 'Which one is right for you', l1: 'Local', l2: 'or Cloud?', box: 'Simple breakdown' },
+  { href: '/blog/reduce-expired-medicine-losses.html', title: 'How to cut expired-medicine losses in your pharmacy', cats: ['Pharmacy operations'], excerpt: 'Five habits, and the reports that make them easy, to stop money expiring on your shelves.', img: '/img/products-xs.webp', eyebrow: 'Five habits to', l1: 'Stop', l2: 'Expiry', box: 'Losses' },
+  { href: '/blog/udhaar-khata-under-control.html', title: 'Keeping udhaar under control without losing customers', cats: ['Healthcare in Pakistan', 'Money'], excerpt: 'Credit is part of how Pakistani pharmacies keep loyal customers. Here is how to give it safely.', img: '/img/dashboard-xs.webp', eyebrow: 'Keep customers, keep', l1: 'Udhaar', l2: 'Under control', box: 'Safely' },
+  { href: '/blog/local-or-cloud-pharmacy-software.html', title: 'Local or cloud: which pharmacy software is right for you?', cats: ['Technology'], excerpt: 'Load-shedding, internet, branches and privacy: how to choose where your records should live.', img: '/img/pos-xs.webp', eyebrow: 'Which one is right for you', l1: 'Local', l2: 'or Cloud?', box: 'Simple breakdown' },
 ];
 
 const ICON = {
@@ -44,11 +44,11 @@ function header() {
       <nav class="mainnav" aria-label="Main">
         <div class="dd"><button type="button" aria-expanded="false">Products</button>
           <div class="dd-menu">
-            <a href="/#features"><b>Pharmacy Management</b><span>Everything in one place</span></a>
-            <a href="/#feat-inventory"><b>Inventory &amp; Purchases</b><span>Stock, batches, expiry, suppliers</span></a>
-            <a href="/#feat-billing"><b>Billing &amp; POS</b><span>Fast counter billing</span></a>
-            <a href="/#feat-udhaar"><b>Udhaar Ledger</b><span>Customer and supplier credit</span></a>
-            <a href="/#feat-reports"><b>Reports</b><span>Sales, profit, cash</span></a>
+            <a href="/features.html"><b>All features</b><span>Every screen, explained</span></a>
+            <a href="/features.html#stock"><b>Inventory &amp; Purchases</b><span>Stock, batches, expiry, suppliers</span></a>
+            <a href="/features.html#pos"><b>Billing &amp; POS</b><span>Fast counter billing</span></a>
+            <a href="/features.html#udhaar"><b>Udhaar Ledger</b><span>Customer and supplier credit</span></a>
+            <a href="/features.html#reports"><b>Reports</b><span>Sales, profit, cash</span></a>
             <a href="/#two-ways"><b>Nuskha Local</b><span>Installed on your shop PC, works offline</span></a>
             <a href="/#two-ways"><b>Nuskha Cloud</b><span>In your browser, open it from anywhere</span></a>
           </div></div>
@@ -65,6 +65,7 @@ function header() {
             <a href="/about.html#team"><b>Our Team</b><span>Meet the founder</span></a>
             <a href="/release-notes.html"><b>Release Notes</b><span>What's new in Nuskha</span></a>
           </div></div>
+        <a href="/features.html">Features</a>
         <a href="/blog/">Blog</a>
         <a href="/download.html">Download</a>
         <a href="/#contact">Contact</a>
@@ -105,8 +106,8 @@ function footer() {
           </ul>
         </div>
         <div><h4>Products</h4><ul>
-          <li><a href="/#features">Pharmacy Management</a></li><li><a href="/#feat-inventory">Inventory &amp; Purchases</a></li>
-          <li><a href="/#feat-billing">Billing &amp; POS</a></li><li><a href="/#feat-udhaar">Udhaar Ledger</a></li><li><a href="/#feat-reports">Reports</a></li><li><a href="/#two-ways">Nuskha Local &amp; Cloud</a></li></ul></div>
+          <li><a href="/features.html">All features</a></li><li><a href="/features.html#stock">Inventory &amp; Purchases</a></li>
+          <li><a href="/features.html#pos">Billing &amp; POS</a></li><li><a href="/features.html#udhaar">Udhaar Ledger</a></li><li><a href="/features.html#reports">Reports</a></li><li><a href="/#two-ways">Nuskha Local &amp; Cloud</a></li></ul></div>
         <div><h4>Services</h4><ul>
           <li><a href="/download.html">Download &amp; install</a></li><li><a href="#request-demo" data-demo>Data import</a></li>
           <li><a href="#request-demo" data-demo>Staff training</a></li><li><a href="/login.html">Login to your pharmacy</a></li></ul></div>
@@ -159,6 +160,32 @@ function founderCard() {
     if (href.startsWith('http')) { a.target = '_blank'; a.rel = 'noopener'; }
     box.appendChild(a);
   });
+}
+
+function featureTour() {
+  const tabs = [...document.querySelectorAll('.ftab')];
+  if (!tabs.length) return;
+  const show = (k, focus) => {
+    tabs.forEach((t) => { const on = t.dataset.tab === k; t.classList.toggle('on', on); t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; if (on && focus) t.focus(); });
+    document.querySelectorAll('.fpanel').forEach((p) => { const on = p.id === `p-${k}`; p.hidden = !on; p.classList.toggle('on', on); });
+  };
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => { show(t.dataset.tab); history.replaceState(null, '', `#${t.dataset.tab}`); });
+    t.addEventListener('keydown', (e) => {
+      const n = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (n) { e.preventDefault(); const x = tabs[(i + n + tabs.length) % tabs.length]; show(x.dataset.tab, true); }
+    });
+  });
+  const fromHash = () => { const k = location.hash.slice(1); if (tabs.some((t) => t.dataset.tab === k)) show(k); };
+  fromHash(); window.addEventListener('hashchange', fromHash);
+  const box = document.getElementById('lightbox');
+  const img = box.querySelector('img');
+  const close = () => { box.hidden = true; document.body.style.overflow = ''; };
+  document.querySelectorAll('[data-zoom]').forEach((b) => b.addEventListener('click', () => {
+    img.src = b.dataset.zoom; img.alt = b.querySelector('img').alt; box.hidden = false; document.body.style.overflow = 'hidden'; box.querySelector('.lb-close').focus();
+  }));
+  box.addEventListener('click', (e) => { if (e.target !== img) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !box.hidden) close(); });
 }
 
 function hideEmpty() {
@@ -249,7 +276,7 @@ function blogCards() {
   if (!el) return;
   const limit = Number(el.dataset.limit || POSTS.length);
   el.innerHTML = POSTS.slice(0, limit).map((p) => `
-    <a class="post" href="${p.href}"><div class="pcard"><img class="pbg" src="${p.img}" alt="" width="1080" height="675" loading="lazy"><span class="ptag">${p.cats[0]}</span>
+    <a class="post" href="${p.href}"><div class="pcard"><img class="pbg" src="${p.img}" alt="" width="640" height="400" loading="lazy" decoding="async"><span class="ptag">${p.cats[0]}</span>
       <div class="ptitle" aria-hidden="true"><span class="pe">${p.eyebrow}</span><b class="l1">${p.l1}</b><b class="l2">${p.l2}</b><span class="pbox">${p.box}</span></div></div>
       <div class="body"><div class="cats">${p.cats.map((c) => `<span>${c}</span>`).join('')}</div><h3>${p.title}</h3><p>${p.excerpt}</p><span class="more">Learn more →</span></div></a>`).join('');
 }
@@ -264,21 +291,22 @@ function motion() {
   if (reduce || !('IntersectionObserver' in window)) return;
   document.documentElement.classList.add('js-motion');
   // Scroll reveal, staggered inside each row of cards.
-  const groups = ['.sec-head', '.pain', '.feature', '.trust > div', '.post', '.pill', '.acc details', '.split > .copy', '.cloud-art', '.way', '.ways-note', '.vm-card', '.values > div', '.founder',
+  const groups = ['.sec-head', '.pain', '.feature', '.trust > div', '.post', '.pill', '.acc details', '.split > .copy', '.cloud-art', '.way', '.ways-note', '.fcard', '.comp > div', '.vm-card', '.values > div', '.founder',
     '.dl-card', '.article > *', '.login-cards > div', '.checks li', '.lead.center'];
   const items = new Set();
   groups.forEach((sel) => document.querySelectorAll(`main ${sel}`).forEach((el) => {
     if (el.closest('.hero')) return;
     const sibs = [...el.parentElement.children].filter((c) => c.matches(sel.split(' ').pop()));
-    el.style.setProperty('--d', `${Math.min(sibs.indexOf(el), 8) * 70}ms`);
+    el.style.setProperty('--d', `${Math.min(sibs.indexOf(el), 4) * 40}ms`);
     el.classList.add('reveal'); items.add(el);
   }));
   const io = new IntersectionObserver((entries) => entries.forEach((e) => {
     if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-  }), { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  }), { threshold: 0.05, rootMargin: '0px 0px 120px 0px' });
   items.forEach((el) => io.observe(el));
   // Anything already on screen (or skipped by the observer) shows at once.
-  setTimeout(() => items.forEach((el) => { const r = el.getBoundingClientRect(); if (r.top < innerHeight && r.bottom > 0) el.classList.add('in'); }), 60);
+  // Whatever is already on screen shows straight away, without a fade.
+  items.forEach((el) => { const r = el.getBoundingClientRect(); if (r.top < innerHeight && r.bottom > 0) { el.classList.add('now', 'in'); io.unobserve(el); } });
   // Hero devices lean gently toward the mouse (desktop only).
   const dev = document.querySelector('.devices'); const hero = document.querySelector('.hero');
   if (dev && hero && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
@@ -293,4 +321,4 @@ function motion() {
 
 document.getElementById('header-slot').outerHTML = header();
 document.getElementById('footer-slot').outerHTML = footer();
-hideEmpty(); menus(); whatsapp(); demoForm(); shots(); blogCards(); founderCard(); motion();
+hideEmpty(); menus(); whatsapp(); demoForm(); shots(); blogCards(); founderCard(); featureTour(); motion();

@@ -20,6 +20,8 @@ Get-CimInstance Win32_Process -Filter "Name = 'cmd.exe'" -ErrorAction SilentlyCo
   Where-Object { $_.CommandLine -like '*MedFlow-Server.cmd*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue |
   Where-Object { $_.CommandLine -like '*medflow-server.mjs*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+# The Nuskha window (Nuskha.exe) closes during an update, so its files can be replaced.
+Get-Process -Name 'Nuskha' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 1
 
 # 2. Copy the program (never the data)
@@ -65,15 +67,15 @@ if ($admin) {
   Write-Host '  right-click > "Run as administrator".' -ForegroundColor Yellow
 }
 
-# 5. Desktop icon: Nuskha in its own window (Edge app mode), or the default browser
+# 5. Desktop icon: Nuskha, a Windows program (Nuskha.exe); an Edge window if it is missing
 $desktop = [Environment]::GetFolderPath('Desktop')
 $shell = New-Object -ComObject WScript.Shell
 Remove-Item (Join-Path $desktop 'MedFlow.lnk'), (Join-Path $desktop 'MedFlow Backups.lnk') -ErrorAction SilentlyContinue
 $lnk = $shell.CreateShortcut((Join-Path $desktop 'Nuskha.lnk'))
-$lnk.TargetPath = "$env:WINDIR\System32\wscript.exe"
-$lnk.Arguments = "`"$Target\MedFlow.vbs`""
+if (Test-Path "$Target\Nuskha.exe") { $lnk.TargetPath = "$Target\Nuskha.exe"; $lnk.Arguments = '' }
+else { $lnk.TargetPath = "$env:WINDIR\System32\wscript.exe"; $lnk.Arguments = "`"$Target\MedFlow.vbs`"" }
 $lnk.WorkingDirectory = $Target
-$lnk.IconLocation = "$Target\MedFlow.ico,0"
+$lnk.IconLocation = $(if (Test-Path "$Target\Nuskha.exe") { "$Target\Nuskha.exe,0" } else { "$Target\MedFlow.ico,0" })
 $lnk.Description = 'Nuskha pharmacy'
 $lnk.Save()
 $b = $shell.CreateShortcut((Join-Path $desktop 'Nuskha Backups.lnk'))

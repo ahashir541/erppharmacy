@@ -6,6 +6,7 @@
 // After the first start of HQ, its public key is in <keys>/public-key.txt; this script copies it
 // into hq.json so the next Nuskha Local build trusts this HQ.
 import { execSync } from 'node:child_process';
+import { buildWindow } from './desktop-build.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,6 +50,7 @@ if (!process.argv.includes('--no-node')) {
   fs.copyFileSync(process.execPath, path.join(out, 'node', path.basename(process.execPath)));
 }
 for (const f of fs.readdirSync(path.join(here, 'windows-hq'))) fs.copyFileSync(path.join(here, 'windows-hq', f), path.join(out, f));
+buildWindow(out, { hq: true, icon: path.join(here, 'windows-hq', 'MedFlowHQ.ico') });
 // A release never carries data, keys or logs (a test run may have left them here).
 for (const d of ['hq-data', 'hq-keys', 'hq-backups', 'hq-releases', 'logs']) fs.rmSync(path.join(out, d), { recursive: true, force: true });
 

@@ -74,6 +74,7 @@ export function LicencePanel(props: PageProps) {
     try {
       const l = await fn();
       setLic(l); setKey('');
+      window.dispatchEvent(new Event('nuskha:licence')); // the bar at the bottom refreshes at once
       const good = l.state === 'ok' || l.state === 'offline';
       setNotice(good
         ? { good, text: what === 'key' ? `Licence key verified.${l.plan_name ? ` Plan: ${l.plan_name}.` : ''}` : 'Checked with Nuskha just now: all good.' }

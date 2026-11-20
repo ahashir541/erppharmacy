@@ -115,7 +115,9 @@ try {
   await page.keyboard.press('Enter');
   await page.waitForTimeout(800);
   await page.keyboard.press('F12');
-  check('first sale completes', await page.getByText('Sale complete').waitFor({ timeout: 15_000 }).then(() => true, () => false));
+  const firstSale = await page.getByText('Sale complete').waitFor({ timeout: 15_000 }).then(() => true, () => false);
+  if (!firstSale) await shot('journey-first-sale');
+  check('first sale completes', firstSale);
   await page.keyboard.press('Escape');
 
   // ---- HQ sees the PC and keeps its backup key ----
@@ -183,7 +185,7 @@ try {
   const wrong = (() => { try { execFileSync(path.join(pc2, 'node', 'node.exe'), ['medflow-server.mjs', '--restore', path.join(pc1, 'backups', bk)], { cwd: pc2, stdio: 'pipe' }); return 'restored'; } catch (e) { return `${e.stdout ?? ''}${e.stderr ?? ''}${e.message}`; } })();
   check('new PC without the key: restore refused', /backup key|Wrong/i.test(wrong), wrong.split('\n').find((l) => /key/i.test(l))?.trim().slice(0, 90));
   execFileSync(path.join(pc2, 'node', 'node.exe'), ['medflow-server.mjs', '--restore', path.join(pc1, 'backups', bk), '--key', keyFromHq], { cwd: pc2, stdio: 'pipe' });
-  run(path.join(pc2, 'node', 'node.exe'), ['medflow-server.mjs'], pc2);
+  const pc2Server = run(path.join(pc2, 'node', 'node.exe'), ['medflow-server.mjs'], pc2);
   await until(`${PC2}/api/status`, 'Nuskha on PC 2');
   const st2 = await j(await fetch(`${PC2}/api/status`));
   check('new PC with the key from HQ: pharmacy restored', st2.ready === true && st2.pharmacy === 'Shifa Journey Pharmacy', `${st2.pharmacy}`);
@@ -193,6 +195,22 @@ try {
   const del = await hq('platform_delete_pharmacy', made.tenant_id, 'Shifa Journey Pharmacy');
   const list = await hq('platform_pharmacies');
   check('cancel then delete removes it from HQ', !JSON.stringify(list).includes(made.tenant_id), `${del.rows} rows`);
+
+  // ---- Deleted in HQ: at its next check-in the PC erases its records; backups stay ----
+  pc2Server.kill();
+  await new Promise((r) => setTimeout(r, 2000));
+  const encBackups = () => (fs.existsSync(path.join(pc2, 'backups')) ? fs.readdirSync(path.join(pc2, 'backups')).filter((f) => f.endsWith('.enc')) : []);
+  const before = encBackups().length;
+  const hadKey = fs.existsSync(path.join(pc2, 'backup-key.txt'));
+  const pc2Again = run(path.join(pc2, 'node', 'node.exe'), ['medflow-server.mjs'], pc2);
+  const stopped = await new Promise((r) => { const t = setTimeout(() => r(false), 90_000); pc2Again.on('exit', () => { clearTimeout(t); r(true); }); });
+  check('deleted in HQ: the PC gets the signed erase order and stops', stopped && fs.existsSync(path.join(pc2, 'erase-pending.json')));
+  run(path.join(pc2, 'node', 'node.exe'), ['medflow-server.mjs'], pc2); // what MedFlow-Server.cmd does by itself
+  await until(`${PC2}/api/status`, 'Nuskha on PC 2 after erasing');
+  const st3 = await j(await fetch(`${PC2}/api/status`));
+  check('after erasing: no pharmacy on the PC, setup screen; backups and backup key kept',
+    st3.ready === false && !st3.pharmacy && encBackups().length > before && fs.existsSync(path.join(pc2, 'backup-key.txt')) === hadKey && !fs.existsSync(path.join(pc2, 'erase-pending.json')),
+    `${encBackups().length} backups`);
 
   check('no errors in the browser', errors.length === 0, errors.slice(0, 2).join(' | '));
 } catch (e) {

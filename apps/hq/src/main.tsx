@@ -5,6 +5,9 @@ import '../../pos/src/styles.css';
 import '../../pos/src/office/office.css';
 import './hq.css';
 import { App } from './App.tsx';
+import { softwareMode } from '../../pos/src/desktop.ts';
+
+softwareMode(true);
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

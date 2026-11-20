@@ -194,8 +194,9 @@ function SignInSettings() {
         {saved && <div className="licence-result good"><strong>{saved}</strong></div>}
         <div className="row-actions"><button className="btn primary" disabled={busy || !o.this_pc}>{busy ? 'Saving…' : 'Save'}</button></div>
       </form>
-      <section className="panel">
-        <div className="panel-title">Getting a Google Client ID (one time, free)</div>
+      {/* The setup steps only while Google sign-in is not set up; afterwards they stay folded away. */}
+      <details className="panel help-steps" open={!o.google_client_id}>
+        <summary className="panel-title">{o.google_client_id ? 'How to get a new Google Client ID' : 'Getting a Google Client ID (one time, free)'}</summary>
         <ol className="steps">
           <li>Open <strong>console.cloud.google.com</strong> with your Google account and create a project (e.g. "Nuskha HQ").</li>
           <li>Go to <strong>APIs & Services → OAuth consent screen</strong>: choose External, app name "Nuskha HQ", your email. Save.</li>
@@ -203,7 +204,7 @@ function SignInSettings() {
           <li>Under <strong>Authorised JavaScript origins</strong> add: {origins.map((x) => <code key={x}>{x}</code>).reduce<React.ReactNode[]>((a, c, i) => (i ? [...a, ' and ', c] : [c]), [])}. Leave redirect URIs empty.</li>
           <li>Copy the <strong>Client ID</strong> (not the secret) into the box above and press Save.</li>
         </ol>
-      </section>
+      </details>
     </>
   );
 }

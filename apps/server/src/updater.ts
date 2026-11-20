@@ -21,6 +21,9 @@ export interface UpdateStatus { current: string; offer: UpdateOffer | null; inst
 export const TAR = process.platform === 'win32' ? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
 const KEEP = new Set(['data', 'backups', 'logs', 'config.json', 'backup-key.txt', 'node', 'updates', 'MedFlow-Server.cmd', 'start-hidden.vbs', 'MedFlow.vbs']);
 const PROGRAM = (name: string) => !KEEP.has(name) && !name.startsWith('data-before-restore');
+// The window program (Nuskha.exe and WebView2) is locked while the window is open: an update only
+// adds it to a PC that does not have it yet; a new installer replaces it.
+const DESKTOP = new Set(['Nuskha.exe', 'Nuskha HQ.exe', 'Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll', 'WebView2Loader.dll']);
 
 /** Runs before anything else at start: counts start attempts after an update and rolls back. */
 export function startupGuard(home: string, log: (s: string) => void) {
@@ -35,8 +38,8 @@ export function startupGuard(home: string, log: (s: string) => void) {
   const prev = path.join(dir, 'previous');
   log(`Nuskha ${st.version} did not start after 3 tries: putting back ${st.from}`);
   if (fs.existsSync(prev)) {
-    for (const name of fs.readdirSync(home)) if (PROGRAM(name) && fs.existsSync(path.join(prev, name))) fs.rmSync(path.join(home, name), { recursive: true, force: true });
-    for (const name of fs.readdirSync(prev)) fs.cpSync(path.join(prev, name), path.join(home, name), { recursive: true, force: true });
+    for (const name of fs.readdirSync(home)) if (PROGRAM(name) && !DESKTOP.has(name) && fs.existsSync(path.join(prev, name))) fs.rmSync(path.join(home, name), { recursive: true, force: true });
+    for (const name of fs.readdirSync(prev)) if (!DESKTOP.has(name)) fs.cpSync(path.join(prev, name), path.join(home, name), { recursive: true, force: true });
   }
   fs.writeFileSync(path.join(dir, 'last-result.json'), JSON.stringify({ ok: false, version: st.version, back_to: st.from, at: new Date().toISOString() }));
   fs.rmSync(stateFile, { force: true });
@@ -136,6 +139,7 @@ export class Updater {
 
       for (const name of fs.readdirSync(staging)) {
         if (!PROGRAM(name)) continue;
+        if (DESKTOP.has(name) && fs.existsSync(path.join(this.home, name))) continue;
         if (name === 'public') fs.rmSync(path.join(this.home, 'public'), { recursive: true, force: true });
         fs.cpSync(path.join(staging, name), path.join(this.home, name), { recursive: true, force: true });
       }

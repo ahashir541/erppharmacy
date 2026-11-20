@@ -2,12 +2,40 @@
  "name": "Nuskha",
  "short_name": "Nuskha",
  "display": "standalone",
- "background_color": "#ffffff",
- "theme_color": "#1a1446",
+ "display_override": [
+  "window-controls-overlay",
+  "standalone"
+ ],
+ "background_color": "#f4f6f8",
+ "theme_color": "#f4f6f8",
  "icons": [
+  {
+   "src": "/icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  },
+  {
+   "src": "/icon-48.png",
+   "sizes": "48x48",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/icon-96.png",
+   "sizes": "96x96",
+   "type": "image/png",
+   "purpose": "any"
+  },
   {
    "src": "/icon-192.png",
    "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "/icon-256.png",
+   "sizes": "256x256",
    "type": "image/png",
    "purpose": "any"
   },

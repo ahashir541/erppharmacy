@@ -19,7 +19,11 @@ export function LicenceBar() {
     }).catch(() => {});
     void load();
     const t = window.setInterval(load, 3 * 60_000);
-    return () => window.clearInterval(t);
+    // A key entered or checked in Settings, or coming back to the window, refreshes it at once.
+    const now = () => void load();
+    window.addEventListener('nuskha:licence', now);
+    window.addEventListener('focus', now);
+    return () => { window.clearInterval(t); window.removeEventListener('nuskha:licence', now); window.removeEventListener('focus', now); };
   }, []);
   if (updated) {
     return <div className="licence-bar" role="status"><div className="licence-line info"><strong>Nuskha was updated to {updated}.</strong>
@@ -33,7 +37,10 @@ export function LicenceBar() {
   };
   const news = lic.announcements.filter((a) => !hidden.includes(a.id));
   const tone = !lic.may_sell ? 'bad' : lic.status === 'grace' || lic.state === 'none' || lic.state === 'expired' ? 'warn' : 'info';
-  const show = lic.message && (lic.state !== 'ok' || lic.status !== 'active');
+  // A trial with a valid key is only mentioned in its last 7 days (Settings always shows it).
+  const trialDays = lic.trial_ends_at ? Math.ceil((Date.parse(lic.trial_ends_at) - Date.now()) / 86_400_000) : null;
+  const quietTrial = lic.state === 'ok' && lic.status === 'trial' && trialDays !== null && trialDays > 7;
+  const show = lic.message && (lic.state !== 'ok' || lic.status !== 'active') && !quietTrial;
   if (!show && !news.length) return null;
   return (
     <div className="licence-bar" role="status">

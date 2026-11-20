@@ -338,3 +338,9 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 .btn.pay { background: var(--color-brand); }
 .btn.pay:hover:not(:disabled) { background: var(--color-brand-hover); }
 .message.info { background: var(--color-brand-soft); color: var(--color-brand); }
+
+/* Software mode (Nuskha Local, HQ, app windows): menus, buttons and labels are not selectable text;
+   what people may copy (tables, receipts, messages, codes, form fields) still is. */
+html.software, html.software body { -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
+html.software :is(input, textarea, [contenteditable], td, .receipt, pre, code, .key-code, .message, .form-error, dd, .wa-preview) { -webkit-user-select: text; user-select: text; }
+html.software img { -webkit-user-drag: none; }

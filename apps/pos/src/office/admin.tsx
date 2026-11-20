@@ -89,7 +89,8 @@ export function Team(props: PageProps) {
 }
 
 function AddStaff(props: PageProps & { onClose: () => void; onSaved: () => void }) {
-  const roles = useLoad(() => props.db.office<{ id: string; name: string }[]>('roles'), []);
+  // Staff work on the counter screen: only roles that can sell are offered (Salesman first).
+  const roles = useLoad(async () => (await props.db.office<{ id: string; name: string; counter?: boolean }[]>('roles')).filter((r) => r.counter !== false), []);
   const [f, setF] = useState({ name: '', phone: '', role: '', allBranches: false, pin: '' });
   const set = (k: keyof typeof f, v: string | boolean) => setF((x) => ({ ...x, [k]: v }));
   const { busy, error, submit } = useSubmit(async () => {
@@ -105,6 +106,7 @@ function AddStaff(props: PageProps & { onClose: () => void; onSaved: () => void 
         <label className="field"><span>Name *</span><input required autoFocus value={f.name} onChange={(e) => set('name', e.target.value)} /></label>
         <label className="field"><span>Mobile</span><input value={f.phone} onChange={(e) => set('phone', e.target.value)} /></label>
         <label className="field"><span>Role</span><select value={f.role || roles.data?.[0]?.id || ''} onChange={(e) => set('role', e.target.value)}>{(roles.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+        <p className="muted small span-2">Salesman: sells, udhaar within the limit you set. Pharmacist: also prescriptions and controlled drugs. Manager: sells and gives discounts within your limits. Returns and voids always ask you first.</p>
         <label className="field"><span>Counter PIN (4–6 digits) *</span><input required inputMode="numeric" maxLength={6} value={f.pin} onChange={(e) => set('pin', e.target.value.replace(/\D/g, ''))} /></label>
         <label className="check span-2"><input type="checkbox" checked={f.allBranches} onChange={(e) => set('allBranches', e.target.checked)} /> Works at every branch</label>
         {error && <div className="form-error span-2">{error}</div>}

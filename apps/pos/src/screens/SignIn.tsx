@@ -17,7 +17,7 @@ export function SignIn(props: AppProps & { onSignedIn: (s: Session) => void; onT
   return (
     <div className="signin2">
       <aside className="signin2-hero">
-        <div className="signin2-brand"><span className="brand-mark">M</span> MedFlow</div>
+        <div className="signin2-brand"><span className="brand-mark">N</span> Nuskha</div>
         <div className="signin2-welcome">
           <div className="signin2-greet">{greeting(now.getHours())}</div>
           <div className="signin2-pharmacy">{ctx.pharmacy}</div>

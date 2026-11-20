@@ -22,7 +22,7 @@ export function Approvals(props: PageProps) {
     recall: '⛔', expiring_batches: '⏳', low_stock: '▾', licence_expiry: '📄', device_offline: '⚡', billing: '₨', account: 'ⓘ' };
   return (
     <>
-      <PageHead title="Approvals & alerts" sub="Requests from the counter, and everything MedFlow wants you to know">
+      <PageHead title="Approvals & alerts" sub="Requests from the counter, and everything Nuskha wants you to know">
         <button type="button" className="btn" disabled={!unread} onClick={async () => { await props.db.ownerCall('mark_notifications_read', null); notes.reload(); }}>Mark all read</button>
       </PageHead>
       <div className="stats">

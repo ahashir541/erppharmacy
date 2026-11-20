@@ -1,8 +1,8 @@
-// MedFlow on the cloud (Supabase). Two sign-ins live side by side:
+// Nuskha on the cloud (Supabase). Two sign-ins live side by side:
 //  - the counter PC (a device principal, D6/D11): its own login, saved on the PC when the owner
 //    links it; staff then unlock it with their PIN;
 //  - the owner: email, password and the 6-digit 2FA code, from any phone or browser.
-// Every call is a MedFlow database function; Row Level Security decides what each one sees.
+// Every call is a Nuskha database function; Row Level Security decides what each one sees.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PosError, type Batch, type CustomerHit, type HeldBill, type PosBackend, type PosContext, type Product, type Receipt, type SaleResult } from './types.ts';
 import { SIGNATURES } from './signatures.ts';
@@ -38,7 +38,7 @@ export async function openCloudCounter(): Promise<CloudBackend | null> {
   const { data } = await device.auth.getSession();
   if (!data.session) {
     const { error } = await device.auth.signInWithPassword({ email: login.email, password: login.password });
-    if (error) throw new PosError(`This PC could not sign in to MedFlow: ${error.message}`);
+    if (error) throw new PosError(`This PC could not sign in to Nuskha: ${error.message}`);
   }
   return new CloudBackend();
 }
@@ -72,7 +72,7 @@ export class CloudBackend implements PosBackend {
   /** fn(a, b) → PostgREST's fn({ p_x: a, p_y: b }) using the generated parameter names. */
   private async rpc<T>(client: SupabaseClient, fn: string, args: unknown[]): Promise<T> {
     const names = SIGNATURES[fn];
-    if (!names) throw new PosError(`Unknown MedFlow function ${fn}`);
+    if (!names) throw new PosError(`Unknown Nuskha function ${fn}`);
     const body: Record<string, unknown> = {};
     args.forEach((a, i) => { if (a !== undefined && names[i]) body[names[i]!] = a; });
     const { data, error } = await client.rpc(fn, body);

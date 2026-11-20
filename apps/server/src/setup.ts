@@ -31,7 +31,7 @@ export interface NewPharmacy {
 }
 
 export async function setupPharmacy(db: PGlite, f: NewPharmacy): Promise<{ token: string }> {
-  if (await pharmacy(db)) throw new ApiError('MedFlow is already set up on this PC', 409);
+  if (await pharmacy(db)) throw new ApiError('Nuskha is already set up on this PC', 409);
   const need = (v: string | undefined, what: string) => { if (!v || !v.trim()) throw new ApiError(`${what} is required`); return v.trim(); };
   const name = need(f.pharmacy, 'Pharmacy name');
   const owner = need(f.owner_name, 'Owner name');
@@ -72,7 +72,7 @@ export async function setupPharmacy(db: PGlite, f: NewPharmacy): Promise<{ token
 }
 
 export async function setupDemo(db: PGlite): Promise<{ token: string }> {
-  if (await pharmacy(db)) throw new ApiError('MedFlow is already set up on this PC', 409);
+  if (await pharmacy(db)) throw new ApiError('Nuskha is already set up on this PC', 409);
   await db.exec(await demoSeedSql());
   // The demo's trial would end in 14 days; locally it stays active.
   await db.query(`update tenants set status = 'active', trial_ends_at = null where id = $1`, [DEMO.tenant]);
@@ -84,7 +84,7 @@ const failures = new Map<string, { n: number; until: number }>();
 
 export async function linkCounter(db: PGlite, from: string, pin: string, name: string): Promise<{ token: string; invoice_prefix: string }> {
   const ph = await pharmacy(db);
-  if (!ph) throw new ApiError('MedFlow is not set up yet', 409);
+  if (!ph) throw new ApiError('Nuskha is not set up yet', 409);
   const f = failures.get(from);
   if (f && f.until > Date.now()) throw new ApiError(`Too many wrong PINs. Try again in ${Math.ceil((f.until - Date.now()) / 60000)} minutes.`, 429);
   const hash = (await db.query<{ pin_hash: string }>(`
@@ -112,13 +112,13 @@ export async function linkCounter(db: PGlite, from: string, pin: string, name: s
 export interface Counter { device_id: string; auth_user_id: string; tenant_id: string; status: string }
 
 export async function counterFor(db: PGlite, token: string | undefined): Promise<Counter> {
-  if (!token) throw new ApiError('This PC is not linked to MedFlow', 401);
+  if (!token) throw new ApiError('This PC is not linked to Nuskha', 401);
   const r = await db.query<Counter>(`
     update medflow_local.counter_tokens t set last_used_at = now() from devices d
     where t.token_hash = $1 and d.id = t.device_id
     returning d.id device_id, d.auth_user_id, d.tenant_id, d.status`, [hashToken(token)]);
   const c = r.rows[0];
-  if (!c) throw new ApiError('This PC is not linked to MedFlow', 401);
+  if (!c) throw new ApiError('This PC is not linked to Nuskha', 401);
   if (c.status !== 'active') throw new ApiError('This PC was disabled by the owner', 401);
   return c;
 }

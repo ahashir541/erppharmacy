@@ -1,5 +1,5 @@
 // The pharmacy's database: PostgreSQL (PGlite) kept in a folder on this PC. On first start it runs
-// every MedFlow migration; on an update it runs only the new ones. Its own bookkeeping (applied
+// every Nuskha migration; on an update it runs only the new ones. Its own bookkeeping (applied
 // migrations, counter tokens) lives in the medflow_local schema, which staff calls cannot see.
 import type { PGlite, Transaction } from '@electric-sql/pglite';
 import fs from 'node:fs';

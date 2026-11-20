@@ -1,4 +1,4 @@
-// The console talks to MedFlow HQ (the same address it was opened from). Every admin call is a
+// The console talks to Nuskha HQ (the same address it was opened from). Every admin call is a
 // platform_* database function; the server checks the admin's sign-in, the database checks it too.
 const TOKEN = 'medflow.hq.session';
 
@@ -26,7 +26,7 @@ async function req<T>(path: string, body?: unknown, method = 'POST'): Promise<T>
       body: method === 'GET' ? null : JSON.stringify(body ?? {}),
     }));
   } catch {
-    throw new HqError('Cannot reach MedFlow HQ');
+    throw new HqError('Cannot reach Nuskha HQ');
   }
   const data = await res.json().catch(() => ({})) as { error?: string } & T;
   if (!res.ok) {
@@ -52,7 +52,7 @@ export async function call<T = unknown>(name: string, ...args: unknown[]): Promi
   return (await req<{ r: T }>('admin/call', { fn: `platform_${name}`, args })).r;
 }
 
-export const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
+export const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e)).replace(/\bMedFlow\b/g, 'Nuskha');
 export const rs = (minor: unknown) => (minor === null || minor === undefined ? '—'
   : `Rs ${(Number(minor) / 100).toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`);
 export const toMinor = (text: string): number | null => {
@@ -60,7 +60,7 @@ export const toMinor = (text: string): number | null => {
   return Number.isFinite(v) && v >= 0 ? Math.round(v * 100) : null;
 };
 
-/** Uploads a MedFlow Local update package; HQ checks it, signs it and offers it on its channel. */
+/** Uploads a Nuskha Local update package; HQ checks it, signs it and offers it on its channel. */
 export async function uploadRelease(file: File, version: string, channel: string, notes: string) {
   const res = await fetch('/hq/admin/release', {
     method: 'POST', body: file,

@@ -1,5 +1,5 @@
 // Owner sign-in on the cloud: email and password, then the 6-digit code from an authenticator app
-// (Google Authenticator, Microsoft Authenticator…). The first time, MedFlow shows a QR code to set
+// (Google Authenticator, Microsoft Authenticator…). The first time, Nuskha shows a QR code to set
 // the app up. Cloud sign-in is for owners only (D11); staff use PINs on the shop's PCs.
 import { useEffect, useState } from 'react';
 import { clients, linkCounter } from '../backend/cloud.ts';
@@ -22,7 +22,7 @@ export function OwnerSignIn(props: { onReady: () => void; onCancel?: () => void 
     const { data: factors } = await owner.auth.mfa.listFactors();
     const totp = factors?.totp?.find((f) => f.status === 'verified');
     if (totp) { setFactorId(totp.id); setStep('code'); return; }
-    const { data, error: e } = await owner.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'MedFlow' });
+    const { data, error: e } = await owner.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Nuskha' });
     if (e) throw e;
     setFactorId(data.id);
     setQr({ svg: data.totp.qr_code, secret: data.totp.secret });
@@ -51,7 +51,7 @@ export function OwnerSignIn(props: { onReady: () => void; onCancel?: () => void 
           }
         });
       }}>
-        <div className="brand"><span className="brand-mark">M</span> MedFlow</div>
+        <div className="brand"><span className="brand-mark">N</span> Nuskha</div>
         <h1>{step === 'password' ? 'Owner sign-in' : step === 'enroll' ? 'Set up 2-step sign-in' : 'Enter your 6-digit code'}</h1>
         {step === 'password' && (
           <>

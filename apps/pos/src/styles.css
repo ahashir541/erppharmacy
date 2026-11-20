@@ -223,7 +223,7 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 
 .qr { width: 200px; height: 200px; justify-self: center; background: #fff; padding: 8px; border-radius: 12px; }
 
-/* MedFlow Local: first-run setup and linking a PC */
+/* Nuskha Local: first-run setup and linking a PC */
 .setup-card { width: min(560px, calc(100vw - 32px)); text-align: start; display: grid; gap: var(--space-3); }
 .setup-card h1 { font-size: var(--text-xl, 1.4rem); margin: 0; }
 .setup-choices { display: grid; gap: var(--space-3); }
@@ -235,7 +235,7 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 .setup-dots span.on { background: var(--color-brand); }
 .setup-dots span.done { background: color-mix(in srgb, var(--color-brand) 50%, transparent); }
 
-/* MedFlow Local: licence and news from MedFlow, at the bottom of every screen */
+/* Nuskha Local: licence and news from Nuskha, at the bottom of every screen */
 .licence-bar { position: fixed; inset-inline: 12px; bottom: 12px; z-index: 40; display: grid; gap: 6px; pointer-events: none; }
 .licence-line { pointer-events: auto; justify-self: center; max-width: min(900px, 100%); display: flex; gap: 10px; align-items: center; padding: 8px 14px;
   border-radius: 10px; font-size: 14px; box-shadow: var(--shadow); background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text); }
@@ -246,23 +246,23 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 
 /* ---- Look: friendlier buttons, panels and first screens ---- */
 .btn { transition: background var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease); }
-.btn.primary { background: linear-gradient(180deg, #129488, var(--color-brand)); box-shadow: 0 2px 6px rgba(15, 118, 110, 0.3); }
-.btn.primary:hover:not(:disabled) { background: var(--color-brand-hover); box-shadow: 0 4px 12px rgba(15, 118, 110, 0.35); }
+.btn.primary { background: linear-gradient(180deg, #2a2370, var(--color-brand)); box-shadow: 0 2px 6px rgba(26, 20, 70, 0.3); }
+.btn.primary:hover:not(:disabled) { background: var(--color-brand-hover); box-shadow: 0 4px 12px rgba(26, 20, 70, 0.35); }
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .big-btn { padding: 12px 28px; font-size: var(--text-lg); }
 .panel { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); box-shadow: var(--shadow-1); }
 .panel-title { color: var(--color-brand); display: flex; align-items: center; gap: 8px; }
 .panel-title::before { content: ''; width: 4px; height: 14px; border-radius: 2px; background: var(--color-brand); }
-.brand-mark { background: linear-gradient(135deg, #14b8a6, var(--color-brand)); box-shadow: 0 2px 8px rgba(15, 118, 110, 0.35); }
+.brand-mark { background: linear-gradient(135deg, #4a42a8, var(--color-brand)); box-shadow: 0 2px 8px rgba(26, 20, 70, 0.35); }
 .boot, .center-screen, .signin { background:
-  radial-gradient(900px 500px at 0% 0%, rgba(20, 184, 166, 0.16), transparent 60%),
+  radial-gradient(900px 500px at 0% 0%, rgba(91, 82, 190, 0.16), transparent 60%),
   radial-gradient(900px 500px at 100% 100%, rgba(29, 78, 216, 0.08), transparent 60%), var(--color-bg); }
 .boot-card { box-shadow: var(--shadow-2); border: 1px solid var(--color-border); }
 .boot-card > .brand-mark, .setup-card > .brand-mark { width: 52px; height: 52px; border-radius: 14px; font-size: 24px; }
 .signin-head { box-shadow: 0 1px 0 var(--color-border); border-bottom: 0; }
 .staff-tile { transition: transform var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease); }
 .staff-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
-.avatar { background: linear-gradient(135deg, var(--color-brand-soft), #d3eeea); }
+.avatar { background: linear-gradient(135deg, var(--color-brand-soft), #dcdaf2); }
 .topbar { border-top: 3px solid var(--color-brand); }
 
 /* Licence result after a key is entered */
@@ -283,8 +283,8 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 .signin2 { min-height: 100%; display: grid; grid-template-columns: minmax(320px, 40%) 1fr; background: var(--color-bg); }
 .signin2-hero { position: relative; overflow: hidden; color: #fff; padding: 40px 48px; display: flex; flex-direction: column; justify-content: space-between; gap: 32px;
   background: radial-gradient(600px 400px at 110% 110%, rgba(255, 255, 255, 0.12), transparent 60%),
-              radial-gradient(500px 300px at -10% -10%, rgba(45, 212, 191, 0.35), transparent 60%),
-              linear-gradient(160deg, #0f766e 0%, #0b4f4a 100%); }
+              radial-gradient(500px 300px at -10% -10%, rgba(245, 166, 35, 0.22), transparent 60%),
+              linear-gradient(160deg, #1a1446 0%, #0f0b30 100%); }
 .signin2-hero::after { content: ''; position: absolute; right: -80px; top: 35%; width: 280px; height: 280px; border-radius: 50%; border: 36px solid rgba(255, 255, 255, 0.06); }
 .signin2-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
 .signin2-brand .brand-mark { background: #fff; color: var(--color-brand); width: 36px; height: 36px; border-radius: 10px; font-size: 18px; box-shadow: none; }
@@ -327,3 +327,14 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 
 /* Panels keep their rows at natural height (no stretched gaps) and never let text spill out. */
 .panel { align-content: start; min-width: 0; }
+
+/* Nuskha logo (Urdu noon with an amber tablet as its dot) wherever the brand mark appears.
+   On navy backgrounds (sidebar, sign-in panel) the white version is used. */
+.brand-mark { font-size: 0 !important; color: transparent !important; border-radius: 50% !important; box-shadow: none !important;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%231a1446'/%3E%3Cpath d='M15 28C15 44 22 50 32 50C42 50 49 44 49 28' fill='none' stroke='%23ffffff' stroke-width='7' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='22' r='5.5' fill='%23f5a623'/%3E%3C/svg%3E") center / contain no-repeat !important; }
+.sidebar .brand-mark, .signin2-brand .brand-mark { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23ffffff'/%3E%3Cpath d='M15 28C15 44 22 50 32 50C42 50 49 44 49 28' fill='none' stroke='%231a1446' stroke-width='7' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='22' r='5.5' fill='%23f5a623'/%3E%3C/svg%3E") center / contain no-repeat !important; }
+
+/* Navy everywhere: the main pay button and plain info messages follow the brand; green stays only for "OK" states. */
+.btn.pay { background: var(--color-brand); }
+.btn.pay:hover:not(:disabled) { background: var(--color-brand-hover); }
+.message.info { background: var(--color-brand-soft); color: var(--color-brand); }

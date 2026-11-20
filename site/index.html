@@ -3,387 +3,185 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MedFlow · Pharmacy software for Pakistan</title>
-<meta name="description" content="MedFlow is pharmacy software for Pakistan: fast billing, batch and expiry tracking, udhaar khata, Urdu and English. Works without internet. Free 14-day trial.">
-<meta name="theme-color" content="#0f766e">
-<meta property="og:title" content="MedFlow · Pharmacy software for Pakistan">
-<meta property="og:description" content="Fast billing, expiry tracking, udhaar and stock control. Works without internet. Free 14-day trial.">
-<meta property="og:image" content="/img/shot-pos.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f766e'/%3E%3Cpath d='M16 46V18h6l10 14 10-14h6v28h-7V30l-9 12-9-12v16z' fill='white'/%3E%3C/svg%3E">
+<title>Pharmacy Management Software in Pakistan | Nuskha</title>
+<meta name="description" content="Nuskha is pharmacy management software in Pakistan: fast billing, batch and expiry tracking, udhaar ledger and reports. Works without internet. Request a free demo.">
+<link rel="canonical" href="https://nuskhapk.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pharmacy Management Software in Pakistan | Nuskha">
+<meta property="og:description" content="Fast billing, batch and expiry tracking, udhaar and reports for pharmacies in Pakistan. Works without internet.">
+<meta property="og:url" content="https://nuskhapk.vercel.app/">
+<meta property="og:image" content="https://nuskhapk.vercel.app/img/dashboard.webp">
+<meta name="theme-color" content="#1a1446">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/icon-32.png">
+<link rel="apple-touch-icon" href="/img/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Noto+Nastaliq+Urdu:wght@500&display=swap">
-<style>
-/* MedFlow site. Layout: sticky nav, hero with the real POS, then alternating bands. Light only, like the app. */
-:root {
-  color-scheme: light;
-  --brand: #0f766e; --brand-2: #14b8a6; --brand-deep: #0b4f4a; --brand-soft: #e6f4f2;
-  --ink: #12202c; --ink-2: #3f5163; --muted: #6a7a8b; --line: #dde6e8; --bg: #f6f9f9; --surface: #ffffff;
-  --warn: #b45309; --good: #15803d;
-  --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif; --body: Inter, 'Segoe UI', system-ui, sans-serif;
-  --urdu: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
-}
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); }
-img { max-width: 100%; display: block; }
-a { color: inherit; }
-.wrap { width: min(1160px, 100%); margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
-h1, h2, h3 { font-family: var(--display); line-height: 1.15; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
-h2 { font-size: clamp(26px, 3.4vw, 38px); }
-h3 { font-size: 19px; }
-p { margin: 0; }
-.eyebrow { font: 600 13px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
-.lead { font-size: 18px; color: var(--ink-2); max-width: 62ch; }
-section { padding-block: 84px; }
-.head { display: grid; gap: 12px; margin-bottom: 40px; max-width: 760px; }
-.btn { display: inline-flex; align-items: center; gap: 10px; border-radius: 12px; padding: 14px 22px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-size: 16px; transition: transform .15s ease, box-shadow .15s ease, background .15s ease; }
-.btn:hover { transform: translateY(-1px); }
-.btn-primary { background: linear-gradient(180deg, #129488, var(--brand)); color: #fff; box-shadow: 0 6px 18px rgba(15,118,110,.32); }
-.btn-primary:hover { box-shadow: 0 10px 24px rgba(15,118,110,.38); }
-.btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
-.btn-wa { background: #1f9d55; color: #fff; }
-.btn small { font-weight: 500; opacity: .85; font-size: 13px; }
-:focus-visible { outline: 3px solid var(--brand-2); outline-offset: 3px; border-radius: 6px; }
-
-/* Nav */
-.nav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.88); backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
-.nav .wrap { display: flex; align-items: center; gap: 24px; min-height: 68px; }
-.logo { display: flex; align-items: center; gap: 10px; font: 700 21px var(--display); text-decoration: none; }
-.logo i { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-style: normal; color: #fff; background: linear-gradient(135deg, var(--brand-2), var(--brand)); font-size: 18px; }
-.nav nav { display: flex; gap: 22px; margin-left: auto; }
-.nav nav a { text-decoration: none; color: var(--ink-2); font-weight: 500; font-size: 15px; }
-.nav nav a:hover { color: var(--brand); }
-.nav .btn { padding: 10px 16px; font-size: 15px; }
-@media (max-width: 860px) { .nav nav { display: none; } .nav .btn { margin-left: auto; } }
-
-/* Hero */
-.hero { padding-block: 64px 40px; background: radial-gradient(900px 420px at 85% -10%, rgba(20,184,166,.18), transparent 60%), radial-gradient(700px 400px at -10% 30%, rgba(15,118,110,.10), transparent 60%); }
-.hero .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 48px; align-items: center; }
-.hero h1 { font-size: clamp(34px, 5vw, 56px); }
-.hero h1 em { font-style: normal; color: var(--brand); }
-.hero .urdu { font: 500 20px/2.1 var(--urdu); color: var(--brand-deep); direction: rtl; text-align: right; border-right: 3px solid var(--brand-2); padding-right: 14px; }
-.hero .copy { display: grid; gap: 22px; }
-.cta { display: flex; flex-wrap: wrap; gap: 12px; }
-.ticks { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--ink-2); font-size: 14.5px; padding: 0; margin: 0; list-style: none; }
-.ticks li::before { content: "✓"; color: var(--good); font-weight: 700; margin-right: 6px; }
-.frame { border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 30px 70px rgba(16,40,50,.18), 0 6px 18px rgba(16,40,50,.08); overflow: hidden; }
-.frame .bar { height: 30px; display: flex; gap: 6px; align-items: center; padding: 0 12px; background: #eef3f4; border-bottom: 1px solid var(--line); }
-.frame .bar span { width: 10px; height: 10px; border-radius: 50%; background: #cfd9db; }
-@media (max-width: 920px) { .hero .wrap { grid-template-columns: 1fr; } }
-
-/* Problems */
-.problems { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
-.problem { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 10px; align-content: start; }
-.problem .was { color: var(--warn); font-weight: 600; font-size: 15px; }
-.problem .now { color: var(--ink-2); font-size: 15px; }
-.problem .now b { color: var(--brand); }
-
-/* Features */
-.band { background: var(--surface); border-block: 1px solid var(--line); }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
-.feat { border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: grid; gap: 10px; align-content: start; background: linear-gradient(180deg, #fff, #fbfdfd); }
-.feat .ic { width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); font-size: 20px; font-weight: 700; }
-.feat p { color: var(--ink-2); font-size: 15px; }
-
-/* Screens */
-.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-.tab { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 16px; font: 500 15px var(--body); cursor: pointer; color: var(--ink-2); }
-.tab[aria-selected="true"] { background: var(--brand); color: #fff; border-color: var(--brand); }
-.shot[hidden] { display: none !important; }
-
-/* Local vs cloud */
-.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
-.plan-card { border-radius: 18px; padding: 28px; display: grid; gap: 14px; align-content: start; border: 1px solid var(--line); background: var(--surface); }
-.plan-card.rec { border: 2px solid var(--brand); box-shadow: 0 16px 40px rgba(15,118,110,.14); }
-.badge { justify-self: start; font: 600 12px/1 var(--body); padding: 6px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); letter-spacing: .03em; }
-.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 9px; color: var(--ink-2); font-size: 15px; }
-.list li { display: flex; gap: 10px; }
-.list li::before { content: "✓"; color: var(--good); font-weight: 700; flex: none; }
-.list li.no::before { content: "–"; color: var(--muted); }
-
-/* Steps */
-.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; counter-reset: s; }
-.step { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px 22px 22px; display: grid; gap: 8px; align-content: start; }
-.step::before { counter-increment: s; content: counter(s); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: #fff; font: 700 16px var(--display); margin-bottom: 4px; }
-.step p { color: var(--ink-2); font-size: 15px; }
-
-/* Pricing */
-.prices { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
-.price { font: 700 30px var(--display); }
-.price small { font: 500 15px var(--body); color: var(--muted); }
-
-/* Download */
-.download { background: linear-gradient(160deg, var(--brand) 0%, var(--brand-deep) 100%); color: #fff; border-radius: 22px; padding: clamp(28px, 5vw, 52px); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 36px; }
-.download h2 { color: #fff; }
-.download .lead { color: rgba(255,255,255,.85); }
-.download .btn-primary { background: #fff; color: var(--brand-deep); box-shadow: 0 8px 22px rgba(0,0,0,.18); }
-.download ol { margin: 0; padding-left: 20px; display: grid; gap: 10px; color: rgba(255,255,255,.92); }
-.download code { background: rgba(255,255,255,.14); padding: 2px 7px; border-radius: 6px; font-size: 13.5px; word-break: break-all; }
-.meta { font-size: 13.5px; color: rgba(255,255,255,.75); }
-@media (max-width: 860px) { .download { grid-template-columns: 1fr; } }
-
-/* Trust + FAQ */
-.trust { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
-.trust div { border-left: 3px solid var(--brand); background: var(--surface); padding: 16px 18px; border-radius: 0 12px 12px 0; display: grid; gap: 4px; }
-.trust p { color: var(--ink-2); font-size: 14.5px; }
-details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; }
-details + details { margin-top: 10px; }
-summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
-summary::after { content: "+"; color: var(--brand); font-size: 20px; line-height: 1; }
-details[open] summary::after { content: "–"; }
-details p { margin-top: 10px; color: var(--ink-2); }
-
-footer { background: #0d1d24; color: #b9c7cc; padding-block: 48px 36px; }
-footer .wrap { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-footer .logo { color: #fff; }
-footer a { color: #d9e6ea; text-decoration: none; }
-footer .small { font-size: 13.5px; }
-.contact-on { display: none; }
-body.has-contact .contact-on { display: inline-flex; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Nuskha","applicationCategory":"BusinessApplication",
+ "operatingSystem":"Windows 10, Windows 11, Web","description":"Pharmacy management software for Pakistan: billing, stock, batches and expiry, udhaar ledger and reports.",
+ "offers":{"@type":"Offer","price":"[price]","priceCurrency":"PKR"},"url":"https://nuskhapk.vercel.app/"}
+</script>
 </head>
 <body>
-<!-- SETTINGS: put your WhatsApp number and email here; until then the contact buttons stay hidden. -->
-<script>
-  window.MEDFLOW = {
-    whatsapp: '',          // e.g. '923001234567' (country code, no + or spaces)
-    email: '',             // e.g. 'sales@yourcompany.pk'
-    cloudUrl: 'https://medflow-psi-orpin.vercel.app',
-    prices: { basic: '', pro: '', enterprise: '' },   // e.g. 'Rs 2,500' per month; empty = "Ask for price"
-  };
-</script>
+<div id="header-slot"></div>
 
-<header class="nav">
-  <div class="wrap">
-    <a class="logo" href="#top"><i>M</i> MedFlow</a>
-    <nav aria-label="Sections">
-      <a href="#features">Features</a><a href="#screens">Screens</a><a href="#local-cloud">Local or Cloud</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a>
-    </nav>
-    <a class="btn btn-primary" href="#download">Free trial</a>
-  </div>
-</header>
-
-<main id="top">
+<main>
+  <!-- 2. Hero -->
   <section class="hero">
     <div class="wrap">
       <div class="copy">
-        <span class="eyebrow">Pharmacy software for Pakistan</span>
-        <h1>Bill faster, lose nothing to expiry, and <em>keep selling when the internet is down.</em></h1>
-        <p class="urdu" lang="ur">تیز بلنگ، ایکسپائری اور اسٹاک پر مکمل نظر، اُدھار کا حساب — انٹرنیٹ کے بغیر بھی</p>
-        <p class="lead">MedFlow runs your counter, stock, batches, udhaar and accounts in one place. Built for Pakistani pharmacies: DRAP prices, strips and boxes, Easypaisa and JazzCash, English and Urdu.</p>
+        <h1>Best Pharmacy Management System &amp; Software</h1>
+        <p class="lead">Nuskha is <b>pharmacy management software in Pakistan</b> for a single store or a growing chain. It runs your billing, stock, batches and expiry, udhaar and sales reports in one place — and keeps selling when the internet is down.</p>
         <div class="cta">
-          <a class="btn btn-primary" href="#download">Download for Windows <small>free 14-day trial</small></a>
-          <a class="btn btn-ghost js-cloud" href="#local-cloud">Use it in the cloud</a>
-        </div>
-        <ul class="ticks"><li>Works without internet</li><li>Urdu &amp; English</li><li>Your data stays in your shop</li><li>Encrypted nightly backups</li></ul>
-      </div>
-      <div class="frame" aria-label="MedFlow counter screen">
-        <div class="bar"><span></span><span></span><span></span></div>
-        <img src="/img/shot-pos.png" alt="MedFlow counter: a bill with Panadol and Augmentin, payment by cash, Easypaisa, JazzCash or card" width="1440" height="860">
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="wrap">
-      <div class="head"><span class="eyebrow">Sound familiar?</span><h2>The everyday problems of a pharmacy, solved</h2></div>
-      <div class="problems">
-        <div class="problem"><span class="was">Medicines expire on the shelf</span><span class="now">MedFlow sells the <b>earliest expiry first</b> and lists what expires in 30, 60 and 90 days.</span></div>
-        <div class="problem"><span class="was">Stock in the register never matches the shelf</span><span class="now">Every strip sold, bought and returned moves stock; <b>stock count</b> shows the difference.</span></div>
-        <div class="problem"><span class="was">Udhaar written in a diary</span><span class="now">A <b>khata for every customer</b> with limits, payments and statements.</span></div>
-        <div class="problem"><span class="was">Long queues at the counter</span><span class="now">Barcode or name search, <b>keyboard shortcuts</b>, bill in seconds with F12.</span></div>
-        <div class="problem"><span class="was">Not sure what staff give away</span><span class="now">Each person signs in with a <b>PIN</b>; big discounts and voids need approval and are logged.</span></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="features">
-    <div class="wrap">
-      <div class="head"><span class="eyebrow">Features</span><h2>Everything a pharmacy runs on</h2><p class="lead">From the first bill of the morning to the owner's report at night.</p></div>
-      <div class="grid">
-        <div class="feat"><span class="ic">⚡</span><h3>Fast billing</h3><p>Search by name, formula or barcode. Strips, boxes or single tablets on the same bill. Cash, Easypaisa, JazzCash, card or bank.</p></div>
-        <div class="feat"><span class="ic">⌛</span><h3>Batches and expiry</h3><p>Every batch with its expiry; the oldest sells first. Expiry alerts before money is lost.</p></div>
-        <div class="feat"><span class="ic">▤</span><h3>Stock you can trust</h3><p>Opening stock, purchases, returns and stock counts. Reorder levels tell you what to buy.</p></div>
-        <div class="feat"><span class="ic">⬆</span><h3>Import in minutes</h3><p>Bring your whole medicine list and stock from Excel. Common distributor files are read automatically.</p></div>
-        <div class="feat"><span class="ic">☺</span><h3>Udhaar khata</h3><p>Credit customers with limits, payments, reminders and statements.</p></div>
-        <div class="feat"><span class="ic">⛟</span><h3>Suppliers and purchases</h3><p>Purchase orders, deliveries by batch, supplier balances and returns.</p></div>
-        <div class="feat"><span class="ic">℞</span><h3>Prescriptions and controlled drugs</h3><p>Prescription details on Rx medicines; controlled drugs need the pharmacist's PIN and are kept in a register.</p></div>
-        <div class="feat"><span class="ic">☷</span><h3>Staff, roles and PINs</h3><p>Salesman, pharmacist, manager: each sees only what their role allows. Only the owner sees cost and profit.</p></div>
-        <div class="feat"><span class="ic">◔</span><h3>Reports and accounts</h3><p>Sales, profit by medicine, cash drawers, expenses and books. Export to Excel.</p></div>
-        <div class="feat"><span class="ic">ع</span><h3>English and Urdu</h3><p>Switch the whole screen to Urdu (Nastaliq) with one click.</p></div>
-        <div class="feat"><span class="ic">⇄</span><h3>Several counters</h3><p>Other PCs in the shop join the main PC over the shop's Wi-Fi. Returns, held bills and shifts on every counter.</p></div>
-        <div class="feat"><span class="ic">⛨</span><h3>Safe by design</h3><p>Money records can't be edited or deleted, only reversed. Every action is logged. Backups are encrypted.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="screens">
-    <div class="wrap">
-      <div class="head"><span class="eyebrow">See it</span><h2>Real screens, not mock-ups</h2></div>
-      <div class="tabs" role="tablist">
-        <button class="tab" role="tab" aria-selected="true" data-shot="pos">Counter</button>
-        <button class="tab" role="tab" aria-selected="false" data-shot="dashboard">Owner dashboard</button>
-        <button class="tab" role="tab" aria-selected="false" data-shot="products">Products &amp; stock</button>
-        <button class="tab" role="tab" aria-selected="false" data-shot="signin">Staff sign-in</button>
-      </div>
-      <div class="frame">
-        <div class="bar"><span></span><span></span><span></span></div>
-        <img class="shot" data-shot="pos" src="/img/shot-pos.png" alt="Counter screen with a bill" loading="lazy" width="1440" height="860">
-        <img class="shot" data-shot="dashboard" src="/img/shot-dashboard.png" alt="Owner dashboard: sales, profit, udhaar, expiring stock" loading="lazy" width="1440" height="860" hidden>
-        <img class="shot" data-shot="products" src="/img/shot-products.png" alt="Products and stock list with batches and racks" loading="lazy" width="1440" height="860" hidden>
-        <img class="shot" data-shot="signin" src="/img/shot-signin.png" alt="Staff choose their name and type their PIN" loading="lazy" width="1440" height="860" hidden>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="local-cloud">
-    <div class="wrap">
-      <div class="head"><span class="eyebrow">Two ways to run MedFlow</span><h2>On your shop's PC, or in the cloud</h2><p class="lead">Same MedFlow, same screens. Choose where your records live.</p></div>
-      <div class="compare">
-        <div class="plan-card rec">
-          <span class="badge">Recommended for most pharmacies</span>
-          <h3>MedFlow Local · on your PC</h3>
-          <ul class="list">
-            <li>Keeps selling with no internet</li>
-            <li>Your records stay on your own computer</li>
-            <li>Encrypted backup every night (copy to USB or Drive)</li>
-            <li>Other counters join over the shop Wi-Fi</li>
-            <li>Updates install by themselves at night</li>
-            <li class="no">Open it only inside the shop</li>
-          </ul>
-          <a class="btn btn-primary" href="#download">Download for Windows</a>
-        </div>
-        <div class="plan-card">
-          <span class="badge">For chains and owners on the move</span>
-          <h3>MedFlow Cloud · in your browser</h3>
-          <ul class="list">
-            <li>Owner checks the shop from home or phone</li>
-            <li>Several branches in one place</li>
-            <li>Nothing to install: open the link and sign in</li>
-            <li>Owner sign-in with a 6-digit authenticator code</li>
-            <li class="no">The counter needs internet to sell</li>
-          </ul>
-          <a class="btn btn-ghost js-cloud-link" href="https://medflow-psi-orpin.vercel.app" target="_blank" rel="noopener">Open MedFlow Cloud</a>
+          <a class="btn btn-navy" href="#request-demo" data-demo>Request a Demo</a>
+          <a class="btn btn-outline js-demo-url" href="#" target="_blank" rel="noopener">Try the live demo</a>
+          <a class="btn btn-outline" href="/download.html">Download free trial</a>
         </div>
       </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="wrap">
-      <div class="head"><span class="eyebrow">Getting started</span><h2>Selling in four steps</h2></div>
-      <div class="steps">
-        <div class="step"><h3>Download and install</h3><p>Download MedFlow below and run the installer on your main shop PC. It starts by itself every morning.</p></div>
-        <div class="step"><h3>Set up your pharmacy</h3><p>Your shop name, owner and PIN. Two minutes.</p></div>
-        <div class="step"><h3>Enter your licence key</h3><p>We send you a key on WhatsApp. MedFlow shows "Licence key verified" and your trial starts.</p></div>
-        <div class="step"><h3>Import and sell</h3><p>Bring your medicines and stock from Excel, add staff PINs, and make your first bill.</p></div>
+      <div class="devices" aria-label="Nuskha on a laptop, tablet and phone">
+        <div class="laptop"><div class="screen"><img src="/img/dashboard-sm.webp" srcset="/img/dashboard-sm.webp 1080w, /img/dashboard.webp 2160w" sizes="(max-width: 960px) 90vw, 560px" alt="Nuskha owner dashboard with sales, profit, udhaar and expiring stock" width="1080" height="675" fetchpriority="high"></div><div class="base"></div></div>
+        <div class="tablet"><img src="/img/tablet.webp" alt="Nuskha dashboard on a tablet" width="1024" height="1366"></div>
+        <div class="phone"><img src="/img/phone.webp" alt="Staff sign-in with a PIN on a phone" width="780" height="1688"></div>
       </div>
     </div>
   </section>
 
-  <section class="band" id="pricing">
-    <div class="wrap">
-      <div class="head"><span class="eyebrow">Pricing</span><h2>Start free for 14 days</h2><p class="lead">No card needed. After the trial, a simple monthly plan. Your data is never lost if you stop.</p></div>
-      <div class="prices">
-        <div class="plan-card"><h3>Basic</h3><div class="price" data-price="basic"></div>
-          <ul class="list"><li>1 branch, 2 counters, 5 staff</li><li>Billing, stock, batches and expiry</li><li>Udhaar khata</li><li>Reports and Excel export</li></ul></div>
-        <div class="plan-card rec"><span class="badge">Most popular</span><h3>Pro</h3><div class="price" data-price="pro"></div>
-          <ul class="list"><li>3 branches, 10 counters, 25 staff</li><li>Everything in Basic</li><li>Approvals for discounts and voids</li><li>Alerts for the owner</li></ul></div>
-        <div class="plan-card"><h3>Enterprise</h3><div class="price" data-price="enterprise"></div>
-          <ul class="list"><li>Unlimited branches, counters and staff</li><li>Everything in Pro</li><li>Priority support</li></ul></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="download">
-    <div class="wrap">
-      <div class="download">
-        <div style="display:grid;gap:16px;align-content:start">
-          <span class="eyebrow" style="color:#b9f1e8">Download</span>
-          <h2>MedFlow for Windows</h2>
-          <p class="lead">For Windows 10 and 11 (64-bit). Install it on the main PC of your shop.</p>
-          <div class="cta"><a class="btn btn-primary" href="/download/MedFlow-Local.zip" download>Download MedFlow <small>54 MB · version 0.2.0</small></a></div>
-          <p class="meta">SHA-256: <code>4a7bcda14adb11e8c342ee9f5b9974bb373174a0dc78242f9a77c7c2953ee83f</code></p>
-        </div>
-        <ol>
-          <li>Open the downloaded <b>MedFlow-Local.zip</b> and choose <b>Extract all</b>.</li>
-          <li>In the <b>MedFlow</b> folder, right-click <b>Install-MedFlow.ps1</b> → <b>Run with PowerShell</b>. (To add more counter PCs, use <b>Run as administrator</b> once.)</li>
-          <li>If Windows asks "Do you want to run this?", choose <b>Run</b> / <b>Open</b>. MedFlow opens on its own.</li>
-          <li>Choose <b>Set up my pharmacy</b>, then enter the licence key we send you.</li>
-        </ol>
-      </div>
-    </div>
-  </section>
-
+  <!-- 3. Pain points -->
   <section class="band">
     <div class="wrap">
-      <div class="head"><span class="eyebrow">Your records are safe</span><h2>Built like a bank ledger</h2></div>
+      <div class="sec-head center"><h2>How Pharmacy Management Software Can Help You</h2>
+        <p class="lead">The problems every pharmacy owner knows, and how Nuskha takes care of them.</p></div>
+      <div class="pains">
+        <article class="pain"><h3>Stock tracking gaps leading to expired medicines</h3>
+          <div class="shot"><img src="/img/products-sm.webp" alt="Products and stock with batches, racks and nearest expiry" width="1080" height="675" loading="lazy"></div>
+          <p class="fix"><i>1</i> Live stock for every batch, expiry alerts, and the earliest expiry sold first.</p></article>
+        <article class="pain"><h3>Billing errors and missing invoices</h3>
+          <div class="shot"><img src="/img/pos-sm.webp" alt="Counter screen with a bill" width="1080" height="675" loading="lazy"></div>
+          <p class="fix"><i>2</i> Fast, numbered bills with prescription details on Rx medicines.</p></article>
+        <article class="pain"><h3>No visibility into daily profit or best-sellers</h3>
+          <div class="shot"><img src="/img/dashboard-sm.webp" alt="Dashboard with sales and profit" width="1080" height="675" loading="lazy"></div>
+          <p class="fix"><i>3</i> Sales and profit dashboards, top medicines and profit by medicine.</p></article>
+        <article class="pain"><h3>Over-reliance on staff memory</h3>
+          <div class="shot"><img src="/img/signin-sm.webp" alt="Staff sign in with their own PIN" width="1080" height="675" loading="lazy"></div>
+          <p class="fix"><i>4</i> Every sale saved with who made it; audit-ready reports and logs.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Cloud access -->
+  <section id="local-cloud">
+    <div class="wrap split">
+      <div class="copy">
+        <span class="tag">On your PC or in the cloud</span>
+        <h2>No digital record-keeping or remote access?</h2>
+        <p class="lead">Choose <b>Nuskha Cloud</b> to check your pharmacy from home or your phone, or <b>Nuskha Local</b> to keep every record on your own shop PC — it sells even without internet.</p>
+        <ul class="checks">
+          <li>Cloud: open your pharmacy from anywhere, with a 6-digit sign-in code for the owner</li>
+          <li>Local: records stay in your shop, with an encrypted backup every night</li>
+          <li>Either way, only you decide who sees cost, profit and money</li>
+        </ul>
+        <div class="cta"><a class="btn btn-navy" href="#request-demo" data-demo>Request a Demo</a></div>
+      </div>
+      <div class="cloud-art">
+        <div class="laptop" style="position:relative;left:auto;right:auto;top:auto"><div class="screen"><img src="/img/dashboard-sm.webp" alt="Nuskha dashboard" width="1080" height="675" loading="lazy"></div><div class="base"></div></div>
+        <div class="badge" aria-hidden="true"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#1a1446" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.34 9.5 4 4 0 0 0 6.5 19z"/><path d="m9 14 2 2 4-4" stroke="#f5a623"/></svg></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Features -->
+  <section class="band" id="features">
+    <div class="wrap">
+      <div class="sec-head center"><h2>Everything Your Pharmacy Needs</h2><p class="lead">From the first bill of the morning to the owner's report at night.</p></div>
+      <div class="features">
+        <div class="feature" id="feat-inventory"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span><div><h3>Real-time inventory tracking</h3><p>Stock levels for every medicine and batch, expiry alerts, reorder levels and a dead-stock report.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"/></svg></span><div><h3>Barcode and batch management</h3><p>Scan to bill. Every batch with its expiry; the earliest expiry sells first.</p></div></div>
+        <div class="feature" id="feat-billing"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span><div><h3>Smart billing and invoicing</h3><p>POS billing by strip, box or tablet; cash, Easypaisa, JazzCash, card or bank; prescription details on Rx medicines.</p></div></div>
+        <div class="feature" id="feat-reports"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><div><h3>Profit and sales reports</h3><p>Daily revenue, margins, profit by medicine and top sellers. Export to Excel.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 11a3 3 0 1 0-1-5.8M22 20a5.5 5.5 0 0 0-4-5.3"/></svg></span><div><h3>Multi-user roles</h3><p>Salesman, pharmacist, manager and owner, each with their own PIN and access. Only the owner sees cost and profit.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><div><h3>Cloud-based and secure</h3><p>Cloud access for owners, encrypted nightly backups on your PC, signed updates and a full audit log.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><div><h3>Customer management</h3><p>Customer profiles with phone and account number, linked to their bills and their udhaar account.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></span><div><h3>Manufacturer records</h3><p>Every medicine linked to its company and generic, so you can find alternatives and trace stock.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M1 6h13v11H1zM14 10h4l3 3v4h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><div><h3>Supplier management</h3><p>Supplier records, purchase orders, deliveries by batch, supplier balances and returns.</p></div></div>
+        <div class="feature" id="feat-udhaar"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9h8M8 13h5"/></svg></span><div><h3>Udhaar ledger</h3><p>Credit for customers and suppliers: limits, payments due, statements and reminders.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v18M3 12h18"/></svg></span><div><h3>Prescriptions and controlled drugs</h3><p>Doctor and patient details on prescription medicines; controlled drugs need the pharmacist's PIN and are kept in a register.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></span><div><h3>Inventory and purchases</h3><p>Purchase records, incoming stock, opening stock and stock counts. Import your whole list from Excel.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></span><div><h3>Sales and reports</h3><p>Every sale linked to stock and customer: sales, returns, shifts, cash drawers and expenses.</p></div></div>
+        <div class="feature"><span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 15h10"/></svg></span><div><h3>Settings and hotkeys</h3><p>User roles, receipt and rounding rules, and keyboard shortcuts (F2 search, F12 pay) for faster sales.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Audience -->
+  <section>
+    <div class="wrap split">
+      <div class="copy">
+        <h2>Nuskha is built for every type of<br><span class="hl">pharmacy in Pakistan</span></h2>
+        <p class="lead">Whether you run one medical store or several branches, Nuskha fits the way Pakistani pharmacies work: strips and boxes, udhaar, Easypaisa and JazzCash, and screens in English or Urdu.</p>
+        <div class="cta"><a class="btn btn-navy" href="#request-demo" data-demo>Request a Demo</a></div>
+      </div>
+      <div class="pills">
+        <span class="pill">Retail pharmacies</span><span class="pill">Medical store chains</span><span class="pill">Hospital pharmacies</span>
+        <span class="pill">Pharmacies in clinics and labs</span><span class="pill">Wholesale distributors</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Compliance -->
+  <section class="band">
+    <div class="wrap" style="max-width:920px">
+      <div class="sec-head center"><h2>Regulatory Compliance in Pakistan</h2></div>
+      <p class="lead center">Nuskha keeps the records inspections ask for: traceable stock for every batch with its expiry, prescription details on Rx medicines, a register for controlled drugs that needs the pharmacist's PIN, and an audit log of who did what and when.<span id="regulators"></span></p>
+    </div>
+  </section>
+
+  <!-- 8. FBR (only when confirmed) -->
+  <section data-flag="fbr_integration">
+    <div class="wrap" style="max-width:920px">
+      <div class="sec-head center"><h2>FBR Integration for Pharmacy Operations</h2></div>
+      <p class="lead center">[fbr_description] Eligibility depends on your pharmacy. Confirm your integration status with the Nuskha team before go-live.</p>
+    </div>
+  </section>
+
+  <!-- 9. Outcomes -->
+  <section>
+    <div class="wrap">
+      <div class="sec-head center"><h2>More Sales, Less Waste, Complete Control</h2></div>
+      <div class="acc">
+        <details open><summary>Reduce expired stock losses</summary><p>Expiry alerts at 30, 60 and 90 days and earliest-expiry-first selling mean less money expires on your shelves.</p><span class="result" data-fill="measured_expiry_reduction"></span></details>
+        <details><summary>Save hours of manual entry every week</summary><p>Import your medicines from Excel once; after that every sale and purchase updates stock by itself.</p><span class="result" data-fill="measured_hours_saved"></span></details>
+        <details><summary>Improve profit tracking and cash-flow visibility</summary><p>Daily profit, cash in drawers, money owed to suppliers and udhaar to collect — on one dashboard.</p></details>
+        <details><summary>Make smarter purchase decisions backed by data</summary><p>Reorder levels, dead stock and top sellers show what to buy, and what not to.</p></details>
+        <details><summary>Grow from one store to a pharmacy chain</summary><p>Add counters, staff and branches as you grow; the owner sees them all.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. Trust -->
+  <section class="band">
+    <div class="wrap">
+      <div class="sec-head center"><h2>Why Pharmacies Trust Nuskha</h2></div>
       <div class="trust">
-        <div><h3>Encrypted backups</h3><p>Every night, AES-256 encrypted, 30 kept. Copy to USB or Google Drive.</p></div>
-        <div><h3>Nothing is erased</h3><p>Sales and payments can only be reversed, never edited or deleted. Every action is logged.</p></div>
-        <div><h3>PINs and roles</h3><p>Each person has a PIN and sees only what their role allows.</p></div>
-        <div><h3>Signed updates</h3><p>Updates are digitally signed and checked before installing, with an automatic backup first.</p></div>
+        <div data-block><h3><span data-fill="client_count"></span> pharmacies and clinics use Nuskha</h3><p>Pharmacies across Pakistan run their counters on Nuskha.</p></div>
+        <div><h3>Local support, Urdu and English</h3><p>Support from a team in Pakistan, and every screen switches between English and Urdu.</p></div>
+        <div><h3>Healthcare-specific design</h3><p>Built for medicines — batches, expiry, prescriptions and controlled drugs — not a generic shop POS.</p></div>
+        <div><h3>Scales from one store to a chain</h3><p>From one counter to many branches, with roles and approvals for every team member.</p></div>
       </div>
+      <div id="certs" style="display:flex;gap:24px;justify-content:center;margin-top:36px"></div>
     </div>
   </section>
 
-  <section id="faq">
-    <div class="wrap" style="max-width:860px">
-      <div class="head"><span class="eyebrow">Questions</span><h2>Frequently asked</h2></div>
-      <details><summary>Does MedFlow work without internet?</summary><p>Yes. MedFlow Local sells, prints bills and keeps stock with no internet. It checks its licence with us when the internet is available; it can stay offline for up to 15 days at a time.</p></details>
-      <details><summary>Where is my data kept?</summary><p>With MedFlow Local, on your own PC, backed up every night in encrypted form. We only see your licence, invoices and simple counts (for example, how many bills), never your sales, customers or stock. With MedFlow Cloud, your records are in our secure cloud database, separate from every other pharmacy.</p></details>
-      <details><summary>What happens if I stop paying?</summary><p>After a grace period MedFlow becomes read-only: you can still see and export everything, but new sales stop. Nothing is deleted.</p></details>
-      <details><summary>Can I bring my existing medicine list?</summary><p>Yes. Import your medicines and stock from Excel or CSV. Columns from most distributor and pharmacy files are recognised automatically.</p></details>
-      <details><summary>What computer do I need?</summary><p>Any PC with Windows 10 or 11 (64-bit). A barcode scanner and a thermal receipt printer (58 or 80 mm) are optional and work like a keyboard and printer.</p></details>
-      <details><summary>Can I use more than one counter?</summary><p>Yes. Other PCs in the shop open MedFlow over the shop's Wi-Fi and are linked once with the owner's PIN.</p></details>
-      <details><summary>Is it in Urdu?</summary><p>Yes, the whole screen switches between English and Urdu.</p></details>
-      <details><summary>Do I get updates?</summary><p>Yes. Updates install by themselves at night (between 1 and 5 am), after a backup. If an update ever fails, MedFlow returns to the previous version by itself.</p></details>
-    </div>
-  </section>
-
-  <section class="band" style="text-align:center">
-    <div class="wrap" style="display:grid;gap:18px;justify-items:center">
-      <h2>Try MedFlow free for 14 days</h2>
-      <p class="lead">Install it today, import your medicines, and make your first bill in under an hour.</p>
-      <div class="cta" style="justify-content:center">
-        <a class="btn btn-primary" href="#download">Download for Windows</a>
-        <a class="btn btn-wa contact-on js-wa" href="#" target="_blank" rel="noopener">Ask on WhatsApp</a>
-      </div>
+  <!-- 11. Blog -->
+  <section>
+    <div class="wrap">
+      <div class="sec-head center"><h2>Insights for Pharmacy Owners</h2></div>
+      <div class="posts" id="posts" data-limit="3"></div>
     </div>
   </section>
 </main>
 
-<footer>
-  <div class="wrap">
-    <div style="display:grid;gap:10px;align-content:start"><span class="logo"><i>M</i> MedFlow</span><p class="small">Pharmacy software for Pakistan. Works without internet.</p></div>
-    <div style="display:grid;gap:8px;align-content:start"><b style="color:#fff">Product</b><a href="#features">Features</a><a href="#local-cloud">Local or Cloud</a><a href="#pricing">Pricing</a><a href="#download">Download</a></div>
-    <div style="display:grid;gap:8px;align-content:start"><b style="color:#fff">Help</b><a href="#faq">FAQ</a><a class="js-cloud-link" href="https://medflow-psi-orpin.vercel.app" target="_blank" rel="noopener">MedFlow Cloud sign-in</a><span class="contact-on js-mail-wrap"><a class="js-mail" href="#">Email us</a></span></div>
-    <p class="small" style="grid-column:1/-1;border-top:1px solid #23363e;padding-top:18px">© <span id="yr"></span> MedFlow. All rights reserved.</p>
-  </div>
-</footer>
-
-<script>
-(() => {
-  const c = window.MEDFLOW || {};
-  document.getElementById('yr').textContent = new Date().getFullYear();
-  if (c.whatsapp || c.email) document.body.classList.add('has-contact');
-  document.querySelectorAll('.js-wa').forEach((a) => {
-    if (!c.whatsapp) { a.remove(); return; }
-    a.href = 'https://wa.me/' + c.whatsapp + '?text=' + encodeURIComponent('Assalam o alaikum, I want to try MedFlow for my pharmacy.');
-  });
-  document.querySelectorAll('.js-mail').forEach((a) => { if (c.email) a.href = 'mailto:' + c.email; else a.closest('.js-mail-wrap')?.remove(); });
-  document.querySelectorAll('.js-cloud-link').forEach((a) => { if (c.cloudUrl) a.href = c.cloudUrl; });
-  document.querySelectorAll('[data-price]').forEach((el) => {
-    const p = (c.prices || {})[el.dataset.price];
-    el.innerHTML = p ? p + ' <small>/ month</small>' : 'Ask for price';
-  });
-  const tabs = document.querySelectorAll('.tab');
-  tabs.forEach((t) => t.addEventListener('click', () => {
-    tabs.forEach((x) => x.setAttribute('aria-selected', String(x === t)));
-    document.querySelectorAll('.shot').forEach((img) => { img.hidden = img.dataset.shot !== t.dataset.shot; });
-  }));
-})();
-</script>
+<div id="footer-slot"></div>
+<script src="/script.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 import { MESSAGES as CORE, type Lang } from '@medflow/core';
 
 const en = {
-  'pos.loading': 'Starting MedFlow…',
+  'pos.loading': 'Starting Nuskha…',
   'pos.demo': 'Demo Pharmacy — practice data in this browser',
   'pos.who': 'Who is selling?',
   'pos.pin_for': 'PIN for {name}',

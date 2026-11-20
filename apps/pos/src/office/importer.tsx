@@ -1,5 +1,5 @@
 // Import the pharmacy's whole medicine list from Excel or CSV: choose the file, check which column
-// is which (MedFlow guesses), see the first rows and any problems, then import in batches.
+// is which (Nuskha guesses), see the first rows and any problems, then import in batches.
 // Importing the same file again changes nothing; existing medicines are updated, never duplicated.
 import { buildImportRows, chunk, IMPORT_FIELDS, suggestMapping, type ColumnMapping, type ImportField } from '@medflow/core';
 import { useState } from 'react';
@@ -160,7 +160,7 @@ export function ImportProducts(props: PageProps & { onClose: () => void; onDone:
             <div className="table-wrap"><table className="table"><thead><tr><th className="num">Row</th><th>Problem</th></tr></thead>
               <tbody>{result.errors.slice(0, 200).map((e, i) => <tr key={i}><td className="num">{e.row + 1}</td><td>{e.error}</td></tr>)}</tbody></table></div>
           )}
-          <p className="muted small">{result.stocked ? 'Stock is on the shelf in MedFlow. New deliveries go through Purchases.' : 'Next: add stock with "Add stock" on each medicine, or put Quantity, Batch and Expiry columns in the file.'}</p>
+          <p className="muted small">{result.stocked ? 'Stock is on the shelf in Nuskha. New deliveries go through Purchases.' : 'Next: add stock with "Add stock" on each medicine, or put Quantity, Batch and Expiry columns in the file.'}</p>
           <div className="row-actions"><button type="button" className="btn primary" onClick={props.onDone}>Done</button></div>
         </div>
       )}

@@ -1,5 +1,5 @@
-' MedFlow: one click, like any program. Starts MedFlow Local in the background if it is not
-' already running, waits until it is ready, then opens MedFlow in its own window (no browser bars).
+' Nuskha: one click, like any program. Starts Nuskha Local in the background if it is not
+' already running, waits until it is ready, then opens Nuskha in its own window (no browser bars).
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh = CreateObject("WScript.Shell")
 dir = fso.GetParentFolderName(WScript.ScriptFullName)
@@ -24,7 +24,7 @@ If Not Ready() Then
     If Ready() Then Exit For
   Next
   If Not Ready() Then
-    MsgBox "MedFlow could not start." & vbCrLf & "See " & dir & "\logs\medflow.log", vbExclamation, "MedFlow"
+    MsgBox "Nuskha could not start." & vbCrLf & "See " & dir & "\logs\medflow.log", vbExclamation, "Nuskha"
     WScript.Quit 1
   End If
 End If

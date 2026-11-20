@@ -1,4 +1,4 @@
-// Small web helpers shared by MedFlow Local and MedFlow HQ: JSON in and out, static files.
+// Small web helpers shared by Nuskha Local and Nuskha HQ: JSON in and out, static files.
 import fs from 'node:fs';
 import type http from 'node:http';
 import os from 'node:os';
@@ -19,7 +19,7 @@ const proxied = (req: http.IncomingMessage) => PROXIED.some((h) => req.headers[h
 
 /**
  * Takes the port BEFORE the database is opened. A second copy of the server (the icon clicked again
- * while MedFlow is still starting) stops here with exit code 3 and never touches the data folder:
+ * while Nuskha is still starting) stops here with exit code 3 and never touches the data folder:
  * two database engines on one folder can damage it.
  */
 export async function claimPort(port: number, starting: string, log: (s: string) => void) {
@@ -70,7 +70,7 @@ export async function readJson(req: http.IncomingMessage): Promise<Record<string
 }
 
 /**
- * Sent with every response from MedFlow Local and MedFlow HQ (OWASP secure headers).
+ * Sent with every response from Nuskha Local and Nuskha HQ (OWASP secure headers).
  * The pages load only their own files, Google Fonts, and (HQ sign-in) Google Identity Services.
  * 'wasm-unsafe-eval' lets the browser run the WebAssembly database in the browser-only mode;
  * 'unsafe-inline' is for style attributes only (React style={}), never for scripts.
@@ -101,7 +101,8 @@ export const SECURITY_HEADERS: Record<string, string> = {
 };
 
 export function send(res: http.ServerResponse, status: number, body: unknown) {
-  const text = JSON.stringify(body ?? null);
+  // Messages written by older database code still say MedFlow (the former name); people see Nuskha.
+  const text = JSON.stringify(body ?? null).replace(/\bMedFlow\b/g, 'Nuskha');
   if ((res.req as http.IncomingMessage & { tooBig?: boolean } | undefined)?.tooBig) res.setHeader('Connection', 'close');
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(text);
@@ -118,7 +119,7 @@ export function serveStatic(root: string, req: http.IncomingMessage, res: http.S
   let file = path.normalize(path.join(root, urlPath));
   if (!file.startsWith(root)) { res.writeHead(403).end(); return; }
   if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(root, 'index.html');
-  if (!fs.existsSync(file)) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('MedFlow app files are missing (public folder).'); return; }
+  if (!fs.existsSync(file)) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Nuskha app files are missing (public folder).'); return; }
   const hashed = urlPath.startsWith('/assets/');
   res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] ?? 'application/octet-stream', 'Cache-Control': hashed ? 'public, max-age=31536000, immutable' : 'no-cache' });
   fs.createReadStream(file).pipe(res);

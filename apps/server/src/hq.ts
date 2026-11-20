@@ -1,4 +1,4 @@
-// MedFlow HQ: the platform owner's own server. It keeps the list of pharmacies (customers), their
+// Nuskha HQ: the platform owner's own server. It keeps the list of pharmacies (customers), their
 // plans, licence keys, invoices and payments, and answers each pharmacy's daily check-in with a
 // licence signed by HQ's private key. The console (your screens) is served from here too.
 // Start: node medflow-hq.mjs   options: --data <folder> --port <n> (default 5299)
@@ -47,7 +47,7 @@ async function verifyGoogleToken(idToken: string, clientId: string): Promise<{ e
   if (header.alg !== 'RS256' || !header.kid) throw new ApiError('Google sign-in failed. Try again.', 403);
   if (!googleKeys || Date.now() - googleKeys.at > 3600_000 || !googleKeys.keys.some((k) => k.kid === header.kid)) {
     const r = await fetch('https://www.googleapis.com/oauth2/v3/certs');
-    if (!r.ok) throw new ApiError('MedFlow HQ could not reach Google. Check the internet and try again.', 503);
+    if (!r.ok) throw new ApiError('Nuskha HQ could not reach Google. Check the internet and try again.', 503);
     googleKeys = { at: Date.now(), keys: ((await r.json()) as { keys: Array<{ kid: string }> }).keys };
   }
   const jwk = googleKeys.keys.find((k) => k.kid === header.kid);
@@ -108,8 +108,8 @@ async function asService<T>(db: PGlite, fn: (tx: Parameters<Parameters<typeof as
 }
 
 async function main() {
-  log(`MedFlow HQ ${VERSION} starting · data ${cfg.data}`);
-  const { server, ready } = await claimPort(cfg.port, 'MedFlow HQ is starting, one moment…', log);
+  log(`Nuskha HQ ${VERSION} starting · data ${cfg.data}`);
+  const { server, ready } = await claimPort(cfg.port, 'Nuskha HQ is starting, one moment…', log);
   const db = await openDatabase(cfg.data, cfg.sql, log);
   await db.exec(`create table if not exists medflow_local.hq_passwords (admin_id uuid primary key, email text not null unique, hash text not null)`);
   await db.exec(`create table if not exists medflow_local.hq_settings (key text primary key, value text not null)`);
@@ -119,7 +119,7 @@ async function main() {
     else await db.query('insert into medflow_local.hq_settings (key, value) values ($1, $2) on conflict (key) do update set value = excluded.value', [k, v]);
   };
   const key = await signingKey();
-  log(`HQ public key (built into MedFlow Local): ${key.publicRaw}`);
+  log(`HQ public key (built into Nuskha Local): ${key.publicRaw}`);
 
   // Billing and the lifecycle (trials end, invoices fall due, grace, read-only at closing time).
   const tick = async () => {
@@ -155,10 +155,10 @@ async function main() {
       fs.createReadStream(full).pipe(res);
       return;
     }
-    // ---- You upload a new MedFlow Local version; HQ signs it ----
+    // ---- You upload a new Nuskha Local version; HQ signs it ----
     if (route === 'admin/release' && req.method === 'POST') {
       const s = sessions.get((req.headers.authorization ?? '').replace(/^Bearer\s+/i, ''));
-      if (!s || s.until < Date.now()) throw new ApiError('Sign in to MedFlow HQ', 401);
+      if (!s || s.until < Date.now()) throw new ApiError('Sign in to Nuskha HQ', 401);
       const version = String(req.headers['x-medflow-version'] ?? '');
       const channel = String(req.headers['x-medflow-channel'] ?? 'stable');
       const notes = decodeURIComponent(String(req.headers['x-medflow-notes'] ?? ''));
@@ -192,7 +192,7 @@ async function main() {
     if (req.method !== 'POST') throw new ApiError('Not found', 404);
     const body = await readJson(req);
 
-    // ---- A pharmacy's MedFlow Local, by licence key ----
+    // ---- A pharmacy's Nuskha Local, by licence key ----
     if (route === 'checkin') {
       const claims = await asService(db, (tx) => callFunction(tx, 'hq_checkin', [String(body.key ?? ''), body.install_id ?? null, body.info ?? {}], false));
       const token = await signClaims(claims as object, key.privateKey);
@@ -260,7 +260,7 @@ async function main() {
         const n = (f?.n ?? 0) + 1;
         failures.set(from, { n: n >= 5 ? 0 : n, until: n >= 5 ? Date.now() + 10 * 60_000 : 0 });
         log(`HQ Google sign-in refused for ${g.email} from ${from}`);
-        throw new ApiError(`${g.email} is not the MedFlow HQ owner account.`, 403);
+        throw new ApiError(`${g.email} is not the Nuskha HQ owner account.`, 403);
       }
       failures.delete(from);
       const token = randomBytes(32).toString('base64url');
@@ -270,7 +270,7 @@ async function main() {
     }
     const bearer = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
     const s = sessions.get(bearer);
-    if (!s || s.until < Date.now()) { sessions.delete(bearer); throw new ApiError('Sign in to MedFlow HQ', 401); }
+    if (!s || s.until < Date.now()) { sessions.delete(bearer); throw new ApiError('Sign in to Nuskha HQ', 401); }
     if (route === 'admin/logout') { sessions.delete(bearer); return send(res, 200, { ok: true }); }
     if (route === 'admin/signin-options') {
       const me = (await db.query<{ id: string; email: string }>('select id, email from platform_admins where auth_user_id = $1', [s.auth])).rows[0]!;
@@ -327,9 +327,9 @@ Policy: https://${req.headers.host}/security-policy
     if (url.split('?')[0] === '/security-policy') {
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }).end(
         [
-          'MedFlow security policy',
+          'Nuskha security policy',
           '',
-          'If you find a security problem in MedFlow, please tell us privately at the contact in /.well-known/security.txt.',
+          'If you find a security problem in Nuskha, please tell us privately at the contact in /.well-known/security.txt.',
           'Do not access data that is not yours, do not disrupt pharmacies, and give us 90 days to fix it before telling anyone else.',
           'We will reply within 5 working days and credit you if you wish.',
           '',
@@ -340,13 +340,13 @@ Policy: https://${req.headers.host}/security-policy
     const route = url.slice(4).split('?')[0]!;
     api(req, res, route).catch((err) => {
       if (err instanceof ApiError) send(res, err.status, { error: err.message, code: err.code, hint: err.hint });
-      else { log(`Error on ${route}: ${(err as Error).stack ?? err}`); send(res, 500, { error: 'MedFlow HQ had a problem. See the log.' }); }
+      else { log(`Error on ${route}: ${(err as Error).stack ?? err}`); send(res, 500, { error: 'Nuskha HQ had a problem. See the log.' }); }
     });
   });
-  log(`MedFlow HQ is ready: http://localhost:${cfg.port}`);
+  log(`Nuskha HQ is ready: http://localhost:${cfg.port}`);
   const stop = async () => { server.close(); await db.close().catch(() => {}); process.exit(0); };
   process.on('SIGINT', () => void stop());
   process.on('SIGTERM', () => void stop());
 }
 
-main().catch((err) => { log(`MedFlow HQ could not start: ${(err as Error).stack ?? err}`); process.exit(1); });
+main().catch((err) => { log(`Nuskha HQ could not start: ${(err as Error).stack ?? err}`); process.exit(1); });

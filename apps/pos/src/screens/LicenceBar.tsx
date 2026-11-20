@@ -1,6 +1,6 @@
-// A thin bar at the bottom of every screen on MedFlow Local when the licence needs attention:
-// trial days left, payment late, read-only, no key yet, or news from MedFlow. The owner acts on it
-// in Settings → MedFlow licence and billing.
+// A thin bar at the bottom of every screen on Nuskha Local when the licence needs attention:
+// trial days left, payment late, read-only, no key yet, or news from Nuskha. The owner acts on it
+// in Settings → Nuskha licence and billing.
 import { useEffect, useState } from 'react';
 import { serverStatus, type LicenceStatus } from '../backend/server.ts';
 
@@ -22,7 +22,7 @@ export function LicenceBar() {
     return () => window.clearInterval(t);
   }, []);
   if (updated) {
-    return <div className="licence-bar" role="status"><div className="licence-line info"><strong>MedFlow was updated to {updated}.</strong>
+    return <div className="licence-bar" role="status"><div className="licence-line info"><strong>Nuskha was updated to {updated}.</strong>
       <button type="button" className="btn small-btn primary" onClick={() => window.location.reload()}>Reload now</button></div></div>;
   }
   if (!lic || lic.state === 'off' || lic.state === 'demo') return null;
@@ -37,7 +37,7 @@ export function LicenceBar() {
   if (!show && !news.length) return null;
   return (
     <div className="licence-bar" role="status">
-      {show && <div className={`licence-line ${tone}`}><strong>MedFlow:</strong> {lic.message}</div>}
+      {show && <div className={`licence-line ${tone}`}><strong>Nuskha:</strong> {lic.message}</div>}
       {news.slice(0, 2).map((a) => (
         <div key={a.id} className={`licence-line ${a.severity === 'info' ? 'info' : 'warn'}`}>
           <strong>{a.title}</strong> {a.body}

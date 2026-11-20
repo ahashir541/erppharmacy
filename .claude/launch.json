@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@medflow/pos", "dev"],
       "port": 5180
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5190", "--directory", "site"],
+      "port": 5190
     }
   ]
 }

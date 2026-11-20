@@ -38,7 +38,7 @@ export function Overview(props: { go: Go }) {
   const late = (list.data ?? []).filter((p) => ['grace', 'read_only'].includes(p.status) || p.unpaid > 0);
   return (
     <>
-      <PageHead title="Overview" sub="Your MedFlow business at a glance" />
+      <PageHead title="Overview" sub="Your Nuskha business at a glance" />
       {dash.error && <div className="form-error">{dash.error}</div>}
       <div className="stats">
         <Stat label="Monthly income (MRR)" value={rs(d?.mrr)} tone="good" />
@@ -77,7 +77,7 @@ export function Pharmacies(props: { openId: string | null; onOpen: (id: string |
   const rows = (list.data ?? []).filter((p) => !q || `${p.name} ${p.owner_name} ${p.city} ${p.owner_phone}`.toLowerCase().includes(q.toLowerCase()));
   return (
     <>
-      <PageHead title="Pharmacies" sub="Every pharmacy using MedFlow: plan, status, and when its PC last checked in">
+      <PageHead title="Pharmacies" sub="Every pharmacy using Nuskha: plan, status, and when its PC last checked in">
         <button type="button" className="btn primary" onClick={() => setAdding(true)}>+ Add pharmacy</button>
       </PageHead>
       <div className="filters"><input placeholder="Search name, owner, city, phone" value={q} onChange={(e) => setQ(e.target.value)} /></div>
@@ -96,7 +96,7 @@ export function Pharmacies(props: { openId: string | null; onOpen: (id: string |
 
 function KeyBox(props: { pharmacy: string; licenceKey: string; phone?: string }) {
   const [copied, setCopied] = useState(false);
-  const text = `Assalam o Alaikum! Your MedFlow licence key for ${props.pharmacy} is:\n${props.licenceKey}\nEnter it when MedFlow asks for it (Settings → Licence).`;
+  const text = `Assalam o Alaikum! Your Nuskha licence key for ${props.pharmacy} is:\n${props.licenceKey}\nEnter it when Nuskha asks for it (Settings → Licence).`;
   const wa = props.phone ? `https://wa.me/${props.phone.replace(/\D/g, '').replace(/^0/, '92')}?text=${encodeURIComponent(text)}` : null;
   return (
     <div className="key-box">
@@ -128,7 +128,7 @@ function AddPharmacy(props: { onClose: () => void; onAdded: () => void }) {
       {made ? (
         <div className="stack">
           <KeyBox pharmacy={f.name} licenceKey={made.licence_key} phone={f.owner_phone} />
-          <p className="muted small">Next: the pharmacy installs MedFlow and enters this key. It starts on a {f.trial_days || plan?.trial_days || 0}-day trial.
+          <p className="muted small">Next: the pharmacy installs Nuskha and enters this key. It starts on a {f.trial_days || plan?.trial_days || 0}-day trial.
             To bill them, open the pharmacy and choose "Start billing".</p>
           <div className="row-actions"><button type="button" className="btn primary" onClick={props.onClose}>Done</button></div>
         </div>
@@ -219,7 +219,7 @@ function PharmacyDetail(props: { id: string; onBack: () => void }) {
           ]} />
         </section>
         <section className="panel">
-          <div className="panel-title">PCs running MedFlow</div>
+          <div className="panel-title">PCs running Nuskha</div>
           <Table rows={x.installs} empty="Not installed yet (no check-in with this key)." cols={[
             { label: 'PC', value: (i) => <><strong>{i.machine ?? 'PC'}</strong><div className="muted small">v{i.app_version ?? '?'} · since {dateOf(i.first_seen_at)}</div></> },
             { label: 'Last check-in', value: (i) => ago(i.last_checkin_at) },
@@ -281,7 +281,7 @@ function DeleteModal(props: { id: string; name: string; status: string; onClose:
     return (
       <Modal title={`Delete ${props.name}?`} onClose={props.onClose}>
         <div className="stack">
-          <p>To delete a pharmacy, first set its status to <strong>Cancelled</strong>. That stops MedFlow at their shop; deleting then removes it from HQ for good.</p>
+          <p>To delete a pharmacy, first set its status to <strong>Cancelled</strong>. That stops Nuskha at their shop; deleting then removes it from HQ for good.</p>
           <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Close</button>
             <button type="button" className="btn primary" onClick={props.onCancelFirst}>Change status</button></div>
         </div>
@@ -294,7 +294,7 @@ function DeleteModal(props: { id: string; name: string; status: string; onClose:
       <form className="stack" onSubmit={submit}>
         <div className="licence-result bad">
           <strong>This cannot be undone.</strong>
-          <span>The pharmacy, its licence key, invoices, payments and history are removed from MedFlow HQ. Their MedFlow at the shop stops working with this key. Their own records on their PC are not touched.</span>
+          <span>The pharmacy, its licence key, invoices, payments and history are removed from Nuskha HQ. Their Nuskha at the shop stops working with this key. Their own records on their PC are not touched.</span>
         </div>
         <label className="field"><span>Type <strong>{props.name}</strong> to confirm</span>
           <input autoFocus value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" /></label>
@@ -320,7 +320,7 @@ function StatusModal(props: { id: string; current: string; onClose: () => void; 
         </label>
         <p className="muted small">{status === 'read_only' ? 'Read-only starts at the pharmacy\'s closing time tonight, never in the middle of the day. They can still see and export everything.'
           : status === 'active' ? 'Selling works normally again at their next check-in (within a few hours, or when they press "Check now").'
-          : status === 'cancelled' ? 'They keep their data on their own PC; MedFlow stops selling.' : ''}</p>
+          : status === 'cancelled' ? 'They keep their data on their own PC; Nuskha stops selling.' : ''}</p>
         <label className="field"><span>Reason (kept in the history) *</span><input required value={reason} onChange={(e) => setReason(e.target.value)} /></label>
         {error && <div className="form-error">{error}</div>}
         <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>Save</button></div>
@@ -368,7 +368,7 @@ export function Payments(props: { go: Go }) {
   };
   return (
     <>
-      <PageHead title="Payments" sub="Pharmacies send a transaction reference from MedFlow; check your bank or JazzCash, then confirm" />
+      <PageHead title="Payments" sub="Pharmacies send a transaction reference from Nuskha; check your bank or JazzCash, then confirm" />
       {err && <div className="form-error">{err}</div>}
       <Table rows={list.data} error={list.error} empty="No payments to check." cols={[
         { label: 'Pharmacy', value: (r) => <button type="button" className="link-btn" onClick={() => props.go('pharmacies', r.tenant_id)}>{r.pharmacy}</button> },
@@ -383,7 +383,7 @@ export function Payments(props: { go: Go }) {
           </div>) : <span className={`pill ${r.status === 'verified' ? 'good' : 'bad'}`}>{r.status}</span>) },
       ]} />
       <section className="panel">
-        <div className="panel-title">How pharmacies pay you (shown in their MedFlow)</div>
+        <div className="panel-title">How pharmacies pay you (shown in their Nuskha)</div>
         <textarea rows={4} placeholder="e.g. Meezan Bank, Account title: …, IBAN: …  /  JazzCash: 03xx-xxxxxxx (name)"
                   value={text ?? plans.data?.payment_instructions ?? ''} onChange={(e) => setText(e.target.value)} />
         <div className="row-actions"><button type="button" className="btn primary" disabled={text === null}
@@ -529,7 +529,7 @@ export function Updates() {
   const versions = Object.entries(data.data?.versions ?? {}).sort((a, b) => b[1] - a[1]);
   return (
     <>
-      <PageHead title="Updates" sub="New MedFlow versions reach pharmacies by themselves at night, after their backup" />
+      <PageHead title="Updates" sub="New Nuskha versions reach pharmacies by themselves at night, after their backup" />
       <div className="stats">
         {versions.length ? versions.map(([v, n]) => <Stat key={v} label={`PCs on ${v}`} value={n} />) : <Stat label="PCs checking in" value={0} />}
       </div>

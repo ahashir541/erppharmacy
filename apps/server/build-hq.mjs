@@ -1,10 +1,10 @@
-// Builds MedFlow HQ (your own server and console; never give it to a pharmacy): release/MedFlowHQ
+// Builds Nuskha HQ (your own server and console; never give it to a pharmacy): release/MedFlowHQ
 //   medflow-hq.mjs, hq-public/ (the console), sql/, node_modules/ (PGlite), node/, HQ-Server.cmd
 // Options: --url <https://your-hq-address>  the address pharmacies reach HQ at (written to hq.json)
 //          --keys <folder>                 the installed HQ's signing key folder (e.g. C:\MedFlowHQ\hq-keys)
 //          --no-node
 // After the first start of HQ, its public key is in <keys>/public-key.txt; this script copies it
-// into hq.json so the next MedFlow Local build trusts this HQ.
+// into hq.json so the next Nuskha Local build trusts this HQ.
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,7 +23,7 @@ await build({
   entryPoints: [path.join(here, 'src/hq.ts')], outfile: path.join(out, 'medflow-hq.mjs'),
   bundle: true, platform: 'node', format: 'esm', target: 'node20',
   external: ['@electric-sql/pglite', '@electric-sql/pglite/*'],
-  banner: { js: '// MedFlow HQ server. Built file; the source is apps/server/src/hq.ts.' }, logLevel: 'warning',
+  banner: { js: '// Nuskha HQ server. Built file; the source is apps/server/src/hq.ts.' }, logLevel: 'warning',
 });
 
 step('Database files');
@@ -52,7 +52,7 @@ for (const f of fs.readdirSync(path.join(here, 'windows-hq'))) fs.copyFileSync(p
 // A release never carries data, keys or logs (a test run may have left them here).
 for (const d of ['hq-data', 'hq-keys', 'hq-backups', 'hq-releases', 'logs']) fs.rmSync(path.join(out, d), { recursive: true, force: true });
 
-// Tie MedFlow Local builds to this HQ.
+// Tie Nuskha Local builds to this HQ.
 const keys = arg('keys') ? path.resolve(arg('keys')) : 'C:\\MedFlowHQ\\hq-keys';
 const pubFile = path.join(keys, 'public-key.txt');
 const hqFile = path.join(here, 'hq.json');

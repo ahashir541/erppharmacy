@@ -1,4 +1,4 @@
-// MedFlow Local updates itself from MedFlow HQ.
+// Nuskha Local updates itself from Nuskha HQ.
 //  1. HQ offers a version at check-in (channel and rollback rules are HQ's).
 //  2. At night (01:00–05:00, after the 23:00 backup), or when the owner presses "Install now":
 //     download, check HQ's signature and the file's SHA-256, back up the data, unpack with tar,
@@ -31,9 +31,9 @@ export function startupGuard(home: string, log: (s: string) => void) {
   try { st = JSON.parse(fs.readFileSync(stateFile, 'utf8')); } catch { fs.rmSync(stateFile, { force: true }); return; }
   st.attempts += 1;
   fs.writeFileSync(stateFile, JSON.stringify(st));
-  if (st.attempts <= 3) { log(`Starting MedFlow ${st.version} after the update (try ${st.attempts})`); return; }
+  if (st.attempts <= 3) { log(`Starting Nuskha ${st.version} after the update (try ${st.attempts})`); return; }
   const prev = path.join(dir, 'previous');
-  log(`MedFlow ${st.version} did not start after 3 tries: putting back ${st.from}`);
+  log(`Nuskha ${st.version} did not start after 3 tries: putting back ${st.from}`);
   if (fs.existsSync(prev)) {
     for (const name of fs.readdirSync(home)) if (PROGRAM(name) && fs.existsSync(path.join(prev, name))) fs.rmSync(path.join(home, name), { recursive: true, force: true });
     for (const name of fs.readdirSync(prev)) fs.cpSync(path.join(prev, name), path.join(home, name), { recursive: true, force: true });
@@ -99,14 +99,14 @@ export class Updater {
     const o = this.offer;
     if (!o?.version || !o.url || !o.signature) throw new ApiError('No update to install', 400);
     const key = this.publicKey();
-    if (!key) throw new ApiError('Updates need MedFlow HQ', 400);
+    if (!key) throw new ApiError('Updates need Nuskha HQ', 400);
     this.installing = true;
     this.lastError = null;
     const dir = path.join(this.home, 'updates');
     try {
       const signed = await verifyClaims<{ kind: string; app: string; version: string; sha256: string; size_bytes: number }>(o.signature, key);
       if (!signed || signed.kind !== 'release' || signed.app !== 'local' || signed.version !== o.version) {
-        throw new ApiError('This update is not signed by MedFlow HQ; it was not installed', 400);
+        throw new ApiError('This update is not signed by Nuskha HQ; it was not installed', 400);
       }
       fs.mkdirSync(dir, { recursive: true });
       this.log(`Update ${o.version}: downloading`);
@@ -142,7 +142,7 @@ export class Updater {
       fs.writeFileSync(path.join(dir, 'state.json'), JSON.stringify({ version: o.version, from: this.version, attempts: 0, at: new Date().toISOString() }));
       fs.rmSync(staging, { recursive: true, force: true });
       fs.rmSync(pkg, { force: true });
-      this.log(`Update ${o.version}: installed, restarting MedFlow`);
+      this.log(`Update ${o.version}: installed, restarting Nuskha`);
       if (this.timer) clearInterval(this.timer);
       setTimeout(() => process.exit(0), 1500);
     } catch (err) {

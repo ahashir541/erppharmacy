@@ -1,13 +1,13 @@
-/* MedFlow design tokens. Screens use these names only; no hex values in screens.
+/* Nuskha design tokens. Screens use these names only; no hex values in screens.
    Brand: medical teal. It reads as "health" without colliding with the semantic colours
    (success green, danger red, warning amber), keeps 5.4:1 contrast with white text, and stays
    calm on a screen people look at all day. */
 :root {
   /* Brand */
-  --color-brand: #0f766e;
-  --color-brand-hover: #115e59;
+  --color-brand: #1a1446;
+  --color-brand-hover: #2a2370;
   --color-brand-ink: #ffffff;
-  --color-brand-soft: #e6f4f2;
+  --color-brand-soft: #ecebf8;
 
   /* Neutrals */
   --color-bg: #f4f6f8;
@@ -93,7 +93,7 @@
   --shadow: var(--shadow-1);
 }
 
-/* MedFlow is light only (owner's choice): ignore the system's dark mode. */
+/* Nuskha is light only (owner's choice): ignore the system's dark mode. */
 :root { color-scheme: light; }
 
 /* High contrast, for older staff (Settings → Display). */
@@ -102,7 +102,7 @@
   --color-text-2: #1a1a1a;
   --color-text-muted: #333333;
   --color-border: #555555;
-  --color-brand: #0a5048;
+  --color-brand: #120d36;
   --color-surface: #ffffff;
   --color-bg: #ffffff;
 }

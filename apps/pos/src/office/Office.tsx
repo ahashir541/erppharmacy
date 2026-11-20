@@ -67,8 +67,8 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
       <aside className="sidebar" aria-label="Main menu">
         <div className="sidebar-head">
           <button type="button" className="brand-home" title="Dashboard" onClick={() => go('dashboard')}>
-            <span className="brand-mark">M</span>
-            {!collapsed && <span className="brand-name">MedFlow</span>}
+            <span className="brand-mark">N</span>
+            {!collapsed && <span className="brand-name">Nuskha</span>}
           </button>
           <button type="button" className="icon-btn collapse-btn" aria-label={collapsed ? 'Expand menu' : 'Collapse menu'} onClick={() => setCollapsed((c) => !c)}>{collapsed ? '»' : '«'}</button>
         </div>
@@ -115,7 +115,7 @@ function ComingNext(props: { label: string }) {
     <div className="empty-state">
       <div className="empty-icon" aria-hidden>◌</div>
       <h2>{props.label}</h2>
-      <p className="muted">This screen is next. Its rules already work in MedFlow's database (tested); the screen is being built on the new design system.</p>
+      <p className="muted">This screen is next. Its rules already work in Nuskha's database (tested); the screen is being built on the new design system.</p>
     </div>
   );
 }

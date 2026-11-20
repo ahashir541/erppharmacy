@@ -1,4 +1,4 @@
-' Starts MedFlow Local with no window. Used by the "MedFlow Local" scheduled task.
+' Starts Nuskha Local with no window. Used by the "Nuskha Local" scheduled task.
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh = CreateObject("WScript.Shell")
 dir = fso.GetParentFolderName(WScript.ScriptFullName)

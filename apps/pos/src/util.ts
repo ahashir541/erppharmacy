@@ -15,7 +15,8 @@ export const shortDate = (iso: string | null | undefined) => {
 };
 export function errorText(err: unknown): string {
   const m = (err as Error)?.message ?? String(err);
-  return m.replace(/^error:\s*/i, '');
+  // Older database messages still say MedFlow (the product's former name); people see Nuskha.
+  return m.replace(/^error:\s*/i, '').replace(/\bMedFlow\b/g, 'Nuskha');
 }
 
 /** The Demo Pharmacy (practice data), not a real pharmacy: shows the demo ribbon and demo PINs. */

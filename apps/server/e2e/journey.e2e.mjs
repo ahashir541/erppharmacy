@@ -4,7 +4,7 @@
 //   invoice → pharmacy says "I have paid" → owner approves → suspend stops selling → back on →
 //   the PC "dies": a second PC restores the encrypted backup with the key from HQ → cancel and delete.
 // Runs a separate test HQ (with a copy of the real signing key, so the real zip's licence checks
-// pass) and never touches C:\MedFlow or C:\MedFlowHQ.
+// pass) and never touches C:\Nuskha or C:\MedFlowHQ.
 //
 //   node e2e/journey.e2e.mjs --keys <folder with signing-key.json>   (after build.mjs --zip and build-hq.mjs)
 import { execFileSync, spawn } from 'node:child_process';
@@ -17,7 +17,7 @@ import { chromium } from 'playwright-core';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = (n) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? process.argv[i + 1] : null; };
-const zip = path.resolve(here, '../release/MedFlow-Local.zip');
+const zip = path.resolve(here, '../release/Nuskha.zip');
 const hqDir = path.resolve(here, '../release/MedFlowHQ');
 const keysSrc = argv('keys');
 if (!keysSrc || !fs.existsSync(path.join(keysSrc, 'signing-key.json'))) { console.error('Give --keys <the hq-keys folder>'); process.exit(2); }
@@ -52,16 +52,16 @@ check('HQ: new pharmacy gets a licence key', /^MF-/.test(made.licence_key ?? '')
 // ---- The delivery zip on a new PC ----
 const unpack = (dir) => {
   execFileSync('powershell', ['-NoProfile', '-Command', `Expand-Archive -LiteralPath '${zip}' -DestinationPath '${dir}' -Force`]);
-  return path.join(dir, 'MedFlow');
+  return path.join(dir, 'Nuskha');
 };
 const pc1 = unpack(path.join(S, 'pc1'));
 check('zip: no data, settings or backup key inside', !['data', 'backups', 'config.json', 'backup-key.txt'].some((f) => fs.existsSync(path.join(pc1, f))));
 const configure = (dir, port) => fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ port, hqUrl: HQ, data: 'data', backups: 'backups' }));
 configure(pc1, 5186);
 run(path.join(pc1, 'node', 'node.exe'), ['medflow-server.mjs'], pc1);
-await until(`${PC1}/api/status`, 'MedFlow on PC 1');
+await until(`${PC1}/api/status`, 'Nuskha on PC 1');
 const st0 = await j(await fetch(`${PC1}/api/status`));
-check('new PC: MedFlow starts and asks for setup, licensing on', st0.ready === false && st0.licensing === true);
+check('new PC: Nuskha starts and asks for setup, licensing on', st0.ready === false && st0.licensing === true);
 
 const browser = await chromium.launch({ channel: 'msedge', headless: !process.argv.includes('--headed') });
 const page = await browser.newPage({ viewport: { width: 1366, height: 820 } });
@@ -84,12 +84,12 @@ try {
   await page.getByLabel('PIN again *').fill('4826');
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByLabel('Bill prefix *').fill('SJP');
-  await page.getByLabel(/Licence key from MedFlow/).fill(made.licence_key);
+  await page.getByLabel(/Licence key from Nuskha/).fill(made.licence_key);
   await page.locator('form button.btn.primary').click();
-  await page.getByText('MedFlow is set up').waitFor({ timeout: 90_000 });
+  await page.getByText('Nuskha is set up').waitFor({ timeout: 90_000 });
   const verified = await page.getByText('Licence key verified').isVisible();
   check('setup with the licence key: "Licence key verified" shown', verified, (await page.locator('.licence-result').innerText().catch(() => '')).replace(/\s+/g, ' '));
-  await page.getByRole('button', { name: 'Open MedFlow' }).click();
+  await page.getByRole('button', { name: 'Open Nuskha' }).click();
 
   await page.locator('.pin-input').fill('4826');
   await page.keyboard.press('Enter');
@@ -184,7 +184,7 @@ try {
   check('new PC without the key: restore refused', /backup key|Wrong/i.test(wrong), wrong.split('\n').find((l) => /key/i.test(l))?.trim().slice(0, 90));
   execFileSync(path.join(pc2, 'node', 'node.exe'), ['medflow-server.mjs', '--restore', path.join(pc1, 'backups', bk), '--key', keyFromHq], { cwd: pc2, stdio: 'pipe' });
   run(path.join(pc2, 'node', 'node.exe'), ['medflow-server.mjs'], pc2);
-  await until(`${PC2}/api/status`, 'MedFlow on PC 2');
+  await until(`${PC2}/api/status`, 'Nuskha on PC 2');
   const st2 = await j(await fetch(`${PC2}/api/status`));
   check('new PC with the key from HQ: pharmacy restored', st2.ready === true && st2.pharmacy === 'Shifa Journey Pharmacy', `${st2.pharmacy}`);
 

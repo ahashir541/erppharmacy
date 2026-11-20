@@ -102,7 +102,7 @@ function AddStock(props: PageProps & { product: ProductRow; onClose: () => void;
     total_cost: f.cost ? toPaisa(f.cost) : undefined }], null), props.onSaved);
   return (
     <Modal title={`Opening stock · ${props.product.brand_name}`} onClose={props.onClose}>
-      <p className="muted">Stock already on the shelf when you start with MedFlow. New deliveries go through Purchases.</p>
+      <p className="muted">Stock already on the shelf when you start with Nuskha. New deliveries go through Purchases.</p>
       <form className="form-grid" onSubmit={submit}>
         <label className="field"><span>Batch no. *</span><input required autoFocus value={f.batch} onChange={(e) => set('batch', e.target.value)} /></label>
         <label className="field"><span>Expiry *</span><input required type="date" value={f.expiry} onChange={(e) => set('expiry', e.target.value)} /></label>

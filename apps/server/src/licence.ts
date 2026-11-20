@@ -1,6 +1,6 @@
-// The pharmacy's licence from MedFlow HQ. With the licence key, this server checks in with HQ (at
+// The pharmacy's licence from Nuskha HQ. With the licence key, this server checks in with HQ (at
 // start, every 6 hours, on "Check now") and gets a licence signed by HQ: status, plan, features and
-// limits, announcements, invoices. It checks the signature with HQ's public key (built into MedFlow
+// limits, announcements, invoices. It checks the signature with HQ's public key (built into Nuskha
 // Local), then makes the local database follow it: the same database rules that stop a read-only
 // pharmacy from selling on the cloud stop it here. Offline it keeps working until valid_until.
 // No key yet: 7 days to enter one, then read-only. The Demo Pharmacy needs no key.
@@ -49,7 +49,7 @@ export class Licence {
   get enabled() { return !!BUILT_IN.public_key && !!this.hqUrl; }
   /** Called with each verified licence (the updater reads its update offer). */
   onLicence: (c: PharmacyLicence) => void = () => {};
-  /** Kept by MedFlow HQ so the owner can open a backup on a new PC. */
+  /** Kept by Nuskha HQ so the owner can open a backup on a new PC. */
   backupKey: string | null = null;
   get key() { return this.publicKey; }
   licenceKey() { return this.meta('licence_key'); }
@@ -65,7 +65,7 @@ export class Licence {
   async start() {
     await this.db.exec('create table if not exists medflow_local.meta (key text primary key, value text not null)');
     if (!(await this.meta('install_id'))) await this.setMeta('install_id', randomUUID());
-    if (!this.enabled) { this.log('Licence: off (this build has no MedFlow HQ)'); return; }
+    if (!this.enabled) { this.log('Licence: off (this build has no Nuskha HQ)'); return; }
     this.publicKey = await importPublicKey(BUILT_IN.public_key);
     const token = await this.meta('licence_token');
     if (token) this.claims = await verifyClaims<PharmacyLicence>(token, this.publicKey);
@@ -89,11 +89,11 @@ export class Licence {
 
   /** Asks HQ for a fresh licence with this key (the saved one unless a new one is given). */
   async checkIn(newKey?: string): Promise<LicenceStatus> {
-    if (!this.enabled || !this.publicKey) throw new ApiError('This MedFlow has no licence server', 400);
+    if (!this.enabled || !this.publicKey) throw new ApiError('This Nuskha has no licence server', 400);
     const ph = await pharmacy(this.db);
-    if (!ph) throw new ApiError('Set up MedFlow first', 409);
+    if (!ph) throw new ApiError('Set up Nuskha first', 409);
     const key = (newKey ?? (await this.meta('licence_key')) ?? '').trim().toUpperCase();
-    if (!key) throw new ApiError('Enter the licence key from MedFlow first');
+    if (!key) throw new ApiError('Enter the licence key from Nuskha first');
     let res: Response;
     try {
       res = await fetch(`${this.hqUrl}/hq/checkin`, {
@@ -101,13 +101,13 @@ export class Licence {
         body: JSON.stringify({ key, install_id: await this.meta('install_id'), backup_key: this.backupKey, info: { version: this.version, machine: os.hostname(), stats: await this.stats() } }),
       });
     } catch {
-      this.lastError = 'No internet or MedFlow HQ not reachable. MedFlow keeps working offline.';
-      if (newKey) throw new ApiError('Could not reach MedFlow to check the key. Check the internet and try again.', 503);
+      this.lastError = 'No internet or Nuskha HQ not reachable. Nuskha keeps working offline.';
+      if (newKey) throw new ApiError('Could not reach Nuskha to check the key. Check the internet and try again.', 503);
       return this.status();
     }
     const body = await res.json().catch(() => ({})) as { token?: string; error?: string };
     if (!res.ok || !body.token) {
-      this.lastError = body.error ?? `MedFlow HQ answered ${res.status}`;
+      this.lastError = body.error ?? `Nuskha HQ answered ${res.status}`;
       if (newKey) throw new ApiError(this.lastError, 400);
       // A key HQ no longer accepts (replaced or the pharmacy removed): stop at the licence's end.
       if (res.status === 403) this.log(`Licence: HQ refused the key: ${this.lastError}`);
@@ -115,7 +115,7 @@ export class Licence {
     }
     const claims = await verifyClaims<PharmacyLicence>(body.token, this.publicKey);
     if (!claims || claims.kind !== 'pharmacy' || claims.install_id !== (await this.meta('install_id'))) {
-      this.lastError = 'The answer from MedFlow HQ was not signed correctly';
+      this.lastError = 'The answer from Nuskha HQ was not signed correctly';
       if (newKey) throw new ApiError(this.lastError, 400);
       return this.status();
     }
@@ -142,21 +142,21 @@ export class Licence {
       if (!since) { since = new Date().toISOString(); await this.setMeta('no_key_since', since); }
       const until = new Date(Date.parse(since) + NO_KEY_DAYS * 86_400_000);
       return until > new Date()
-        ? { status: 'trial', read_only_from: until.toISOString(), message: `Enter your MedFlow licence key by ${until.toDateString()}`, state: 'none' }
-        : { status: 'read_only', read_only_from: null, message: 'No licence key: MedFlow is read-only. Enter the key in Settings.', state: 'stopped' };
+        ? { status: 'trial', read_only_from: until.toISOString(), message: `Enter your Nuskha licence key by ${until.toDateString()}`, state: 'none' }
+        : { status: 'read_only', read_only_from: null, message: 'No licence key: Nuskha is read-only. Enter the key in Settings.', state: 'stopped' };
     }
     const expired = Date.parse(c.valid_until) <= Date.now();
     if (!c.may_sell) {
       return { status: ['suspended', 'cancelled'].includes(c.status) ? c.status : 'read_only', read_only_from: null, state: 'stopped',
-               message: c.status === 'suspended' ? 'MedFlow is suspended. Please contact MedFlow.' : 'MedFlow is read-only. Pay the invoice in Settings to continue.' };
+               message: c.status === 'suspended' ? 'Nuskha is suspended. Please contact Nuskha.' : 'Nuskha is read-only. Pay the invoice in Settings to continue.' };
     }
     if (expired) {
       return { status: 'read_only', read_only_from: null, state: 'expired',
-               message: 'MedFlow has not reached MedFlow HQ for too long. Connect to the internet and press "Check now".' };
+               message: 'Nuskha has not reached Nuskha HQ for too long. Connect to the internet and press "Check now".' };
     }
     const offline = !this.lastCheckin || Date.now() - Date.parse(this.lastCheckin) > 24 * 3600_000;
     const msg = c.status === 'trial' ? `Free trial until ${new Date(c.trial_ends_at ?? c.valid_until).toDateString()}`
-      : c.status === 'grace' ? 'Payment is late. Please pay the MedFlow invoice to keep selling.' : '';
+      : c.status === 'grace' ? 'Payment is late. Please pay the Nuskha invoice to keep selling.' : '';
     return { status: c.status, read_only_from: c.read_only_from, message: msg, state: offline ? 'offline' : 'ok' };
   }
 
@@ -171,10 +171,10 @@ export class Licence {
                       where id = $1`, [ph.tenant_id, t.status, t.status === 'read_only' ? null : t.read_only_from,
                                        this.claims?.trial_ends_at ?? null, this.claims?.grace_ends_at ?? null]);
       if (this.claims) {
-        await tx.query(`delete from tenant_feature_overrides where tenant_id = $1 and reason = 'MedFlow HQ'`, [ph.tenant_id]);
+        await tx.query(`delete from tenant_feature_overrides where tenant_id = $1 and reason = 'Nuskha HQ'`, [ph.tenant_id]);
         for (const [code, f] of Object.entries(this.claims.features)) {
           await tx.query(`insert into tenant_feature_overrides (tenant_id, feature_code, enabled, limit_value, reason)
-                          select $1, $2, $3, $4, 'MedFlow HQ' where exists (select 1 from features where code = $2)
+                          select $1, $2, $3, $4, 'Nuskha HQ' where exists (select 1 from features where code = $2)
                           on conflict (tenant_id, feature_code) do update set enabled = excluded.enabled, limit_value = excluded.limit_value, reason = excluded.reason`,
                          [ph.tenant_id, code, f.enabled, f.limit]);
         }
@@ -197,7 +197,7 @@ export class Licence {
       announcements: c?.announcements ?? [], invoices: c?.invoices ?? [], payment_instructions: c?.payment_instructions ?? null };
   }
 
-  /** The owner tells MedFlow HQ they paid an invoice. */
+  /** The owner tells Nuskha HQ they paid an invoice. */
   async submitPayment(invoice: string, method: string, amount: number, reference: string) {
     const key = await this.meta('licence_key');
     if (!key) throw new ApiError('Enter the licence key first');
@@ -205,9 +205,9 @@ export class Licence {
     try {
       res = await fetch(`${this.hqUrl}/hq/payment`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(20_000),
         body: JSON.stringify({ key, invoice, method, amount, reference }) });
-    } catch { throw new ApiError('Could not reach MedFlow. Check the internet and try again.', 503); }
+    } catch { throw new ApiError('Could not reach Nuskha. Check the internet and try again.', 503); }
     const body = await res.json().catch(() => ({})) as { error?: string };
-    if (!res.ok) throw new ApiError(body.error ?? `MedFlow HQ answered ${res.status}`, 400);
+    if (!res.ok) throw new ApiError(body.error ?? `Nuskha HQ answered ${res.status}`, 400);
     await this.checkIn().catch(() => {});
   }
 }

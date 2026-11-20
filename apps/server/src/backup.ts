@@ -1,9 +1,9 @@
 // Backups: the whole database as one .tar.gz file. One every night (and at start-up when the last
 // one is older than a day), the newest 30 kept. A copy also goes to a second folder when one is set,
 // for example a Google Drive or USB folder, so a dead hard disk does not take the records with it.
-// MedFlow Local encrypts its backups (AES-256-GCM) with a key kept beside the program, never in the
+// Nuskha Local encrypts its backups (AES-256-GCM) with a key kept beside the program, never in the
 // backups folder, so a lost USB stick or a shared Drive folder does not expose the pharmacy. The
-// key is shown to the owner (Settings) and kept by MedFlow HQ, so a backup can be opened on a new PC.
+// key is shown to the owner (Settings) and kept by Nuskha HQ, so a backup can be opened on a new PC.
 import type { PGlite } from '@electric-sql/pglite';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
@@ -26,7 +26,7 @@ export const keyText = (k: Buffer) => `MFBK-${k.toString('hex').toUpperCase().ma
 export function parseKey(text: string): Buffer {
   const hex = text.trim().replace(/^MFBK-/i, '').replace(/[-\s]/g, '');
   const k = /^[0-9a-f]{64}$/i.test(hex) ? Buffer.from(hex, 'hex') : Buffer.alloc(0);
-  if (k.length !== 32) throw new Error('That is not a MedFlow backup key (MFBK-…)');
+  if (k.length !== 32) throw new Error('That is not a Nuskha backup key (MFBK-…)');
   return k;
 }
 export function encrypt(plain: Buffer, key: Buffer): Buffer {
@@ -36,7 +36,7 @@ export function encrypt(plain: Buffer, key: Buffer): Buffer {
   return Buffer.concat([MAGIC, iv, c.getAuthTag(), body]);
 }
 export function decrypt(data: Buffer, key: Buffer): Buffer {
-  if (!data.subarray(0, 6).equals(MAGIC)) throw new Error('Not an encrypted MedFlow backup');
+  if (!data.subarray(0, 6).equals(MAGIC)) throw new Error('Not an encrypted Nuskha backup');
   const d = createDecipheriv('aes-256-gcm', key, data.subarray(6, 18));
   d.setAuthTag(data.subarray(18, 34));
   try { return Buffer.concat([d.update(data.subarray(34)), d.final()]); }

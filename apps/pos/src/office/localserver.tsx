@@ -1,4 +1,4 @@
-// Settings on MedFlow Local: where the data is backed up, "Back up now", and the address other
+// Settings on Nuskha Local: where the data is backed up, "Back up now", and the address other
 // counter PCs open to join (same shop network).
 import { useEffect, useState } from 'react';
 import { serverStatus, type BackupList, type LicenceStatus, type ServerBackend, type ServerStatus, type UpdateStatus } from '../backend/server.ts';
@@ -24,12 +24,12 @@ export function LocalServerPanel(props: PageProps) {
   const last = list?.list[0];
   return (
     <section className="panel">
-      <div className="panel-title">MedFlow Local · backups and counters</div>
+      <div className="panel-title">Nuskha Local · backups and counters</div>
       <dl className="facts">
         <dt>Last backup</dt><dd>{last ? `${timeOf(last.at)} · ${(last.size / 1048576).toFixed(1)} MB` : list ? 'None yet' : '…'}</dd>
         <dt>Backups kept</dt><dd>{list ? `${list.list.length} in ${list.folder}` : '…'}</dd>
         <dt>Second copy</dt><dd>{list ? (list.copy_to ?? 'Not set (see README: copyTo)') : '…'}</dd>
-        <dt>Backup key</dt><dd>{list?.recovery_key ? <><code className="key-code">{list.recovery_key}</code><div className="muted small">Backups are encrypted. Write this key down and keep it safe: you need it to open a backup on another PC. MedFlow HQ keeps a copy too.</div></> : '…'}</dd>
+        <dt>Backup key</dt><dd>{list?.recovery_key ? <><code className="key-code">{list.recovery_key}</code><div className="muted small">Backups are encrypted. Write this key down and keep it safe: you need it to open a backup on another PC. Nuskha HQ keeps a copy too.</div></> : '…'}</dd>
         <dt>Other counters open</dt><dd>{status ? (status.addresses.join(', ') || 'No shop network found') : '…'}</dd>
       </dl>
       <p className="muted small">A backup is made every night at 11 pm. On another PC of the shop, open the address above in Chrome or Edge and link it with your PIN.</p>
@@ -40,10 +40,10 @@ export function LocalServerPanel(props: PageProps) {
 }
 
 const STATE_TEXT: Record<string, string> = {
-  ok: 'Licensed', offline: 'Licensed (offline)', none: 'No licence key yet', expired: 'Needs to reach MedFlow', stopped: 'Not selling', demo: 'Demo', off: 'Not licensed',
+  ok: 'Licensed', offline: 'Licensed (offline)', none: 'No licence key yet', expired: 'Needs to reach Nuskha', stopped: 'Not selling', demo: 'Demo', off: 'Not licensed',
 };
 
-/** Settings on MedFlow Local: the licence from MedFlow HQ, MedFlow's invoices, and paying them. */
+/** Settings on Nuskha Local: the licence from Nuskha HQ, Nuskha's invoices, and paying them. */
 export function LicencePanel(props: PageProps) {
   const db = props.db as unknown as ServerBackend;
   const [lic, setLic] = useState<LicenceStatus | null>(null);
@@ -56,7 +56,7 @@ export function LicencePanel(props: PageProps) {
   const [installing, setInstalling] = useState(false);
   useEffect(() => { serverStatus().then((s) => { setLic(s.licence); setUpd(s.update); }).catch((e) => setError(errorText(e))); }, []);
   const installNow = async () => {
-    if (!window.confirm('Install the update now? MedFlow backs up, installs and restarts (about a minute). Counters reconnect by themselves.')) return;
+    if (!window.confirm('Install the update now? Nuskha backs up, installs and restarts (about a minute). Counters reconnect by themselves.')) return;
     setInstalling(true); setError(null);
     try {
       await db.installUpdate();
@@ -66,7 +66,7 @@ export function LicencePanel(props: PageProps) {
         const s = await serverStatus().catch(() => null);
         if (s?.update && s.update.current !== upd?.current) { window.location.reload(); return; }
       }
-      setError('MedFlow did not come back yet. Wait a minute and reload the page.');
+      setError('Nuskha did not come back yet. Wait a minute and reload the page.');
     } catch (e) { setError(errorText(e)); setInstalling(false); }
   };
   const run = async (fn: () => Promise<LicenceStatus>, what: 'key' | 'check') => {
@@ -76,19 +76,19 @@ export function LicencePanel(props: PageProps) {
       setLic(l); setKey('');
       const good = l.state === 'ok' || l.state === 'offline';
       setNotice(good
-        ? { good, text: what === 'key' ? `Licence key verified.${l.plan_name ? ` Plan: ${l.plan_name}.` : ''}` : 'Checked with MedFlow just now: all good.' }
-        : { good, text: l.last_error ?? l.message ?? 'MedFlow did not accept this key.' });
+        ? { good, text: what === 'key' ? `Licence key verified.${l.plan_name ? ` Plan: ${l.plan_name}.` : ''}` : 'Checked with Nuskha just now: all good.' }
+        : { good, text: l.last_error ?? l.message ?? 'Nuskha did not accept this key.' });
     } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
   };
   if (!lic || lic.state === 'off' || lic.state === 'demo') return null;
   return (
     <section className="panel">
-      <div className="panel-title">MedFlow licence and billing</div>
+      <div className="panel-title">Nuskha licence and billing</div>
       <dl className="facts">
         <dt>Licence</dt><dd><span className={`pill ${lic.may_sell ? (lic.state === 'ok' ? 'good' : 'warn') : 'bad'}`}>{STATE_TEXT[lic.state] ?? lic.state}</span>{lic.message ? ` ${lic.message}` : ''}</dd>
         <dt>Plan</dt><dd>{lic.plan_name ?? '—'}{lic.status ? ` · ${lic.status.replace('_', '-')}` : ''}</dd>
         <dt>Key</dt><dd>{lic.key_hint ?? 'not entered'}</dd>
-        <dt>Last check with MedFlow</dt><dd>{timeOf(lic.last_checkin_at)}</dd>
+        <dt>Last check with Nuskha</dt><dd>{timeOf(lic.last_checkin_at)}</dd>
         <dt>Works offline until</dt><dd>{timeOf(lic.valid_until)}</dd>
       </dl>
       {notice ? <div className={`licence-result ${notice.good ? 'good' : 'bad'}`}><strong>{notice.good ? '✓ ' : ''}{notice.text}</strong></div>
@@ -100,7 +100,7 @@ export function LicencePanel(props: PageProps) {
       </form>
       {lic.invoices.length > 0 && (
         <>
-          <div className="panel-title">MedFlow invoices to pay</div>
+          <div className="panel-title">Nuskha invoices to pay</div>
           <ul className="attention">
             {lic.invoices.map((i) => (
               <li key={i.id}>
@@ -115,7 +115,7 @@ export function LicencePanel(props: PageProps) {
       )}
       {upd && (
         <>
-          <div className="panel-title">MedFlow version</div>
+          <div className="panel-title">Nuskha version</div>
           <dl className="facts">
             <dt>This PC runs</dt><dd>{upd.current}</dd>
             <dt>Update</dt><dd>{upd.offer?.version ? `${upd.offer.version}${upd.offer.is_rollback ? ' (going back to a safer version)' : ''} — installs by itself ${upd.install_window}, after the backup`
@@ -125,7 +125,7 @@ export function LicencePanel(props: PageProps) {
           {upd.offer?.notes && <p className="muted small pre">{upd.offer.notes}</p>}
           {upd.last_error && <div className="message error">{upd.last_error}</div>}
           {upd.offer?.version && <div className="row-actions"><button type="button" className="btn" disabled={installing || upd.installing} onClick={() => void installNow()}>
-            {installing || upd.installing ? 'Installing… MedFlow restarts' : 'Install now'}</button></div>}
+            {installing || upd.installing ? 'Installing… Nuskha restarts' : 'Install now'}</button></div>}
         </>
       )}
       {lic.announcements.map((a) => (
@@ -150,7 +150,7 @@ function PayInvoice(props: { invoice: LicenceStatus['invoices'][number]; db: Ser
         try { props.onDone(await props.db.payInvoice(props.invoice.id, method, Math.round(Number(amount) * 100), reference)); }
         catch (err) { setError(errorText(err)); setBusy(false); }
       }}>
-        <p className="muted">Send the money first, then enter the transaction ID here. MedFlow confirms it, usually the same day.</p>
+        <p className="muted">Send the money first, then enter the transaction ID here. Nuskha confirms it, usually the same day.</p>
         <div className="form-grid">
           <label className="field"><span>Paid by</span><select value={method} onChange={(e) => setMethod(e.target.value)}>
             <option value="jazzcash">JazzCash</option><option value="easypaisa">Easypaisa</option><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="other">Other</option>
@@ -159,7 +159,7 @@ function PayInvoice(props: { invoice: LicenceStatus['invoices'][number]; db: Ser
         </div>
         <label className="field"><span>Transaction ID / reference *</span><input required autoFocus value={reference} onChange={(e) => setReference(e.target.value)} /></label>
         {error && <div className="form-error">{error}</div>}
-        <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>{busy ? '…' : 'Send to MedFlow'}</button></div>
+        <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>{busy ? '…' : 'Send to Nuskha'}</button></div>
       </form>
     </Modal>
   );

@@ -1,6 +1,6 @@
-// The POS running against MedFlow's real database inside the browser (PGlite): the same migrations
+// The POS running against Nuskha's real database inside the browser (PGlite): the same migrations
 // and server functions as the cloud, a Demo Pharmacy, and this browser acting as Counter 1. Kept
-// in the browser's storage, so it survives a reload. Used for trying MedFlow before a cloud
+// in the browser's storage, so it survives a reload. Used for trying Nuskha before a cloud
 // project exists, for training, and for demos.
 import { PGlite, type Transaction } from '@electric-sql/pglite';
 import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
@@ -57,7 +57,7 @@ export class LocalBackend implements PosBackend {
     this.db = db;
   }
 
-  /** Runs as this counter PC signed in to MedFlow (the device principal), as on a real counter. */
+  /** Runs as this counter PC signed in to Nuskha (the device principal), as on a real counter. */
   private async asCounter<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
     try {
       return await this.db.transaction(async (tx) => {
@@ -92,7 +92,7 @@ export class LocalBackend implements PosBackend {
     return this.asOwner(async (tx) => (await tx.query<T>(sql, params.map(toParam))).rows);
   }
 
-  /** Back office: one MedFlow function returning a value, as the owner. */
+  /** Back office: one Nuskha function returning a value, as the owner. */
   ownerCall<T = unknown>(fn: string, ...args: unknown[]): Promise<T> {
     if (!/^[a-z_]+$/.test(fn)) throw new Error('bad function name');
     return this.asOwner(async (tx) => (await tx.query<{ r: T }>(`select public.${fn}(${argList(args)}) r`, args.map(toParam))).rows[0]!.r);
@@ -102,7 +102,7 @@ export class LocalBackend implements PosBackend {
     return this.ownerCall<T>(`office_${name}`, ...args);
   }
 
-  /** Back office: a MedFlow function returning rows, as the owner. */
+  /** Back office: a Nuskha function returning rows, as the owner. */
   ownerTable<T = Record<string, unknown>>(fn: string, ...args: unknown[]): Promise<T[]> {
     if (!/^[a-z_]+$/.test(fn)) throw new Error('bad function name');
     return this.asOwner(async (tx) => (await tx.query<T>(`select * from public.${fn}(${argList(args)})`, args.map(toParam))).rows);

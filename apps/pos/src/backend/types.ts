@@ -1,4 +1,4 @@
-// What the POS needs from MedFlow. One interface, two homes: the in-browser demo database today
+// What the POS needs from Nuskha. One interface, two homes: the in-browser demo database today
 // (local.ts), the Supabase / PowerSync counter later. Screens only ever talk to this.
 
 export interface Staff {
@@ -108,7 +108,7 @@ export interface Receipt {
   payments: Array<{ method: string; amount: number }> | null;
 }
 
-/** A refusal from MedFlow, in words for the person at the counter. */
+/** A refusal from Nuskha, in words for the person at the counter. */
 export class PosError extends Error {
   readonly code: string;
   readonly hint: string | null;

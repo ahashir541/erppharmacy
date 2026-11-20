@@ -1,4 +1,4 @@
-// MedFlow Local, first start on the main PC: set up the pharmacy in three
+// Nuskha Local, first start on the main PC: set up the pharmacy in three
 // short steps. On any other PC of the shop: link it as a counter with the owner's PIN.
 import { checkPin } from '@medflow/core';
 import { useState } from 'react';
@@ -22,9 +22,9 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
   if (!props.status.this_pc) {
     return (
       <div className="boot"><div className="boot-card setup-card">
-        <div className="brand-mark">M</div>
-        <h1>MedFlow is not set up yet</h1>
-        <p className="muted">Set it up on the main PC first (the one where MedFlow Local is installed), by opening the MedFlow icon there.</p>
+        <div className="brand-mark">N</div>
+        <h1>Nuskha is not set up yet</h1>
+        <p className="muted">Set it up on the main PC first (the one where Nuskha Local is installed), by opening the Nuskha icon there.</p>
       </div></div>
     );
   }
@@ -58,7 +58,7 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
       <div className="boot">
         <div className="boot-card setup-card">
           <div className="done-check" aria-hidden>✓</div>
-          <h1>MedFlow is set up</h1>
+          <h1>Nuskha is set up</h1>
           {props.status.licensing && (good ? (
             <div className="licence-result good">
               <strong>Licence key verified</strong>
@@ -68,8 +68,8 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
           ) : finished.keyEntered ? (
             <div className="licence-result bad">
               <strong>The licence key was not accepted</strong>
-              <span>{finished.error ?? lic?.message ?? 'MedFlow could not check it.'}</span>
-              <span className="small">You can still use MedFlow. Enter the key again in Settings → Licence.</span>
+              <span>{finished.error ?? lic?.message ?? 'Nuskha could not check it.'}</span>
+              <span className="small">You can still use Nuskha. Enter the key again in Settings → Licence.</span>
             </div>
           ) : (
             <div className="licence-result warn">
@@ -77,7 +77,7 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
               <span>Enter it in Settings → Licence{lic?.no_key_until ? ` before ${until(lic.no_key_until)}` : ' within 7 days'}.</span>
             </div>
           ))}
-          <button type="button" className="btn primary big-btn" onClick={props.onDone}>Open MedFlow</button>
+          <button type="button" className="btn primary big-btn" onClick={props.onDone}>Open Nuskha</button>
         </div>
       </div>
     );
@@ -86,10 +86,10 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
   return (
     <div className="boot">
       <div className="boot-card setup-card">
-        <div className="brand-mark">M</div>
+        <div className="brand-mark">N</div>
         {step === 'choose' && (
           <>
-            <h1>Welcome to MedFlow</h1>
+            <h1>Welcome to Nuskha</h1>
             <p className="muted">Your pharmacy's records stay on this PC and are backed up every night. Selling keeps working when the internet is down.</p>
             <div className="setup-choices">
               <button type="button" className="setup-choice" onClick={() => setStep('shop')}>
@@ -139,13 +139,13 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
             <label className="field"><span>Name of this PC</span><input value={f.counter_name} onChange={set('counter_name')} /></label>
             <label className="field"><span>Message at the bottom of bills</span><input value={f.footer} onChange={set('footer')} /></label>
             {props.status.licensing && (
-              <label className="field"><span>Licence key from MedFlow (you can also enter it later, within 7 days)</span>
+              <label className="field"><span>Licence key from Nuskha (you can also enter it later, within 7 days)</span>
                 <input value={f.licence_key} placeholder="MF-XXXX-XXXX-XXXX-XXXX" autoComplete="off"
                        onChange={(e) => setF((x) => ({ ...x, licence_key: e.target.value.toUpperCase() }))} /></label>
             )}
             {error && <div className="form-error">{error}</div>}
             <div className="row-actions"><button type="button" className="btn ghost" onClick={() => setStep('owner')}>Back</button>
-              <button className="btn primary" disabled={busy}>{busy ? 'Setting up…' : 'Start using MedFlow'}</button></div>
+              <button className="btn primary" disabled={busy}>{busy ? 'Setting up…' : 'Start using Nuskha'}</button></div>
           </form>
         )}
         {step === 'choose' && error && <div className="form-error">{error}</div>}
@@ -165,7 +165,7 @@ export function LinkThisPc(props: { status: ServerStatus; onDone: () => void }) 
         e.preventDefault(); setBusy(true); setError(null);
         try { await linkThisPc(pin, name); props.onDone(); } catch (err) { setError(errorText(err)); setBusy(false); }
       }}>
-        <div className="brand-mark">M</div>
+        <div className="brand-mark">N</div>
         <h1>Link this PC to {props.status.pharmacy}</h1>
         <p className="muted">This PC becomes a counter of the pharmacy. The owner types their PIN once.</p>
         <label className="field"><span>Name of this PC</span><input autoFocus required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Counter 2, Front desk" /></label>

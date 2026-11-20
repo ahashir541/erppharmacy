@@ -1,5 +1,5 @@
 @echo off
-rem MedFlow HQ: runs the HQ server and starts it again if it ever stops (double-click to watch it).
+rem Nuskha HQ: runs the HQ server and starts it again if it ever stops (double-click to watch it).
 cd /d "%~dp0"
 set NODE=node
 if exist "%~dp0node\node.exe" set NODE="%~dp0node\node.exe"

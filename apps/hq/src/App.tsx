@@ -1,5 +1,5 @@
-// MedFlow HQ console: first run creates your admin sign-in (on the HQ computer only), then the
-// screens to run MedFlow as a business: pharmacies, payments, plans and prices, announcements.
+// Nuskha HQ console: first run creates your admin sign-in (on the HQ computer only), then the
+// screens to run Nuskha as a business: pharmacies, payments, plans and prices, announcements.
 import { useEffect, useRef, useState } from 'react';
 import { errorText, getSignInOptions, googleSignIn, hqStatus, hqToken, saveSignInOptions, setupAdmin, signIn, signOut, type HqStatus, type SignInOptions } from './api.ts';
 import { Announcements, Overview, Payments, Pharmacies, Plans, Updates } from './pages.tsx';
@@ -32,7 +32,7 @@ export function App() {
   return (
     <div className="office">
       <aside className="sidebar" aria-label="Main menu">
-        <div className="sidebar-head"><button type="button" className="brand-home" title="Overview" onClick={() => go('overview')}><span className="brand-mark">M</span><span className="brand-name">MedFlow HQ</span></button></div>
+        <div className="sidebar-head"><button type="button" className="brand-home" title="Overview" onClick={() => go('overview')}><span className="brand-mark">N</span><span className="brand-name">Nuskha HQ</span></button></div>
         <nav>
           <div className="nav-group">
             {NAV.map((n) => (
@@ -67,7 +67,7 @@ function CreateAdmin(props: { status: HqStatus; onDone: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   if (!props.status.this_pc) {
-    return <div className="boot"><div className="boot-card setup-card"><div className="brand-mark">M</div><h1>MedFlow HQ is not set up</h1>
+    return <div className="boot"><div className="boot-card setup-card"><div className="brand-mark">N</div><h1>Nuskha HQ is not set up</h1>
       <p className="muted">Create the admin sign-in on the HQ computer itself.</p></div></div>;
   }
   return (
@@ -79,9 +79,9 @@ function CreateAdmin(props: { status: HqStatus; onDone: () => void }) {
         try { await setupAdmin(f.name, f.email, f.password); await signIn(f.email, f.password); props.onDone(); window.location.reload(); }
         catch (err) { setError(errorText(err)); setBusy(false); }
       }}>
-        <div className="brand-mark">M</div>
-        <h1>MedFlow HQ</h1>
-        <p className="muted">Your control room for every pharmacy using MedFlow. Create your sign-in. Only you use this.</p>
+        <div className="brand-mark">N</div>
+        <h1>Nuskha HQ</h1>
+        <p className="muted">Your control room for every pharmacy using Nuskha. Create your sign-in. Only you use this.</p>
         <label className="field"><span>Your name</span><input autoFocus required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
         <label className="field"><span>Email</span><input required type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></label>
         <div className="form-grid">
@@ -127,9 +127,9 @@ function SignIn(props: { status: HqStatus; onDone: () => void }) {
   return (
     <div className="boot">
       <div className="boot-card setup-card stack">
-        <div className="brand-mark">M</div>
-        <h1>Sign in to MedFlow HQ</h1>
-        <p className="muted">Your control room for every pharmacy using MedFlow.</p>
+        <div className="brand-mark">N</div>
+        <h1>Sign in to Nuskha HQ</h1>
+        <p className="muted">Your control room for every pharmacy using Nuskha.</p>
         {google && (
           <GoogleButton clientId={google} onCredential={async (credential) => {
             setBusy(true); setError(null);
@@ -165,7 +165,7 @@ function SignInSettings() {
   const origins = Array.from(new Set([window.location.origin, 'http://localhost:5299']));
   return (
     <>
-      <div className="page-head"><div><h1>Sign-in & security</h1><p className="muted">How you get into MedFlow HQ.</p></div></div>
+      <div className="page-head"><div><h1>Sign-in & security</h1><p className="muted">How you get into Nuskha HQ.</p></div></div>
       <section className="panel">
         <div className="panel-title">Now</div>
         <dl className="facts">
@@ -197,8 +197,8 @@ function SignInSettings() {
       <section className="panel">
         <div className="panel-title">Getting a Google Client ID (one time, free)</div>
         <ol className="steps">
-          <li>Open <strong>console.cloud.google.com</strong> with your Google account and create a project (e.g. "MedFlow HQ").</li>
-          <li>Go to <strong>APIs & Services → OAuth consent screen</strong>: choose External, app name "MedFlow HQ", your email. Save.</li>
+          <li>Open <strong>console.cloud.google.com</strong> with your Google account and create a project (e.g. "Nuskha HQ").</li>
+          <li>Go to <strong>APIs & Services → OAuth consent screen</strong>: choose External, app name "Nuskha HQ", your email. Save.</li>
           <li>Go to <strong>APIs & Services → Credentials → Create credentials → OAuth client ID</strong>, type <strong>Web application</strong>.</li>
           <li>Under <strong>Authorised JavaScript origins</strong> add: {origins.map((x) => <code key={x}>{x}</code>).reduce<React.ReactNode[]>((a, c, i) => (i ? [...a, ' and ', c] : [c]), [])}. Leave redirect URIs empty.</li>
           <li>Copy the <strong>Client ID</strong> (not the secret) into the box above and press Save.</li>

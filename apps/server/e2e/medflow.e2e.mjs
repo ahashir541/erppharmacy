@@ -1,4 +1,4 @@
-// End-to-end test of the built MedFlow Local in a real browser (Microsoft Edge on this PC):
+// End-to-end test of the built Nuskha Local in a real browser (Microsoft Edge on this PC):
 // first-time setup, sign-in, importing the inventory file, opening a shift, selling, and the
 // security headers. It runs the release build on a scratch data folder and a spare port, so it
 // never touches a real pharmacy's data.
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const release = path.resolve(here, '../release/MedFlow');
+const release = path.resolve(here, '../release/Nuskha');
 const fixture = path.join(here, 'fixtures', 'inventory-karachi.csv');
 const port = 5187;
 const base = `http://localhost:${port}`;
@@ -28,7 +28,7 @@ process.on('exit', stop);
 
 for (let i = 0; ; i++) {
   try { if ((await fetch(`${base}/api/status`)).ok) break; } catch { /* starting */ }
-  if (i > 90) { console.error('MedFlow did not start'); process.exit(1); }
+  if (i > 90) { console.error('Nuskha did not start'); process.exit(1); }
   await new Promise((r) => setTimeout(r, 1000));
 }
 
@@ -62,9 +62,9 @@ try {
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByLabel('Bill prefix *').fill('E2E');
   await page.locator('form button.btn.primary').click();
-  await page.getByText('MedFlow is set up').waitFor({ timeout: 60_000 });
+  await page.getByText('Nuskha is set up').waitFor({ timeout: 60_000 });
   check('setup finishes and says so', true);
-  await page.getByRole('button', { name: 'Open MedFlow' }).click();
+  await page.getByRole('button', { name: 'Open Nuskha' }).click();
 
   // ---- Sign in with the keyboard (no on-screen keypad) ----
   await page.getByText('Who is selling?').waitFor();
@@ -191,7 +191,7 @@ try {
     check('security: no file outside the app folder can be read', trav.every((t) => !t.includes('MFBK-')));
     const big = await raw('/api/call', { method: 'POST', headers: { 'Content-Type': 'application/json', ...hdr }, body: 'x'.repeat(30 * 1024 * 1024) }).then((r) => r.status, () => 'closed');
     const alive = (await raw('/api/status')).ok;
-    check('security: a 30 MB request is refused and MedFlow keeps running', big !== 200 && alive, `answer ${big}`);
+    check('security: a 30 MB request is refused and Nuskha keeps running', big !== 200 && alive, `answer ${big}`);
     const bk = await raw('/api/backups', { headers: { authorization: hdr.authorization } });
     check('security: backup list and key need the owner', !bk.ok || !(await bk.text()).includes('MFBK-'), `status ${bk.status}`);
     const apiHdr = (await raw('/api/status')).headers;

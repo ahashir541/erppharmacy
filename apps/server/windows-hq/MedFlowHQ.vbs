@@ -1,4 +1,4 @@
-' MedFlow HQ console in its own window. Starts HQ first if it is not running.
+' Nuskha HQ console in its own window. Starts HQ first if it is not running.
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh = CreateObject("WScript.Shell")
 dir = fso.GetParentFolderName(WScript.ScriptFullName)
@@ -23,7 +23,7 @@ If Not Ready() Then
     If Ready() Then Exit For
   Next
   If Not Ready() Then
-    MsgBox "MedFlow HQ could not start." & vbCrLf & "See " & dir & "\logs\medflow-hq.log", vbExclamation, "MedFlow HQ"
+    MsgBox "Nuskha HQ could not start." & vbCrLf & "See " & dir & "\logs\medflow-hq.log", vbExclamation, "Nuskha HQ"
     WScript.Quit 1
   End If
 End If

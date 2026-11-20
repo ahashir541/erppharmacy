@@ -1,4 +1,4 @@
-// MedFlow Local: the app talks to the pharmacy's own server on the main PC (same address it was
+// Nuskha Local: the app talks to the pharmacy's own server on the main PC (same address it was
 // opened from). This PC proves it is a linked counter with its token; back-office calls also carry
 // the owner's counter session, which the server checks before acting as the owner.
 import {
@@ -26,7 +26,7 @@ export const savedToken = () => { try { return localStorage.getItem(TOKEN_KEY); 
 export const saveToken = (t: string) => { try { localStorage.setItem(TOKEN_KEY, t); } catch { /* private window */ } };
 export const forgetToken = () => { try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ } };
 
-/** While MedFlow is starting (it answers 503 until the database is open), wait and try again. */
+/** While Nuskha is starting (it answers 503 until the database is open), wait and try again. */
 async function fetchWhileStarting(go: () => Promise<Response>): Promise<Response> {
   for (let i = 0; ; i++) {
     const res = await go();
@@ -40,12 +40,12 @@ async function post<T>(path: string, body: unknown, headers: Record<string, stri
   try {
     res = await fetchWhileStarting(() => fetch(`/api/${path}`, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: method === 'GET' ? null : JSON.stringify(body) }));
   } catch {
-    throw new PosError('Cannot reach the MedFlow PC. Is the main PC switched on and on the same network?', 'offline');
+    throw new PosError('Cannot reach the Nuskha PC. Is the main PC switched on and on the same network?', 'offline');
   }
   const data = await res.json().catch(() => ({})) as { error?: string; code?: string; hint?: string | null; detail?: string | null } & T;
   if (!res.ok) {
     if (res.status === 401) forgetToken();
-    throw new PosError(data.error ?? `MedFlow server error ${res.status}`, data.code ?? String(res.status), data.hint ?? null, data.detail ?? null);
+    throw new PosError(data.error ?? `Nuskha server error ${res.status}`, data.code ?? String(res.status), data.hint ?? null, data.detail ?? null);
   }
   return data;
 }
@@ -106,7 +106,7 @@ export class ServerBackend implements PosBackend {
   }
 
   // ---- Back office (owner signed in on this counter) ----
-  ownerRows<T>(): Promise<T[]> { return Promise.reject(new PosError('Raw queries are not available on MedFlow Local')); }
+  ownerRows<T>(): Promise<T[]> { return Promise.reject(new PosError('Raw queries are not available on Nuskha Local')); }
   ownerCall<T = unknown>(fn: string, ...args: unknown[]) { return this.call<T>('owner', fn, args); }
   ownerTable<T = Record<string, unknown>>(fn: string, ...args: unknown[]) { return this.call<T[]>('owner', fn, args, true); }
   office<T = unknown>(name: string, ...args: unknown[]) { return this.call<T>('owner', `office_${name}`, args); }

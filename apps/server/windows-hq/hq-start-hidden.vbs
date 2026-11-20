@@ -1,4 +1,4 @@
-' Starts MedFlow HQ with no window. Used by the "MedFlow HQ" scheduled task.
+' Starts Nuskha HQ with no window. Used by the "Nuskha HQ" scheduled task.
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set sh = CreateObject("WScript.Shell")
 dir = fso.GetParentFolderName(WScript.ScriptFullName)

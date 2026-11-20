@@ -44,7 +44,7 @@ export function App() {
   const [ownerOk, setOwnerOk] = useState(false);
   const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
   const [linking, setLinking] = useState(false);
-  // MedFlow Local: the pharmacy's server is not set up yet, or this PC is not linked.
+  // Nuskha Local: the pharmacy's server is not set up yet, or this PC is not linked.
   const [local, setLocal] = useState<{ status: ServerStatus; need: 'setup' | 'link' } | null>(null);
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export function App() {
     (async () => {
       try {
         if (serverMode) {
-          setProgress('Connecting to MedFlow…');
+          setProgress('Connecting to Nuskha…');
           const status = await serverStatus();
           if (!status.ready) { setLocal({ status, need: 'setup' }); return; }
           const token = savedToken();
@@ -67,7 +67,7 @@ export function App() {
           return;
         }
         if (cloudEnabled) {
-          setProgress('Connecting to MedFlow…');
+          setProgress('Connecting to Nuskha…');
           const counter = await openCloudCounter();
           if (!counter) { setOwnerOnly(true); return; }
           setBackend(counter);
@@ -75,7 +75,7 @@ export function App() {
           setOwnerOk(await ownerReady().catch(() => false));
           return;
         }
-        // Demo mode: MedFlow's database runs inside this browser (loaded only when needed).
+        // Demo mode: Nuskha's database runs inside this browser (loaded only when needed).
         const { openLocalBackend } = await import('./backend/local.ts');
         const b = await openLocalBackend(setProgress);
         setBackend(b);
@@ -150,8 +150,8 @@ export function App() {
     return (
       <div className="boot">
         <div className="boot-card">
-          <div className="brand-mark">M</div>
-          <div className="boot-title">MedFlow</div>
+          <div className="brand-mark">N</div>
+          <div className="boot-title">Nuskha</div>
           <div className="spinner" />
           <div className="muted">{progress || tr('pos.loading', lang)}</div>
         </div>

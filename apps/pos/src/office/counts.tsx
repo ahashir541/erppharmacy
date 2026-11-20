@@ -21,7 +21,7 @@ export function StockCounts(props: PageProps) {
   if (open) return <CountSheet {...props} count={open} onBack={() => { setOpen(null); reload(); }} />;
   return (
     <>
-      <PageHead title="Stock count" sub="Count what is really on the shelves; MedFlow fixes the stock and shows what was missing">
+      <PageHead title="Stock count" sub="Count what is really on the shelves; Nuskha fixes the stock and shows what was missing">
         <button type="button" className="btn primary" onClick={() => setStarting(true)}>+ Start a count</button>
       </PageHead>
       <Table rows={data} error={error} onRow={setOpen} empty="No counts yet. Start one, for the whole shop or a single rack." cols={[

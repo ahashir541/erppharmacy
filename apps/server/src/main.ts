@@ -1,5 +1,5 @@
-// MedFlow Local: the pharmacy's own server on the main shop PC. It keeps the database in a folder
-// on this PC, serves the MedFlow app to every counter on the shop's network, and backs up nightly.
+// Nuskha Local: the pharmacy's own server on the main shop PC. It keeps the database in a folder
+// on this PC, serves the Nuskha app to every counter on the shop's network, and backs up nightly.
 // No internet and no monthly bill. Start: node medflow-server.mjs  (options below)
 //   --data <folder>      where the database lives          (default: <install>/data)
 //   --port <n>           the shop network port              (default: 5199)
@@ -64,8 +64,8 @@ async function main() {
     await restore(path.resolve(cfg.restore), cfg.data, log, cfg.key ? parseKey(cfg.key) : backupKey(home));
     return;
   }
-  log(`MedFlow Local ${VERSION} starting · data ${cfg.data}`);
-  const { server, ready } = await claimPort(cfg.port, 'MedFlow is starting, one moment…', log);
+  log(`Nuskha Local ${VERSION} starting · data ${cfg.data}`);
+  const { server, ready } = await claimPort(cfg.port, 'Nuskha is starting, one moment…', log);
   const db: PGlite = await openDatabase(cfg.data, cfg.sql, log);
   const bkey = backupKey(home);
   const licence = new Licence(db, cfg.hqUrl, VERSION, log);
@@ -93,8 +93,8 @@ async function main() {
     const body = req.method === 'POST' ? await readJson(req) : {};
 
     if (route === 'setup') {
-      if (!isLocal(req)) throw new ApiError('Set up MedFlow on the main PC itself (where MedFlow Local is installed)', 403);
-      if (body.mode === 'demo') { send(res, 400, { error: 'The demo pharmacy is not part of MedFlow Local.' }); return; }
+      if (!isLocal(req)) throw new ApiError('Set up Nuskha on the main PC itself (where Nuskha Local is installed)', 403);
+      if (body.mode === 'demo') { send(res, 400, { error: 'The demo pharmacy is not part of Nuskha Local.' }); return; }
       const r = await setupPharmacy(db, body as never);
       log(body.mode === 'demo' ? 'Set up with the Demo Pharmacy' : `Set up pharmacy "${String(body.pharmacy)}"`);
       let licence_error: string | null = null;
@@ -171,11 +171,11 @@ async function main() {
         send(res, err.status, { error: err.message, code: err.code, hint: err.hint, detail: err.detail });
       } else {
         log(`Error on ${route}: ${(err as Error).stack ?? err}`);
-        send(res, 500, { error: 'MedFlow Local had a problem. Details are in the log file.' });
+        send(res, 500, { error: 'Nuskha Local had a problem. Details are in the log file.' });
       }
     });
   });
-  log(`MedFlow ${VERSION} is ready on this PC: http://localhost:${cfg.port}`);
+  log(`Nuskha ${VERSION} is ready on this PC: http://localhost:${cfg.port}`);
   startupOk(home, VERSION, log);
   for (const a of lanAddresses(cfg.port)) log(`Other counters on the shop network open: ${a}`);
   const stop = async () => { log('Stopping…'); server.close(); await db.close().catch(() => {}); process.exit(0); };
@@ -185,6 +185,6 @@ async function main() {
 
 main().catch((err) => {
   if (cfg.restore) log(`Restore failed: ${(err as Error).message ?? err}. Your current data was not changed.`);
-  else log(`MedFlow Local could not start: ${(err as Error).stack ?? err}`);
+  else log(`Nuskha Local could not start: ${(err as Error).stack ?? err}`);
   process.exit(1);
 });

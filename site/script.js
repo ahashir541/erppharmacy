@@ -44,7 +44,8 @@ function header() {
             <a href="/#feat-billing"><b>Billing &amp; POS</b><span>Fast counter billing</span></a>
             <a href="/#feat-udhaar"><b>Udhaar Ledger</b><span>Customer and supplier credit</span></a>
             <a href="/#feat-reports"><b>Reports</b><span>Sales, profit, cash</span></a>
-            <a href="/#local-cloud"><b>Local or Cloud</b><span>Choose where your records live</span></a>
+            <a href="/#two-ways"><b>Nuskha Local</b><span>Installed on your shop PC, works offline</span></a>
+            <a href="/#two-ways"><b>Nuskha Cloud</b><span>In your browser, open it from anywhere</span></a>
           </div></div>
         <div class="dd"><button type="button" aria-expanded="false">Services</button>
           <div class="dd-menu">
@@ -98,7 +99,7 @@ function footer() {
         </div>
         <div><h4>Products</h4><ul>
           <li><a href="/#features">Pharmacy Management</a></li><li><a href="/#feat-inventory">Inventory &amp; Purchases</a></li>
-          <li><a href="/#feat-billing">Billing &amp; POS</a></li><li><a href="/#feat-udhaar">Udhaar Ledger</a></li><li><a href="/#feat-reports">Reports</a></li></ul></div>
+          <li><a href="/#feat-billing">Billing &amp; POS</a></li><li><a href="/#feat-udhaar">Udhaar Ledger</a></li><li><a href="/#feat-reports">Reports</a></li><li><a href="/#two-ways">Nuskha Local &amp; Cloud</a></li></ul></div>
         <div><h4>Services</h4><ul>
           <li><a href="/download.html">Download &amp; install</a></li><li><a href="#request-demo" data-demo>Data import</a></li>
           <li><a href="#request-demo" data-demo>Staff training</a></li><li><a href="/login.html">Login to your pharmacy</a></li></ul></div>
@@ -224,6 +225,43 @@ function blogCards() {
       <div class="body"><div class="cats">${p.cats.map((c) => `<span>${c}</span>`).join('')}</div><h3>${p.title}</h3><p>${p.excerpt}</p><span class="more">Learn more →</span></div></a>`).join('');
 }
 
+
+function motion() {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Header: a little smaller with a shadow once the page is scrolled.
+  const head = document.getElementById('site-header');
+  const onScroll = () => head.classList.toggle('scrolled', window.scrollY > 12);
+  onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
+  if (reduce || !('IntersectionObserver' in window)) return;
+  document.documentElement.classList.add('js-motion');
+  // Scroll reveal, staggered inside each row of cards.
+  const groups = ['.sec-head', '.pain', '.feature', '.trust > div', '.post', '.pill', '.acc details', '.split > .copy', '.cloud-art', '.way', '.ways-note',
+    '.dl-card', '.article > *', '.login-cards > div', '.checks li', '.lead.center'];
+  const items = new Set();
+  groups.forEach((sel) => document.querySelectorAll(`main ${sel}`).forEach((el) => {
+    if (el.closest('.hero')) return;
+    const sibs = [...el.parentElement.children].filter((c) => c.matches(sel.split(' ').pop()));
+    el.style.setProperty('--d', `${Math.min(sibs.indexOf(el), 8) * 70}ms`);
+    el.classList.add('reveal'); items.add(el);
+  }));
+  const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  items.forEach((el) => io.observe(el));
+  // Anything already on screen (or skipped by the observer) shows at once.
+  setTimeout(() => items.forEach((el) => { const r = el.getBoundingClientRect(); if (r.top < innerHeight && r.bottom > 0) el.classList.add('in'); }), 60);
+  // Hero devices lean gently toward the mouse (desktop only).
+  const dev = document.querySelector('.devices'); const hero = document.querySelector('.hero');
+  if (dev && hero && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    hero.addEventListener('mousemove', (e) => {
+      const r = hero.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+      dev.style.rotate = `${(-y).toFixed(3)} ${x.toFixed(3)} 0 ${(Math.hypot(x, y) * 9).toFixed(2)}deg`;
+    });
+    hero.addEventListener('mouseleave', () => { dev.style.rotate = ''; });
+  }
+}
+
 document.getElementById('header-slot').outerHTML = header();
 document.getElementById('footer-slot').outerHTML = footer();
-hideEmpty(); menus(); whatsapp(); demoForm(); shots(); blogCards();
+hideEmpty(); menus(); whatsapp(); demoForm(); shots(); blogCards(); motion();

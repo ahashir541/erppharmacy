@@ -25,9 +25,9 @@ const SITE = {
 };
 
 const POSTS = [
-  { href: '/blog/reduce-expired-medicine-losses.html', title: 'How to cut expired-medicine losses in your pharmacy', cats: ['Pharmacy operations'], excerpt: 'Five habits, and the reports that make them easy, to stop money expiring on your shelves.', color: '#1a1446', mark: '⌛' },
-  { href: '/blog/udhaar-khata-under-control.html', title: 'Keeping udhaar under control without losing customers', cats: ['Healthcare in Pakistan', 'Money'], excerpt: 'Credit is part of how Pakistani pharmacies keep loyal customers. Here is how to give it safely.', color: '#2a2370', mark: '₨' },
-  { href: '/blog/local-or-cloud-pharmacy-software.html', title: 'Local or cloud: which pharmacy software is right for you?', cats: ['Technology'], excerpt: 'Load-shedding, internet, branches and privacy: how to choose where your records should live.', color: '#0f766e', mark: '☁' },
+  { href: '/blog/reduce-expired-medicine-losses.html', title: 'How to cut expired-medicine losses in your pharmacy', cats: ['Pharmacy operations'], excerpt: 'Five habits, and the reports that make them easy, to stop money expiring on your shelves.', img: '/img/products-sm.webp', eyebrow: 'Five habits to', l1: 'Stop', l2: 'Expiry', box: 'Losses' },
+  { href: '/blog/udhaar-khata-under-control.html', title: 'Keeping udhaar under control without losing customers', cats: ['Healthcare in Pakistan', 'Money'], excerpt: 'Credit is part of how Pakistani pharmacies keep loyal customers. Here is how to give it safely.', img: '/img/dashboard-sm.webp', eyebrow: 'Keep customers, keep', l1: 'Udhaar', l2: 'Under control', box: 'Safely' },
+  { href: '/blog/local-or-cloud-pharmacy-software.html', title: 'Local or cloud: which pharmacy software is right for you?', cats: ['Technology'], excerpt: 'Load-shedding, internet, branches and privacy: how to choose where your records should live.', img: '/img/pos-sm.webp', eyebrow: 'Which one is right for you', l1: 'Local', l2: 'or Cloud?', box: 'Simple breakdown' },
 ];
 
 const ICON = {
@@ -249,7 +249,8 @@ function blogCards() {
   if (!el) return;
   const limit = Number(el.dataset.limit || POSTS.length);
   el.innerHTML = POSTS.slice(0, limit).map((p) => `
-    <a class="post" href="${p.href}"><div class="cover" style="background:${p.color}" aria-hidden="true">${p.mark}</div>
+    <a class="post" href="${p.href}"><div class="pcard"><img class="pbg" src="${p.img}" alt="" width="1080" height="675" loading="lazy"><span class="ptag">${p.cats[0]}</span>
+      <div class="ptitle" aria-hidden="true"><span class="pe">${p.eyebrow}</span><b class="l1">${p.l1}</b><b class="l2">${p.l2}</b><span class="pbox">${p.box}</span></div></div>
       <div class="body"><div class="cats">${p.cats.map((c) => `<span>${c}</span>`).join('')}</div><h3>${p.title}</h3><p>${p.excerpt}</p><span class="more">Learn more →</span></div></a>`).join('');
 }
 

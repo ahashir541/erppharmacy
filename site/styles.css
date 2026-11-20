@@ -513,3 +513,36 @@ html:not(.js-motion) .sec-head h2::after { transform: translateX(-50%) scaleX(1)
 .hero-ed svg { width: 17px; height: 17px; color: var(--amber-ink); flex: none; }
 .hero-ed span { color: var(--line); }
 @media (max-width: 760px) { .hero-ed { font-size: 13.5px; } .hero-ed span { display: none; } .hero-ed { flex-direction: column; align-items: flex-start; } }
+
+
+/* Cinematic image cards (problems and blog): screenshot behind a navy wash, a bold condensed
+   headline with the second line in amber, a boxed kicker, a tag pill and a thin inner frame. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.pcard { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 22px; background: #0e0a28; isolation: isolate; container-type: inline-size; }
+.pcard .pbg { position: absolute; inset: -6% -14% -6% 22%; width: 92%; height: 112%; object-fit: cover; object-position: top left; border-radius: 10px;
+  transform: perspective(900px) rotateY(-18deg) rotateX(4deg); transform-origin: left center; filter: saturate(1.1) contrast(1.05); transition: transform .9s var(--ease-out, ease), filter .6s; z-index: -2; }
+.pcard::before { content: ""; position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(120% 90% at 85% 20%, rgba(79, 70, 229, .25), transparent 55%),
+              linear-gradient(100deg, rgba(10, 7, 32, .96) 0%, rgba(17, 12, 52, .82) 36%, rgba(26, 20, 70, .32) 64%, rgba(26, 20, 70, 0) 100%),
+              linear-gradient(0deg, rgba(10, 7, 32, .7) 0%, transparent 40%); }
+.pcard::after { content: ""; position: absolute; inset: 5% 4.5%; border: 1px solid rgba(255, 255, 255, .22); border-radius: 8px; pointer-events: none; transition: border-color .4s, inset .4s; }
+.ptag { position: absolute; top: 6.5%; right: 4%; z-index: 2; background: #fff; color: var(--navy); font: 500 clamp(11px, 5.4cqi, 17px)/1 var(--body); padding: .55em 1.05em; border-radius: 999px; box-shadow: 0 6px 18px rgba(0, 0, 0, .25); }
+.ptitle { position: absolute; left: 7.5%; top: 17%; right: 40%; display: grid; justify-items: start; color: #fff; }
+.ptitle .pe { font: italic 600 clamp(8px, 3.6cqi, 12.5px)/1.2 var(--body); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2.2cqi; opacity: .95; white-space: nowrap; }
+.ptitle b { font-family: 'Oswald', 'Arial Narrow', Impact, sans-serif; font-weight: 700; text-transform: uppercase; font-size: clamp(20px, 13.2cqi, 46px); line-height: .92; letter-spacing: -.01em;
+  transform: skewX(-9deg); transform-origin: left; white-space: nowrap; text-shadow: 0 4px 22px rgba(0, 0, 0, .45); }
+.ptitle .l2 { color: var(--amber); background: linear-gradient(180deg, #ffc65c, #f5a623 70%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.ptitle .pbox { margin-top: 2.6cqi; background: #fff; color: #0e0a28; font: italic 800 clamp(8px, 3.8cqi, 13px)/1 var(--body); text-transform: uppercase; padding: .38em .55em; transform: skewX(-9deg); transform-origin: left; white-space: nowrap; }
+.pcard:hover .pbg, .post:hover .pcard .pbg { transform: perspective(900px) rotateY(-10deg) rotateX(2deg) scale(1.06); filter: saturate(1.25) contrast(1.08); }
+.pcard:hover::after, .post:hover .pcard::after { border-color: rgba(245, 166, 35, .75); inset: 4% 3.5%; }
+
+/* Problems: the card is the picture; the fix sits under it in navy */
+.pain { background: #0e0a28; border: 0; border-radius: 22px; grid-template-rows: auto 1fr; box-shadow: 0 18px 40px rgba(14, 10, 40, .22); }
+.pain .pcard { border-radius: 22px 22px 0 0; }
+.pain .fix { background: linear-gradient(180deg, #17113f, var(--navy)); border-top: 1px solid rgba(255, 255, 255, .08); }
+.pain:hover { box-shadow: 0 28px 60px rgba(14, 10, 40, .32); }
+
+/* Blog: the cover is a cinematic card */
+.post .pcard { border-radius: 18px 18px 0 0; }
+.post .cover { display: none; }
+@media (prefers-reduced-motion: reduce) { .pcard .pbg { transition: none; } }

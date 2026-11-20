@@ -118,4 +118,5 @@ export class ServerBackend implements PosBackend {
     return post<LicenceStatus>('licence/payment', { invoice, method, amount, reference }, this.headers());
   }
   backups(now = false) { return post<BackupList>('backups', {}, this.headers(), now ? 'POST' : 'GET'); }
+  setBackupCopy(folder: string) { return post<BackupList>('backups/copy-to', { folder }, this.headers()); }
 }

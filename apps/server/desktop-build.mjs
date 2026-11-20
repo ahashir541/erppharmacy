@@ -24,3 +24,17 @@ export function buildWindow(out, { hq = false, icon }) {
   console.log(`• Windows program: ${path.basename(exe)}`);
   return exe;
 }
+
+/** NuskhaSetup.exe: one file for the pharmacy to download, with Nuskha.zip inside. */
+export function buildSetup(zip, outExe) {
+  if (process.platform !== 'win32') return null;
+  const csc = path.join(process.env.WINDIR ?? 'C:\\Windows', 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe');
+  fs.rmSync(outExe, { force: true });
+  execFileSync(csc, ['-nologo', '-target:winexe', '-platform:anycpu', '-optimize+', `-out:${outExe}`,
+    `-win32icon:${path.join(here, 'windows', 'MedFlow.ico')}`, `-win32manifest:${path.join(here, 'windows', 'desktop', 'setup.manifest')}`,
+    `-resource:${zip},Nuskha.zip`, '-r:System.Windows.Forms.dll', '-r:System.Drawing.dll',
+    '-r:System.IO.Compression.dll', '-r:System.IO.Compression.FileSystem.dll',
+    path.join(here, 'windows', 'desktop', 'NuskhaSetup.cs')], { stdio: 'pipe' });
+  console.log(`Setup: ${outExe} (${(fs.statSync(outExe).size / 1048576).toFixed(1)} MB)`);
+  return outExe;
+}

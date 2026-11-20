@@ -4,7 +4,8 @@
 #  - starts Nuskha by itself whenever this PC is switched on and someone signs in to Windows
 #  - lets other counter PCs on the shop network reach it (needs "Run as administrator" once)
 #  - puts a Nuskha icon on the desktop
-param([string]$Target = 'C:\Nuskha', [int]$Port = 5199)
+# -Quiet: run by NuskhaSetup.exe (no questions; Setup opens Nuskha itself).
+param([string]$Target = 'C:\Nuskha', [int]$Port = 5199, [switch]$Quiet)
 $ErrorActionPreference = 'Stop'
 $src = Split-Path -Parent $MyInvocation.MyCommand.Path
 Write-Host ''
@@ -94,9 +95,10 @@ for ($i = 0; $i -lt 120; $i++) {
 if ($ok) {
   Write-Host ''
   Write-Host '  Nuskha is running.' -ForegroundColor Green
-  Start-Process (Join-Path $desktop 'Nuskha.lnk')
+  if (-not $Quiet) { Start-Process (Join-Path $desktop 'Nuskha.lnk') }
 } else {
   Write-Host "  Nuskha did not start. See $Target\logs\medflow.log" -ForegroundColor Red
 }
 Write-Host ''
-Read-Host '  Press Enter to close'
+if (-not $Quiet) { Read-Host '  Press Enter to close' }
+if ($ok) { exit 0 } else { exit 1 }

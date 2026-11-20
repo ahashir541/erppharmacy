@@ -21,6 +21,16 @@ export function LocalServerPanel(props: PageProps) {
     setBusy(true); setError(null);
     try { setList(await db.backups(true)); } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
   };
+  const [copy, setCopy] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+  const saveCopy = async () => {
+    setBusy(true); setError(null); setSaved(null);
+    try {
+      const l = await db.setBackupCopy((copy ?? '').trim());
+      setList(l); setCopy(null);
+      setSaved(l.copy_to ? `Every backup is now also saved in ${l.copy_to}. A first copy was made just now.` : 'The second copy is off.');
+    } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
+  };
   const last = list?.list[0];
   return (
     <section className="panel">
@@ -28,13 +38,20 @@ export function LocalServerPanel(props: PageProps) {
       <dl className="facts">
         <dt>Last backup</dt><dd>{last ? `${timeOf(last.at)} · ${(last.size / 1048576).toFixed(1)} MB` : list ? 'None yet' : '…'}</dd>
         <dt>Backups kept</dt><dd>{list ? `${list.list.length} in ${list.folder}` : '…'}</dd>
-        <dt>Second copy</dt><dd>{list ? (list.copy_to ?? 'Not set (see README: copyTo)') : '…'}</dd>
+        <dt>Second copy</dt><dd>{list ? (list.copy_to ?? <span className="warn-text">Not set: add a USB or Google Drive folder below</span>) : '…'}</dd>
         <dt>Backup key</dt><dd>{list?.recovery_key ? <><code className="key-code">{list.recovery_key}</code><div className="muted small">Backups are encrypted. Write this key down and keep it safe: you need it to open a backup on another PC. Nuskha HQ keeps a copy too.</div></> : '…'}</dd>
         <dt>Other counters open</dt><dd>{status ? (status.addresses.join(', ') || 'No shop network found') : '…'}</dd>
       </dl>
-      <p className="muted small">A backup is made every night at 11 pm. On another PC of the shop, open the address above in Chrome or Edge and link it with your PIN.</p>
+      <p className="muted small">A backup is made every night at 11 pm and kept for 30 days in the folder above (desktop icon "Nuskha Backups"). On another PC of the shop, open the address above in Chrome or Edge and link it with your PIN.</p>
+      <label className="field"><span>Second copy of every backup (USB drive, Google Drive or OneDrive folder)</span>
+        <input value={copy ?? list?.copy_to ?? ''} placeholder="e.g. E:\Nuskha backups  or  G:\My Drive\Nuskha" onChange={(e) => { setCopy(e.target.value); setSaved(null); }} /></label>
+      <p className="muted small">If this PC is lost, stolen or broken, the copy on the USB or in Google Drive brings your pharmacy back on a new PC.</p>
       {error && <div className="form-error">{error}</div>}
-      <div className="row-actions"><button type="button" className="btn" disabled={busy} onClick={() => void now()}>{busy ? 'Backing up…' : 'Back up now'}</button></div>
+      {saved && <div className="message info">{saved}</div>}
+      <div className="row-actions">
+        {copy !== null && <button type="button" className="btn primary" disabled={busy} onClick={() => void saveCopy()}>Save second copy</button>}
+        <button type="button" className="btn" disabled={busy} onClick={() => void now()}>{busy ? 'Backing up…' : 'Back up now'}</button>
+      </div>
     </section>
   );
 }

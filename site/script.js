@@ -17,7 +17,7 @@ const SITE = {
   certifications: [],                  // [certification_logos] e.g. [{ name: 'ISO 27001', img: '/img/iso.webp' }]
   socials: { x: '', facebook: '', linkedin: '', instagram: '' },
   founder: {                           // About page → Team
-    photo: '',                         // [founder_photo] e.g. '/img/team/hashir.webp'
+    photo: '/img/team/syed-hashir-ali-founder-nuskha.webp',
     role: 'Founder, Nuskha',
     links: { linkedin: '', x: '', facebook: '', instagram: '', github: '', website: '' },  // [founder_links] full https:// links
   },
@@ -54,7 +54,8 @@ function header() {
           </div></div>
         <div class="dd"><button type="button" aria-expanded="false">Services</button>
           <div class="dd-menu">
-            <a href="/download.html"><b>Installation &amp; setup</b><span>Download and install on your PC</span></a>
+            <a href="/guide.html"><b>Install guide</b><span>Install, set up, backups, step by step</span></a>
+            <a href="/download.html"><b>Download</b><span>NuskhaSetup.exe for Windows</span></a>
             <a href="/#request-demo" data-demo><b>Data import</b><span>Bring your medicine list from Excel</span></a>
             <a href="/#request-demo" data-demo><b>Staff training</b><span>Get your team selling on day one</span></a>
           </div></div>
@@ -109,7 +110,7 @@ function footer() {
           <li><a href="/features.html">All features</a></li><li><a href="/features.html#stock">Inventory &amp; Purchases</a></li>
           <li><a href="/features.html#pos">Billing &amp; POS</a></li><li><a href="/features.html#udhaar">Udhaar Ledger</a></li><li><a href="/features.html#reports">Reports</a></li><li><a href="/#two-ways">Nuskha Local &amp; Cloud</a></li></ul></div>
         <div><h4>Services</h4><ul>
-          <li><a href="/download.html">Download &amp; install</a></li><li><a href="#request-demo" data-demo>Data import</a></li>
+          <li><a href="/download.html">Download</a></li><li><a href="/guide.html">Install guide</a></li><li><a href="#request-demo" data-demo>Data import</a></li>
           <li><a href="#request-demo" data-demo>Staff training</a></li><li><a href="/login.html">Login to your pharmacy</a></li></ul></div>
         <div><h4>Company</h4><ul>
           <li><a href="/about.html">About</a></li><li><a href="/about.html#team">Our Team</a></li><li><a href="/release-notes.html">Release Notes</a></li><li><a href="/blog/">Blog</a></li></ul>
@@ -146,7 +147,7 @@ function founderCard() {
   if (!box) return;
   const f = SITE.founder || {};
   const img = document.querySelector('[data-founder-photo]');
-  if (img && f.photo) { img.src = f.photo; img.hidden = false; img.nextElementSibling.hidden = true; }
+  if (img && f.photo && !img.getAttribute('src')) { img.src = f.photo; img.hidden = false; }
   const role = document.querySelector('[data-founder-role]');
   if (role && f.role) role.textContent = f.role;
   const L = { linkedin: 'LinkedIn', x: 'X', facebook: 'Facebook', instagram: 'Instagram', github: 'GitHub', website: 'Website' };

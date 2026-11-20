@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { buildWindow } from './desktop-build.mjs';
+import { buildSetup, buildWindow } from './desktop-build.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -108,6 +108,8 @@ if (flag('--zip') && process.platform === 'win32') {
   fs.rmSync(zip, { force: true });
   execSync(`powershell -NoProfile -Command "Compress-Archive -Path '${out}' -DestinationPath '${zip}'"`, { stdio: 'inherit' });
   console.log(`Done: ${zip}`);
+  step('Setup');
+  buildSetup(zip, path.join(here, 'release', 'NuskhaSetup.exe'));
 } else {
   console.log(`Done: ${out}`);
 }

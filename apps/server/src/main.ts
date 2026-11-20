@@ -170,6 +170,28 @@ async function main() {
       if (r[0]?.status === 'rejected') throw new ApiError(r[0].result?.error ?? 'Could not save');
       return send(res, 200, { r: null });
     }
+    if (route === 'backups/copy-to') {
+      // The owner picks a second place for every backup (a USB drive, a Google Drive or OneDrive folder).
+      await ownerClaims(db, counter, sessionId);
+      const folder = String(body.folder ?? '').trim();
+      if (folder) {
+        if (!path.isAbsolute(folder)) throw new ApiError('Give the full folder, for example E:\\Nuskha backups or G:\\My Drive\\Nuskha');
+        try {
+          fs.mkdirSync(folder, { recursive: true });
+          const probe = path.join(folder, '.nuskha-test');
+          fs.writeFileSync(probe, 'ok'); fs.rmSync(probe, { force: true });
+        } catch { throw new ApiError(`Nuskha cannot write to ${folder}. Is the USB drive plugged in, or the folder name right?`); }
+      }
+      cfg.copyTo = folder || null;
+      const cfgPath = path.join(home, 'config.json');
+      let file: Record<string, unknown> = {};
+      try { file = JSON.parse(fs.readFileSync(cfgPath, 'utf8')) as Record<string, unknown>; } catch { /* new file */ }
+      file.copyTo = cfg.copyTo;
+      fs.writeFileSync(cfgPath, JSON.stringify(file, null, 2));
+      log(cfg.copyTo ? `Backups are also copied to ${cfg.copyTo}` : 'Second backup copy turned off');
+      if (cfg.copyTo) await doBackup().catch((e) => log(`Backup to the new place failed: ${(e as Error).message}`));
+      return send(res, 200, { folder: cfg.backups, copy_to: cfg.copyTo, list: listBackups(cfg.backups).slice(0, 30), recovery_key: keyText(bkey) });
+    }
     if (route === 'backups') {
       await ownerClaims(db, counter, sessionId);
       if (req.method === 'POST') await doBackup();

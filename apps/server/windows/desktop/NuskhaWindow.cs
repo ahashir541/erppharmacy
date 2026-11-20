@@ -175,10 +175,17 @@ class MainWindow : Form
                 if (sep && edge) a.MenuItems.RemoveAt(i);
             }
         };
-        core.NewWindowRequested += (o, a) => { a.Handled = true; Outside(a.Uri); };
+        core.NewWindowRequested += (o, a) =>
+        {
+            // "Sign in with Google" opens Google in a small window that reports back to Nuskha: it must
+            // stay inside the program (a WebView2 popup keeps window.opener). Everything else opens outside.
+            if (SignIn(a.Uri)) return;
+            a.Handled = true;
+            Outside(a.Uri);
+        };
         core.NavigationStarting += (o, a) =>
         {
-            if (!Ours(a.Uri)) { a.Cancel = true; Outside(a.Uri); }
+            if (!Ours(a.Uri) && !SignIn(a.Uri)) { a.Cancel = true; Outside(a.Uri); }
         };
         core.NavigationCompleted += (o, a) =>
         {
@@ -191,6 +198,16 @@ class MainWindow : Form
     bool Ours(string uri)
     {
         return uri.StartsWith(origin + "/", StringComparison.OrdinalIgnoreCase) || uri == origin || uri.StartsWith("about:") || uri.StartsWith("data:") || uri.StartsWith("blob:");
+    }
+
+    /** Google sign-in pages (accounts.google.com and the pages it passes through). */
+    static bool SignIn(string uri)
+    {
+        Uri u;
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out u) || u.Scheme != "https") return false;
+        string h = u.Host.ToLowerInvariant();
+        return h == "accounts.google.com" || h.EndsWith(".accounts.google.com") || h == "accounts.youtube.com"
+            || h == "myaccount.google.com" || h == "ssl.gstatic.com" || h == "www.gstatic.com";
     }
 
     static void Outside(string uri)

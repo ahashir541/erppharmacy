@@ -19,7 +19,7 @@ const SITE = {
   founder: {                           // About page → Team
     photo: '/img/team/syed-hashir-ali-founder-nuskha.webp',
     role: 'Founder, Nuskha',
-    links: { linkedin: '', x: '', facebook: '', instagram: '', github: '', website: '' },  // [founder_links] full https:// links
+    links: { linkedin: 'https://www.linkedin.com/in/syedhashiraly', x: '', facebook: '', instagram: '', github: '', website: '' },  // [founder_links] full https:// links
   },
   supabase: { url: 'https://sxdvifionzpvybugnvbk.supabase.co', anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4ZHZpZmlvbnpwdnlidWdudmJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUwOTUzNDQsImV4cCI6MjExMDY3MTM0NH0.VB9NYvY_-yM8ltrCZ0gXVETjvVPD1GaHofe6UBZm3gQ' },  // leads table (insert only)
 };

@@ -671,3 +671,5 @@ main > section.compliance { min-height: 0; }
 
 .byline { color: var(--muted); font-size: 14.5px; margin: -6px 0 22px; }
 .byline a { color: var(--navy); text-decoration: none; }
+.founder-facts { list-style: none; margin: 14px 0 6px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.founder-facts li { background: var(--lav); color: var(--navy); border-radius: 999px; padding: 6px 12px; font-size: 13.5px; font-weight: 500; }

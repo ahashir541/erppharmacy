@@ -273,3 +273,50 @@ section { padding-block: 90px; }
 .login-cards p { color: var(--ink-2); }
 .login-cards .btn { white-space: normal; text-align: center; }
 @media (max-width: 760px) { .login-cards { grid-template-columns: 1fr; } }
+
+/* ---- Phones: shorter page. Long card rows swipe sideways; features in two compact columns. ---- */
+@media (max-width: 760px) {
+  body { font-size: 15.5px; padding-bottom: 84px; }
+  section { padding-block: 52px; }
+  .sec-head { margin-bottom: 26px; gap: 10px; }
+  h2 { font-size: 26px; }
+  .lead { font-size: 16px; }
+  .site-header .wrap { min-height: 64px; gap: 10px; }
+  .logo img { width: 36px; height: 36px; }
+  .logo b { font-size: 23px; }
+  .mainnav { top: 64px; }
+  .hero { padding-block: 32px 28px; }
+  .hero h1 { font-size: 33px; }
+  .hero .lead { font-size: 16.5px; }
+  .hero .cta .btn { flex: 1 1 100%; }
+  .devices { margin-top: 8px; }
+
+  /* swipe rows */
+  .pains, .posts, .trust { display: grid; grid-auto-flow: column; grid-auto-columns: 84%; grid-template-columns: none;
+    overflow-x: auto; scroll-snap-type: x mandatory; gap: 14px; padding: 4px 2px 14px; margin-inline: -2px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .pains::-webkit-scrollbar, .posts::-webkit-scrollbar, .trust::-webkit-scrollbar { display: none; }
+  .pains > *, .posts > *, .trust > * { scroll-snap-align: start; }
+  .pain h3 { font-size: 17px; padding: 18px 18px 12px; }
+  .pain .shot { margin: 0 18px; }
+  .pain .fix { padding: 14px 18px; font-size: 14.5px; align-items: flex-start; }
+  .pain .fix i { width: 30px; height: 30px; }
+  .swipe-hint { display: block; text-align: center; font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* features: two compact columns */
+  .features { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .feature { grid-template-columns: 1fr; gap: 8px; padding: 14px; }
+  .feature .ic { width: 36px; height: 36px; border-radius: 10px; }
+  .feature .ic svg { width: 19px; height: 19px; }
+  .feature h3 { font-size: 14.5px; margin-bottom: 2px; }
+  .feature p { font-size: 12.5px; line-height: 1.5; }
+
+  .pills { gap: 8px; }
+  .pill { padding: 10px 16px; font-size: 14.5px; }
+  .acc summary { font-size: 16px; }
+  .trust > div { padding: 20px; }
+  .wa-float { width: 52px; height: 52px; right: 14px; bottom: 14px; }
+  .wa-float svg { width: 28px; height: 28px; }
+  .site-footer { padding-block: 44px 24px; }
+}
+.swipe-hint { display: none; }

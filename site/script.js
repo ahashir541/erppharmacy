@@ -61,7 +61,7 @@ function header() {
         <a href="/download.html">Download</a>
         <a href="/#contact">Contact</a>
         <div class="mobile-only">
-          <a class="login-btn js-login" href="/login.html">Login to your pharmacy</a>
+          <a class="login-btn js-login" href="/login.html">Pharmacy Login</a>
           <a class="btn btn-navy" href="#request-demo" data-demo>Request a Demo</a>
         </div>
       </nav>

@@ -1,6 +1,6 @@
 # Nuskha website
 
-Static site (plain HTML, CSS and JavaScript). Live at https://nuskhapk.vercel.app (Vercel project `medflow-site`).
+Static site (plain HTML, CSS and JavaScript). Live at https://nuskhapk.vercel.app (Vercel project `nuskhapk`).
 
 - `index.html` home page (one screen per section on desktop) · `download.html` · `login.html` · `about.html` · `release-notes.html` · `blog/`
 - `styles.css` design · `script.js` settings, shared header and footer, menus, blog search, demo form, WhatsApp button

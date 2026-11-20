@@ -18,7 +18,7 @@ Everything else is already built and tested.
 | Part | Where |
 |---|---|
 | Supabase project | `medflow` (ref `sxdvifionzpvybugnvbk`, Mumbai). Database password: `C:\MedFlowHQ\hq-keys\cloud-secrets.txt` |
-| Website | https://app-nuskha.vercel.app (Vercel project `medflow`) |
+| Website | https://app-nuskha.vercel.app (Vercel project `app-nuskha`) |
 | Test | `node apps/server/e2e/cloud.e2e.mjs --site <website> --ref <ref>` (13 checks: owner sign-in with 2FA, import, counter link, sale, data locked without sign-in) |
 
 Learned while going live (already fixed in this repository):

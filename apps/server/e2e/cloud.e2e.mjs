@@ -136,8 +136,11 @@ try {
 } finally {
   await browser.close();
 }
-// The test pharmacy is cancelled (kept for the record; money records are never deleted in the cloud).
-if (tenant) { try { sql(`update tenants set status = 'cancelled', name = 'TEST (cloud e2e) ' || name where id = '${tenant}'`); } catch { /* keep going */ } }
+// The test pharmacy is cancelled, then removed with its logins (cloud-cleanup.sql), so the cloud stays empty.
+if (tenant) {
+  try { sql(`update tenants set status = 'cancelled', name = 'TEST (cloud e2e) ' || name where id = '${tenant}'`); } catch { /* keep going */ }
+  try { sql(fs.readFileSync(new URL('./cloud-cleanup.sql', import.meta.url), 'utf8')); } catch { /* keep going */ }
+}
 await fetch(`${supa}/auth/v1/admin/users/${(await (await fetch(`${supa}/auth/v1/admin/users?email=${encodeURIComponent(email)}`, { headers: { apikey: service, Authorization: `Bearer ${service}` } })).json()).users?.find((u) => u.email === email)?.id}`,
   { method: 'DELETE', headers: { apikey: service, Authorization: `Bearer ${service}` } }).catch(() => {});
 const failed = results.filter((x) => !x).length;

@@ -207,3 +207,31 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .stat { min-width: 0; }
 
 .key-code { font: 12.5px var(--font-mono); background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 4px; padding: 2px 6px; word-break: break-all; user-select: all; }
+
+/* WhatsApp & reminders (navy, like the rest of Nuskha; the icon says WhatsApp) */
+.btn.wa-btn { background: var(--color-brand); border-color: var(--color-brand); color: #fff; display: inline-flex; align-items: center; gap: 6px; }
+.btn.wa-btn:hover:not(:disabled) { filter: brightness(1.15); }
+.btn.wa-btn.quiet { background: var(--color-surface); color: var(--color-brand); }
+.btn.wa-btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.wa-btn.big { min-height: 46px; padding-inline: 18px; font-weight: 600; }
+.wa-ic { flex: none; }
+.wa-actions { justify-content: space-between; }
+.wa-banner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.wa-body { display: grid; gap: var(--space-3); margin-top: var(--space-3); }
+.wa-preview { white-space: pre-wrap; font: inherit; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 12px 12px 12px 2px; padding: var(--space-3); margin: var(--space-2) 0; max-width: 520px; unicode-bidi: plaintext; }
+.wa-snip { display: inline-block; max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.wa-today { margin: var(--space-3) 0; }
+.wa-today-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.wa-today-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: var(--space-3); align-items: stretch; margin-top: var(--space-2); }
+.wa-count { text-align: left; border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 12px; padding: var(--space-2) var(--space-3); cursor: pointer; display: grid; transition: border-color .2s, transform .2s; }
+.wa-count:hover { border-color: var(--color-brand); transform: translateY(-2px); }
+.wa-count strong { font-size: 22px; color: var(--color-brand); }
+.wa-count span { font-size: var(--text-sm); color: var(--color-text-2); }
+.regular-add { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; margin-top: var(--space-2); }
+.regular-add .search-wrap { flex: 1 1 220px; }
+.field.inline { display: flex; align-items: center; gap: 6px; }
+@media (max-width: 760px) {
+  .wa-today-row { grid-template-columns: 1fr 1fr; }
+  .wa-today-row .btn { grid-column: 1 / -1; }
+  .wa-snip { max-width: 200px; }
+}

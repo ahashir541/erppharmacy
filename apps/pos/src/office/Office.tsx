@@ -8,10 +8,11 @@ import { Customers, Suppliers } from './parties.tsx';
 import { Purchases } from './purchases.tsx';
 import { Dashboard, Invoices, Shifts } from './sales.tsx';
 import { StockCounts } from './counts.tsx';
+import { WhatsApp } from './whatsapp.tsx';
 import { Expiry, Movements, Products } from './stock.tsx';
 import type { PageProps } from './ui.tsx';
 
-const LABEL_UR: Record<string, string> = {"dashboard": "ڈیش بورڈ", "pos": "نئی فروخت", "invoices": "فروخت اور بل", "customers": "گاہک اور ادھار", "shifts": "شفٹیں", "products": "ادویات اور اسٹاک", "expiry": "میعاد", "counts": "اسٹاک گنتی", "movements": "اسٹاک کی آمد و رفت", "suppliers": "سپلائرز", "purchases": "خریداری", "expenses": "اخراجات", "accounts": "حسابات", "reports": "رپورٹس", "approvals": "منظوریاں اور الرٹس", "team": "عملہ", "settings": "ترتیبات"};
+const LABEL_UR: Record<string, string> = {"dashboard": "ڈیش بورڈ", "pos": "نئی فروخت", "invoices": "فروخت اور بل", "customers": "گاہک اور ادھار", "whatsapp": "واٹس ایپ یاد دہانیاں", "shifts": "شفٹیں", "products": "ادویات اور اسٹاک", "expiry": "میعاد", "counts": "اسٹاک گنتی", "movements": "اسٹاک کی آمد و رفت", "suppliers": "سپلائرز", "purchases": "خریداری", "expenses": "اخراجات", "accounts": "حسابات", "reports": "رپورٹس", "approvals": "منظوریاں اور الرٹس", "team": "عملہ", "settings": "ترتیبات"};
 const GROUP_LABEL_UR: Record<string, string> = {"Overview": "جائزہ", "Sales": "فروخت", "Inventory": "اسٹاک", "Purchasing": "خریداری", "Money": "رقم", "Admin": "انتظام"};
 
 interface NavItem { key: string; label: string; icon: string; group: string; render?: (p: PageProps) => ReactNode; soon?: boolean }
@@ -21,6 +22,7 @@ const NAV: NavItem[] = [
   { key: 'pos', label: 'POS / New sale', icon: '⌁', group: 'Overview' },
   { key: 'invoices', label: 'Sales & invoices', icon: '≡', group: 'Sales', render: (p) => <Invoices {...p} /> },
   { key: 'customers', label: 'Customers & udhaar', icon: '☺', group: 'Sales', render: (p) => <Customers {...p} /> },
+  { key: 'whatsapp', label: 'WhatsApp & reminders', icon: '✆', group: 'Sales', render: (p) => <WhatsApp {...p} /> },
   { key: 'shifts', label: 'Shifts', icon: '◷', group: 'Sales', render: (p) => <Shifts {...p} /> },
   { key: 'products', label: 'Products & stock', icon: '▤', group: 'Inventory', render: (p) => <Products {...p} /> },
   { key: 'expiry', label: 'Expiry', icon: '⚠', group: 'Inventory', render: (p) => <Expiry {...p} /> },

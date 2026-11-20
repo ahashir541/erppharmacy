@@ -6,6 +6,7 @@ import { APPROVAL_KIND } from '../cart.ts';
 import { errorText, rs } from '../util.ts';
 import { PinPad } from './PinPad.tsx';
 import { printReceipt, ReceiptView } from './ReceiptView.tsx';
+import { billText, openWa, waPhone } from '../wa.ts';
 
 const PERMISSION_WORDS: Record<string, string> = {
   'sales.discount': 'discount above your limit', 'sales.edit_price': 'changing the price', 'sales.sell_below_min': 'selling below the minimum price',
@@ -164,7 +165,7 @@ export function receiptData(r: Receipt, cashier: string, customer: string | null
   };
 }
 
-export function ReceiptDialog(props: AppProps & { receipt: ReceiptData; onClose: () => void }) {
+export function ReceiptDialog(props: AppProps & { receipt: ReceiptData; onClose: () => void; phone?: string | null }) {
   const { t, ctx } = props;
   const width: 58 | 80 = ctx.settings.receipt_width === 58 ? 58 : 80;
   const ref = useRef<HTMLDivElement>(null);
@@ -195,6 +196,7 @@ export function ReceiptDialog(props: AppProps & { receipt: ReceiptData; onClose:
         <div className="receipt-stage" ref={paper}><ReceiptView r={props.receipt} width={width} /></div>
         <div className="row-actions">
           <button type="button" className="btn" onClick={print}>{t('pos.print')}</button>
+          {waPhone(props.phone) && <button type="button" className="btn wa-btn" onClick={() => openWa(waPhone(props.phone)!, billText(props.receipt))}>WhatsApp bill</button>}
           <button type="button" className="btn primary" onClick={props.onClose}>{t('pos.new_sale')}</button>
         </div>
       </div>

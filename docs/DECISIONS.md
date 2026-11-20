@@ -261,3 +261,19 @@ before go-live.
   HQ receives counts only, never money or patient data. Licence keys are stored as SHA-256 only.
   The HQ console signs in with email and password (scrypt), 5 tries then a 10-minute wait,
   12-hour sessions; platform functions still require the platform-admin claims with aal2.
+
+## D-WA — WhatsApp reminders and automations (Delegated, 2026-11-20)
+- Messages go out by opening WhatsApp with the text ready (wa.me, WhatsApp Web or the app, chosen per PC);
+  the person presses Send. No WhatsApp Business API account, no cost per message, works the same on
+  Nuskha Local and Nuskha Cloud. Fully automatic sending needs a Meta WhatsApp Business account (owner's to open).
+- Each pharmacy sets its own WhatsApp number (signed under every message), the owner's number for the
+  daily summary, the language (Urdu, Roman Urdu, English), how often to remind (default 7 days) and,
+  optionally, its own wording with {name} {amount} {days} {since} {medicine} {pharmacy} {sign}.
+- "Days" in an udhaar reminder = days since the oldest unpaid bill. "Due" = reminders on, a mobile number,
+  something past its due date, not reminded within the interval. Every opened message is logged
+  (outbound_messages, provider 'wa_link'; reminders also in reminders_log).
+- Five related automations: payment receipt after udhaar is received, bill on WhatsApp from the counter
+  (no cost or profit, not logged: counters cannot write the owner's log), refill reminders from regular
+  medicines (next due = last purchase + interval), low-stock list per last supplier (reorder level, or out
+  of stock after selling in the last 60 days), and the owner's daily summary; a "WhatsApp today" card on
+  the dashboard counts what is due.

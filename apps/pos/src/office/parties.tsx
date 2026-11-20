@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { toPaisa } from '../util.ts';
+import { useMemo, useState } from 'react';
+import { errorText, toPaisa } from '../util.ts';
+import { waPhone } from '../wa.ts';
+import { messages, RegularMedicines, sendWa, useWaSettings, WaIcon } from './whatsapp.tsx';
 import { csvButton, DateRange, dateOf, Modal, money, monthStart, PageHead, Stat, Table, useLoad, useSubmit, type Col, type PageProps } from './ui.tsx';
 
 /** Where money can come from or go to: an open cash drawer, or a bank / wallet account. */
@@ -89,6 +91,32 @@ export function Khata(props: PageProps & { type: 'customer_account' | 'supplier'
     'open_bills', props.type, props.id), [paying]);
   const isCust = props.type === 'customer_account';
   const s = st.data;
+  const [paid, setPaid] = useState<number | null>(null);
+  const [waMsg, setWaMsg] = useState<{ text: string; bad?: boolean } | null>(null);
+  const wa = useWaSettings(props);
+  const contact = useLoad(() => (isCust ? props.db.office<{ customer_id: string | null; name: string; phone: string | null; balance: number; oldest_bill: string | null; last_reminded_at: string | null }>(
+    'customer_contact', props.id) : Promise.resolve(null)), [paying]);
+  const m = useMemo(() => (wa.data ? messages(wa.data) : null), [wa.data]);
+  const c = contact.data;
+  const remind = async () => {
+    if (!m || !c) return;
+    setWaMsg(null);
+    try {
+      const days = c.oldest_bill ? Math.max(0, Math.round((Date.parse(props.today) - Date.parse(c.oldest_bill)) / 86_400_000)) : 0;
+      await sendWa(props, 'udhaar_reminder', c.phone, m.udhaar({ name: c.name, balance: Number(c.balance), days, oldest_bill: c.oldest_bill }),
+        { related_type: 'customer_account', related_id: props.id, balance: c.balance });
+      setWaMsg({ text: 'Reminder opened in WhatsApp. Press Send there.' });
+    } catch (e) { setWaMsg({ text: errorText(e), bad: true }); }
+  };
+  const receipt = async () => {
+    if (!m || !c || paid === null) return;
+    setWaMsg(null);
+    try {
+      await sendWa(props, 'payment_receipt', c.phone, m.receipt(c.name, paid, Number(c.balance), props.today), { related_type: 'customer_account', related_id: props.id });
+      setPaid(null);
+      setWaMsg({ text: 'Receipt opened in WhatsApp.' });
+    } catch (e) { setWaMsg({ text: errorText(e), bad: true }); }
+  };
   return (
     <Modal title={props.title} onClose={props.onClose} wide>
       <div className="stats">
@@ -98,9 +126,17 @@ export function Khata(props: PageProps & { type: 'customer_account' | 'supplier'
       </div>
       <div className="filters">
         <DateRange from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t); }} />
-        <button type="button" className="btn primary" onClick={() => setPaying(true)}>{isCust ? 'Receive payment' : 'Pay supplier'}</button>
+        <button type="button" className="btn primary" onClick={() => { setPaid(null); setPaying(true); }}>{isCust ? 'Receive payment' : 'Pay supplier'}</button>
+        {isCust && c && Number(c.balance) > 0 && (
+          <button type="button" className="btn wa-btn" disabled={!waPhone(c.phone)} title={waPhone(c.phone) ? '' : 'No mobile number for this customer'} onClick={() => void remind()}>
+            <WaIcon /> WhatsApp reminder</button>)}
       </div>
-      {paying ? <PaymentForm {...props} onDone={() => setPaying(false)} /> : (
+      {isCust && c?.last_reminded_at && <div className="muted small">Last reminder: {new Date(c.last_reminded_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>}
+      {paid !== null && isCust && (
+        <div className="message info wa-banner">Payment of {money(paid)} saved.
+          {waPhone(c?.phone) && <button type="button" className="btn small-btn wa-btn" onClick={() => void receipt()}><WaIcon /> Send receipt on WhatsApp</button>}</div>)}
+      {waMsg && <div className={waMsg.bad ? 'form-error' : 'message info'}>{waMsg.text}</div>}
+      {paying ? <PaymentForm {...props} onDone={(amount) => { setPaying(false); if (amount) setPaid(amount); }} /> : (
         <>
           <div className="panel-title">Statement (khata)</div>
           <Table rows={s ? [{ date: from, type: 'Opening balance', reference: '', method: null, debit: 0, credit: 0, balance: s.opening_balance }, ...s.entries] : null}
@@ -120,13 +156,14 @@ export function Khata(props: PageProps & { type: 'customer_account' | 'supplier'
             { label: 'Late', value: (r) => (r.days_overdue > 0 ? <span className="bad-text">{r.days_overdue} days</span> : 'not due'), num: true },
             { label: 'Unpaid', value: (r) => money(r.open_amount), num: true },
           ]} />
+          {isCust && c?.customer_id && <RegularMedicines {...props} customerId={c.customer_id} />}
         </>
       )}
     </Modal>
   );
 }
 
-function PaymentForm(props: PageProps & { type: 'customer_account' | 'supplier'; id: string; onDone: () => void }) {
+function PaymentForm(props: PageProps & { type: 'customer_account' | 'supplier'; id: string; onDone: (amount?: number | null) => void }) {
   const accounts = useMoneyAccounts(props);
   const [amount, setAmount] = useState('');
   const [acc, setAcc] = useState('');
@@ -138,7 +175,7 @@ function PaymentForm(props: PageProps & { type: 'customer_account' | 'supplier';
                 ...(chosen.kind === 'drawer' ? { drawer_session_id: chosen.id } : { bank_account_id: chosen.id }) };
     if (props.type === 'customer_account') await props.db.ownerCall('receive_udhaar_payment', { ...p, account_id: props.id }, null);
     else await props.db.ownerCall('pay_supplier', { ...p, supplier_id: props.id });
-  }, props.onDone);
+  }, () => props.onDone(toPaisa(amount)));
   return (
     <form className="form-grid panel" onSubmit={submit}>
       <label className="field"><span>Amount (Rs) *</span><input required autoFocus inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
@@ -148,7 +185,7 @@ function PaymentForm(props: PageProps & { type: 'customer_account' | 'supplier';
       <label className="field span-2"><span>Note</span><input value={memo} onChange={(e) => setMemo(e.target.value)} /></label>
       <p className="muted small span-2">The payment pays the oldest bills first.</p>
       {error && <div className="form-error span-2">{error}</div>}
-      <div className="row-actions span-2"><button type="button" className="btn ghost" onClick={props.onDone}>Back</button><button className="btn primary" disabled={busy}>Save payment</button></div>
+      <div className="row-actions span-2"><button type="button" className="btn ghost" onClick={() => props.onDone()}>Back</button><button className="btn primary" disabled={busy}>Save payment</button></div>
     </form>
   );
 }

@@ -13,7 +13,7 @@ function useProductSearch(props: PageProps, q: string) {
   return useLoad(() => (q.trim().length < 2 ? Promise.resolve([] as ProductPick[]) : props.db.office<ProductPick[]>('product_search', q.trim())), [q]);
 }
 
-function ProductPicker(props: PageProps & { value: ProductPick | null; onPick: (p: ProductPick) => void }) {
+export function ProductPicker(props: PageProps & { value: ProductPick | null; onPick: (p: ProductPick) => void }) {
   const [q, setQ] = useState(props.value?.brand_name ?? '');
   const [open, setOpen] = useState(false);
   const hits = useProductSearch(props, open ? q : '');

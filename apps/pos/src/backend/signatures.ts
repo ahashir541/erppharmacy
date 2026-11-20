@@ -757,5 +757,34 @@ export const SIGNATURES: Record<string, string[]> = {
   "platform_delete_pharmacy": [
     "p_tenant",
     "p_confirm_name"
+  ],
+  "office_whatsapp_settings": [],
+  "office_udhaar_reminders": [
+    "p_today"
+  ],
+  "office_customer_contact": [
+    "p_account"
+  ],
+  "log_whatsapp": [
+    "p"
+  ],
+  "office_whatsapp_log": [
+    "p_limit"
+  ],
+  "office_regular_medicines": [
+    "p_customer"
+  ],
+  "save_regular_medicine": [
+    "p"
+  ],
+  "archive_regular_medicine": [
+    "p_id"
+  ],
+  "office_refills_due": [
+    "p_today",
+    "p_days_ahead"
+  ],
+  "office_reorder_list": [
+    "p_branch"
   ]
 };

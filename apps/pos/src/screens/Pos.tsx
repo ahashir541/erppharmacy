@@ -469,7 +469,7 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
           onDone={(rx) => { setPrescription(rx); setDialog(null); void complete(approvals, rx); }} />
       )}
       {dialog?.kind === 'held' && <HeldDialog {...props} bills={dialog.bills} onResume={(b) => void resume(b)} onClose={() => { setDialog(null); focusSearch(); }} />}
-      {dialog?.kind === 'receipt' && <ReceiptDialog {...props} receipt={dialog.data} onClose={() => { setDialog(null); resetSale(); }} />}
+      {dialog?.kind === 'receipt' && <ReceiptDialog {...props} receipt={dialog.data} phone={cart.customer?.phone ?? null} onClose={() => { setDialog(null); resetSale(); }} />}
       {dialog?.kind === 'close_shift' && (
         <CloseShift {...props} session={session} onCancel={() => setDialog(null)}
           onClosed={async () => { setDialog(null); await props.reload(); props.onSignOut(); }} />

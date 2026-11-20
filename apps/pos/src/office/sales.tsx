@@ -3,6 +3,7 @@ import type { Receipt } from '../backend/types.ts';
 import { receiptData } from '../screens/Dialogs.tsx';
 import { ReceiptView } from '../screens/ReceiptView.tsx';
 import { SalesTrend } from './extras.tsx';
+import { WhatsAppToday } from './whatsapp.tsx';
 import { csvButton, DateRange, dateOf, Modal, money, PageHead, Stat, Table, timeOf, useLoad, type Col, type PageProps } from './ui.tsx';
 
 interface Dash {
@@ -43,6 +44,7 @@ export function Dashboard(props: PageProps) {
         <Stat label="Owed to suppliers" value={money(data.supplier_payable)} />
         <Stat label="Expiring in 90 days (cost)" value={money(data.expiring_90_days_cost)} sub={`Dead stock ${money(data.dead_stock_cost)}`} tone="bad" />
       </div>
+      <WhatsAppToday {...props} />
       <SalesTrend {...props} />
       <div className="grid-2">
         <section className="panel">

@@ -119,7 +119,7 @@ function footer() {
       <div class="bottom"><span>© ${new Date().getFullYear()} Nuskha. All rights reserved.</span><span>Made for pharmacies in Pakistan</span></div>
     </div>
   </footer>
-  <a class="wa-float" id="wa-float" href="#" target="_blank" rel="noopener" aria-label="Chat with Nuskha on WhatsApp">${ICON.wa}</a>
+  <a class="wa-float" id="wa-float" href="https://wa.me/${SITE.whatsapp}" target="_blank" rel="noopener" aria-label="Chat with Nuskha on WhatsApp">${ICON.wa}</a>
   <div class="modal" id="demo-modal" hidden role="dialog" aria-modal="true" aria-labelledby="demo-title">
     <div class="modal-card">
       <header><div><h3 id="demo-title">Request a demo</h3><p class="lead" style="font-size:16px">Tell us about your pharmacy and we'll set up a demo for you.</p></div>
@@ -274,10 +274,10 @@ function shots() {
 
 function blogCards() {
   const el = document.getElementById('posts');
-  if (!el) return;
+  if (!el || el.querySelector('.post')) return; // already in the HTML (prerender.mjs)
   const limit = Number(el.dataset.limit || POSTS.length);
   el.innerHTML = POSTS.slice(0, limit).map((p) => `
-    <a class="post" href="${p.href}"><div class="pcard"><img class="pbg" src="${p.img}" alt="" width="640" height="400" loading="lazy" decoding="async"><span class="ptag">${p.cats[0]}</span>
+    <a class="post" href="${p.href}"><div class="pcard"><img class="pbg" src="${p.img}" alt="${p.title}" width="640" height="400" loading="lazy" decoding="async"><span class="ptag">${p.cats[0]}</span>
       <div class="ptitle" aria-hidden="true"><span class="pe">${p.eyebrow}</span><b class="l1">${p.l1}</b><b class="l2">${p.l2}</b><span class="pbox">${p.box}</span></div></div>
       <div class="body"><div class="cats">${p.cats.map((c) => `<span>${c}</span>`).join('')}</div><h3>${p.title}</h3><p>${p.excerpt}</p><span class="more">Learn more →</span></div></a>`).join('');
 }
@@ -320,6 +320,9 @@ function motion() {
   }
 }
 
-document.getElementById('header-slot').outerHTML = header();
-document.getElementById('footer-slot').outerHTML = footer();
+// The header and footer are already in the HTML (prerender.mjs); older pages get them here.
+const headerSlot = document.getElementById('header-slot');
+if (headerSlot) headerSlot.outerHTML = header();
+const footerSlot = document.getElementById('footer-slot');
+if (footerSlot) footerSlot.outerHTML = footer();
 hideEmpty(); menus(); whatsapp(); demoForm(); shots(); blogCards(); founderCard(); featureTour(); motion();

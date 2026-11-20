@@ -18,11 +18,62 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Oswald:wght@700&family=Inter:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/styles.css?v=20261120201550">
+<link rel="stylesheet" href="/styles.css?v=20261120210439">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://nuskhapk.vercel.app/#org","name":"Nuskha","url":"https://nuskhapk.vercel.app/","logo":"https://nuskhapk.vercel.app/img/icon-512.png","description":"Pharmacy management software made in Pakistan.","founder":{"@id":"https://nuskhapk.vercel.app/about.html#hashir"},"contactPoint":{"@type":"ContactPoint","telephone":"+92-331-6368566","contactType":"sales","areaServed":"PK","availableLanguage":["English","Urdu"]}},{"@type":"WebSite","@id":"https://nuskhapk.vercel.app/#site","name":"Nuskha","url":"https://nuskhapk.vercel.app/","publisher":{"@id":"https://nuskhapk.vercel.app/#org"},"inLanguage":"en"},{"@type":"SoftwareApplication","@id":"https://nuskhapk.vercel.app/#app","name":"Nuskha","applicationCategory":"BusinessApplication","applicationSubCategory":"Pharmacy management software","operatingSystem":"Windows 10, Windows 11, Web browser","description":"Pharmacy management software for Pakistan: billing, stock with batches and expiry, udhaar with WhatsApp reminders, purchases and reports. Works without internet.","url":"https://nuskhapk.vercel.app/","downloadUrl":"https://nuskhapk.vercel.app/download/NuskhaSetup.exe","softwareVersion":"1 (beta)","image":"https://nuskhapk.vercel.app/img/dashboard.webp","screenshot":["https://nuskhapk.vercel.app/img/dashboard.webp","https://nuskhapk.vercel.app/img/pos.webp","https://nuskhapk.vercel.app/img/products.webp","https://nuskhapk.vercel.app/img/whatsapp.webp","https://nuskhapk.vercel.app/img/reports.webp"],"featureList":["Billing by strip, box or tablet","Batch and expiry tracking","Udhaar ledger with WhatsApp reminders","Purchases and suppliers","Sales and profit reports","Staff roles and PINs","Works without internet","Encrypted nightly backups","English and Urdu"],"offers":{"@type":"Offer","price":"0","priceCurrency":"PKR","description":"Free 14-day trial"},"publisher":{"@id":"https://nuskhapk.vercel.app/#org"},"author":{"@id":"https://nuskhapk.vercel.app/about.html#hashir"},"inLanguage":"en"},{"@type":"Person","@id":"https://nuskhapk.vercel.app/about.html#hashir","name":"Syed Hashir Ali","jobTitle":"Founder","sameAs":["https://www.linkedin.com/in/syedhashiraly"],"worksFor":{"@id":"https://nuskhapk.vercel.app/#org"},"url":"https://nuskhapk.vercel.app/about.html#team","image":"https://nuskhapk.vercel.app/img/team/syed-hashir-ali-founder-nuskha.webp","description":"Syed Hashir Ali is the founder of Nuskha, pharmacy management software made in Pakistan.","knowsAbout":["Pharmacy management software","Point of sale","Inventory management","Software for pharmacies in Pakistan"],"nationality":{"@type":"Country","name":"Pakistan"}}]}</script>
 </head>
 <body>
-<div id="header-slot"></div>
+<!--nuskha:header-->
+  <header class="site-header" id="site-header">
+    <div class="wrap">
+      <a class="logo" href="/" aria-label="Nuskha home"><img src="/img/icon-192.png" alt="" width="42" height="42"><b>Nuskha</b></a>
+      <nav class="mainnav" aria-label="Main">
+        <div class="dd"><button type="button" aria-expanded="false">Products</button>
+          <div class="dd-menu">
+            <a href="/features.html"><b>All features</b><span>Every screen, explained</span></a>
+            <a href="/features.html#stock"><b>Inventory &amp; Purchases</b><span>Stock, batches, expiry, suppliers</span></a>
+            <a href="/features.html#pos"><b>Billing &amp; POS</b><span>Fast counter billing</span></a>
+            <a href="/features.html#udhaar"><b>Udhaar Ledger</b><span>Customer and supplier credit</span></a>
+            <a href="/features.html#reports"><b>Reports</b><span>Sales, profit, cash</span></a>
+            <a href="/#two-ways"><b>Nuskha Local</b><span>Installed on your shop PC, works offline</span></a>
+            <a href="/#two-ways"><b>Nuskha Cloud</b><span>In your browser, open it from anywhere</span></a>
+          </div></div>
+        <div class="dd"><button type="button" aria-expanded="false">Services</button>
+          <div class="dd-menu">
+            <a href="/guide.html"><b>Install guide</b><span>Install, set up, backups, step by step</span></a>
+            <a href="/download.html"><b>Download</b><span>NuskhaSetup.exe for Windows</span></a>
+            <a href="/#request-demo" data-demo><b>Data import</b><span>Bring your medicine list from Excel</span></a>
+            <a href="/#request-demo" data-demo><b>Staff training</b><span>Get your team selling on day one</span></a>
+          </div></div>
+        <div class="dd"><button type="button" aria-expanded="false">Company</button>
+          <div class="dd-menu">
+            <a href="/about.html"><b>About</b><span>Who we are</span></a>
+            <a href="/about.html#vision"><b>Vision &amp; Mission</b><span>What we are building</span></a>
+            <a href="/about.html#team"><b>Our Team</b><span>Meet the founder</span></a>
+            <a href="/release-notes.html"><b>Release Notes</b><span>What's new in Nuskha</span></a>
+          </div></div>
+        <a href="/features.html">Features</a>
+        <a href="/blog/">Blog</a>
+        <a href="/download.html">Download</a>
+        <a href="/#contact">Contact</a>
+        <div class="mobile-only">
+          <a class="login-btn js-login" href="/login.html">Pharmacy Login</a>
+          <a class="btn btn-navy" href="#request-demo" data-demo>Request a Demo</a>
+        </div>
+      </nav>
+      <div class="head-actions">
+        <button class="icon-btn" type="button" id="search-toggle" aria-label="Search the blog" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+        <a class="login-btn js-login" href="/login.html" title="Login to your pharmacy">Pharmacy Login</a>
+        <a class="btn btn-navy" href="#request-demo" data-demo>Request a Demo</a>
+        <button class="icon-btn burger" type="button" id="burger" aria-label="Menu" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      </div>
+    </div>
+    <div class="searchbar" id="searchbar" hidden>
+      <div class="wrap"><label for="site-search" class="tag">Search the blog</label>
+        <input id="site-search" type="search" placeholder="e.g. expiry, udhaar, cloud" autocomplete="off">
+        <div class="search-results" id="search-results"></div></div>
+    </div>
+  </header>
+<!--/nuskha:header-->
 
 <main>
   <!-- 2. Hero -->
@@ -33,7 +84,6 @@
         <p class="lead">Nuskha is <b>pharmacy management software in Pakistan</b> for a single store or a growing chain. It runs your billing, stock, batches and expiry, udhaar with WhatsApp reminders, and sales reports in one place — and keeps selling when the internet is down.</p>
         <div class="cta">
           <a class="btn btn-navy" href="#request-demo" data-demo>Request a Demo</a>
-          <a class="btn btn-outline js-demo-url" href="#" target="_blank" rel="noopener">Try the live demo</a>
           <a class="btn btn-outline" href="/download.html">Download free trial</a>
         </div>
         <p class="hero-ed">Two editions: <a href="#two-ways"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="13" rx="2"/><path d="M8 21h8M12 16v5"/></svg><b>Nuskha Local</b> on your PC</a><span aria-hidden="true">·</span><a href="#two-ways"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.34 9.5 4 4 0 0 0 6.5 19z"/></svg><b>Nuskha Cloud</b> in your browser</a></p>
@@ -111,19 +161,19 @@
       <div class="sec-head center"><h2>Everything Your Pharmacy Needs</h2><p class="lead">From the first bill of the morning to the owner's report at night.</p></div>
       <div class="features four">
         <a class="fcard" href="/features.html#pos">
-          <span class="fthumb"><img decoding="async" src="/img/pos-xs.webp" srcset="/img/pos-xs.webp 640w, /img/pos-sm.webp 1080w" sizes="(max-width: 760px) 50vw, 300px" alt="" width="1080" height="675" loading="lazy"></span>
+          <span class="fthumb"><img decoding="async" alt="Nuskha billing and POS screen" src="/img/pos-xs.webp" srcset="/img/pos-xs.webp 640w, /img/pos-sm.webp 1080w" sizes="(max-width: 760px) 50vw, 300px" width="1080" height="675" loading="lazy"></span>
           <span class="fbody"><b>Billing & POS</b><span>Fast bills by strip, box or tablet. Cash, card, JazzCash, Easypaisa or udhaar.</span><em>See it →</em></span>
         </a>
         <a class="fcard" href="/features.html#expiry">
-          <span class="fthumb"><img decoding="async" src="/img/expiry-xs.webp" srcset="/img/expiry-xs.webp 640w, /img/expiry-sm.webp 1080w" sizes="(max-width: 760px) 50vw, 300px" alt="" width="1080" height="675" loading="lazy"></span>
+          <span class="fthumb"><img decoding="async" alt="Nuskha stock and expiry screen" src="/img/expiry-xs.webp" srcset="/img/expiry-xs.webp 640w, /img/expiry-sm.webp 1080w" sizes="(max-width: 760px) 50vw, 300px" width="1080" height="675" loading="lazy"></span>
           <span class="fbody"><b>Stock & expiry</b><span>Every batch with its expiry. The earliest sells first; nothing expires unseen.</span><em>See it →</em></span>
         </a>
         <a class="fcard" href="/features.html#whatsapp">
-          <span class="fthumb"><img decoding="async" src="/img/whatsapp-xs.webp" srcset="/img/whatsapp-xs.webp 640w, /img/whatsapp-sm.webp 1080w" sizes="(max-width: 760px) 50vw, 300px" alt="" width="1080" height="675" loading="lazy"></span>
+          <span class="fthumb"><img decoding="async" alt="Nuskha udhaar and WhatsApp reminders screen" src="/img/whatsapp-xs.webp" srcset="/img/whatsapp-xs.webp 640w, /img/whatsapp-sm.webp 1080w" sizes="(max-width: 760px) 50vw, 300px" width="1080" height="675" loading="lazy"></span>
           <span class="fbody"><b>Udhaar & WhatsApp</b><span>Khata with limits, and reminders to customers in one click.</span><em>See it →</em></span>
         </a>
         <a class="fcard" href="/features.html#reports">
-          <span class="fthumb"><img decoding="async" src="/img/reports-xs.webp" srcset="/img/reports-xs.webp 640w, /img/reports-sm.webp 1080w" sizes="(max-width: 760px) 50vw, 300px" alt="" width="1080" height="675" loading="lazy"></span>
+          <span class="fthumb"><img decoding="async" alt="Nuskha sales, profit and stock reports screen" src="/img/reports-xs.webp" srcset="/img/reports-xs.webp 640w, /img/reports-sm.webp 1080w" sizes="(max-width: 760px) 50vw, 300px" width="1080" height="675" loading="lazy"></span>
           <span class="fbody"><b>Reports & control</b><span>Sales, profit and stock reports. Every staff member signs in with their own PIN.</span><em>See it →</em></span>
         </a>
       </div>
@@ -149,7 +199,7 @@
   <!-- 7. Compliance -->
   <section class="band compliance">
     <div class="wrap">
-      <div class="sec-head center"><h2>Regulatory Compliance in Pakistan</h2><p class="lead">Nuskha keeps the records inspections ask for.<span id="regulators"></span></p></div>
+      <div class="sec-head center"><h2>Regulatory Compliance in Pakistan</h2><p class="lead">Nuskha keeps the records inspections ask for.</p></div>
       <div class="comp">
         <div><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span><b>Every batch traced</b><p>Stock and expiry for every batch, from delivery to sale.</p></div>
         <div><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span><b>Prescriptions</b><p>Doctor and patient details saved on Rx medicines.</p></div>
@@ -159,21 +209,13 @@
     </div>
   </section>
 
-  <!-- 8. FBR (only when confirmed) -->
-  <section data-flag="fbr_integration">
-    <div class="wrap" style="max-width:920px">
-      <div class="sec-head center"><h2>FBR Integration for Pharmacy Operations</h2></div>
-      <p class="lead center">[fbr_description] Eligibility depends on your pharmacy. Confirm your integration status with the Nuskha team before go-live.</p>
-    </div>
-  </section>
-
   <!-- 9. Outcomes -->
   <section>
     <div class="wrap">
       <div class="sec-head center"><h2>More Sales, Less Waste, Complete Control</h2></div>
       <div class="acc">
-        <details open><summary>Reduce expired stock losses</summary><p>Expiry alerts at 30, 60 and 90 days and earliest-expiry-first selling mean less money expires on your shelves.</p><span class="result" data-fill="measured_expiry_reduction"></span></details>
-        <details><summary>Save hours of manual entry every week</summary><p>Import your medicines from Excel once; after that every sale and purchase updates stock by itself.</p><span class="result" data-fill="measured_hours_saved"></span></details>
+        <details open><summary>Reduce expired stock losses</summary><p>Expiry alerts at 30, 60 and 90 days and earliest-expiry-first selling mean less money expires on your shelves.</p></details>
+        <details><summary>Save hours of manual entry every week</summary><p>Import your medicines from Excel once; after that every sale and purchase updates stock by itself.</p></details>
         <details><summary>Get udhaar back sooner</summary><p>Every customer who owes, how much and for how many days — and a reminder on WhatsApp in one click, signed with your pharmacy's number.</p></details>
         <details><summary>Improve profit tracking and cash-flow visibility</summary><p>Daily profit, cash in drawers, money owed to suppliers and udhaar to collect — on one dashboard.</p></details>
         <details><summary>Make smarter purchase decisions backed by data</summary><p>Reorder levels, dead stock and top sellers show what to buy, and what not to.</p></details>
@@ -187,12 +229,11 @@
     <div class="wrap">
       <div class="sec-head center"><h2>Why Pharmacies Trust Nuskha</h2></div>
       <div class="trust">
-        <div data-block><h3><span data-fill="client_count"></span> pharmacies and clinics use Nuskha</h3><p>Pharmacies across Pakistan run their counters on Nuskha.</p></div>
+        <div><h3>Built for pharmacies and clinics across Pakistan</h3><p>From a single counter in a small town to a chain across cities.</p></div>
         <div><h3>Local support, Urdu and English</h3><p>Support from a team in Pakistan, and every screen switches between English and Urdu.</p></div>
         <div><h3>Healthcare-specific design</h3><p>Built for medicines — batches, expiry, prescriptions and controlled drugs — not a generic shop POS.</p></div>
         <div><h3>Scales from one store to a chain</h3><p>From one counter to many branches, with roles and approvals for every team member.</p></div>
       </div>
-      <div id="certs" style="display:flex;gap:24px;justify-content:center;margin-top:36px"></div>
     </div>
   </section>
 
@@ -200,13 +241,70 @@
   <section>
     <div class="wrap">
       <div class="sec-head center"><h2>Insights for Pharmacy Owners</h2></div>
-      <div class="posts" id="posts" data-limit="3"></div>
+      <div class="posts" id="posts" data-limit="3"><!--nuskha:posts-->
+    <a class="post" href="/blog/reduce-expired-medicine-losses.html"><div class="pcard"><img class="pbg" src="/img/products-xs.webp" alt="How to cut expired-medicine losses in your pharmacy" width="640" height="400" loading="lazy" decoding="async"><span class="ptag">Pharmacy operations</span>
+      <div class="ptitle" aria-hidden="true"><span class="pe">Five habits to</span><b class="l1">Stop</b><b class="l2">Expiry</b><span class="pbox">Losses</span></div></div>
+      <div class="body"><div class="cats"><span>Pharmacy operations</span></div><h3>How to cut expired-medicine losses in your pharmacy</h3><p>Five habits, and the reports that make them easy, to stop money expiring on your shelves.</p><span class="more">Learn more →</span></div></a>
+    <a class="post" href="/blog/udhaar-khata-under-control.html"><div class="pcard"><img class="pbg" src="/img/dashboard-xs.webp" alt="Keeping udhaar under control without losing customers" width="640" height="400" loading="lazy" decoding="async"><span class="ptag">Healthcare in Pakistan</span>
+      <div class="ptitle" aria-hidden="true"><span class="pe">Keep customers, keep</span><b class="l1">Udhaar</b><b class="l2">Under control</b><span class="pbox">Safely</span></div></div>
+      <div class="body"><div class="cats"><span>Healthcare in Pakistan</span><span>Money</span></div><h3>Keeping udhaar under control without losing customers</h3><p>Credit is part of how Pakistani pharmacies keep loyal customers. Here is how to give it safely.</p><span class="more">Learn more →</span></div></a>
+    <a class="post" href="/blog/local-or-cloud-pharmacy-software.html"><div class="pcard"><img class="pbg" src="/img/pos-xs.webp" alt="Local or cloud: which pharmacy software is right for you?" width="640" height="400" loading="lazy" decoding="async"><span class="ptag">Technology</span>
+      <div class="ptitle" aria-hidden="true"><span class="pe">Which one is right for you</span><b class="l1">Local</b><b class="l2">or Cloud?</b><span class="pbox">Simple breakdown</span></div></div>
+      <div class="body"><div class="cats"><span>Technology</span></div><h3>Local or cloud: which pharmacy software is right for you?</h3><p>Load-shedding, internet, branches and privacy: how to choose where your records should live.</p><span class="more">Learn more →</span></div></a>
+<!--/nuskha:posts--></div>
       <p class="swipe-hint">Swipe for more →</p>
     </div>
   </section>
 </main>
 
-<div id="footer-slot"></div>
-<script src="/script.js?v=20261120201550"></script>
+<!--nuskha:footer-->
+  <footer class="site-footer" id="contact">
+    <div class="wrap">
+      <div class="cols">
+        <div style="display:grid;gap:14px;align-content:start">
+          <a class="logo" href="/"><img src="/img/icon-192.png" alt="" width="42" height="42"><b>Nuskha</b></a>
+          <p>Pharmacy management software for Pakistan. Billing, stock, expiry and udhaar — with or without internet.</p>
+          <ul>
+            <li data-needs="phone">Phone: <a href="tel:+923316368566">+92 331 6368566</a></li>
+            <li data-needs="email">Email: <a href="mailto:ahashir541@gmail.com">ahashir541@gmail.com</a></li>
+            <li data-needs="address" hidden></li>
+          </ul>
+        </div>
+        <div><h4>Products</h4><ul>
+          <li><a href="/features.html">All features</a></li><li><a href="/features.html#stock">Inventory &amp; Purchases</a></li>
+          <li><a href="/features.html#pos">Billing &amp; POS</a></li><li><a href="/features.html#udhaar">Udhaar Ledger</a></li><li><a href="/features.html#reports">Reports</a></li><li><a href="/#two-ways">Nuskha Local &amp; Cloud</a></li></ul></div>
+        <div><h4>Services</h4><ul>
+          <li><a href="/download.html">Download</a></li><li><a href="/guide.html">Install guide</a></li><li><a href="#request-demo" data-demo>Data import</a></li>
+          <li><a href="#request-demo" data-demo>Staff training</a></li><li><a href="/login.html">Login to your pharmacy</a></li></ul></div>
+        <div><h4>Company</h4><ul>
+          <li><a href="/about.html">About</a></li><li><a href="/about.html#team">Our Team</a></li><li><a href="/release-notes.html">Release Notes</a></li><li><a href="/blog/">Blog</a></li></ul>
+          <p data-needs-social style="margin-top:14px" hidden></p></div>
+      </div>
+      <div class="bottom"><span>© 2026 Nuskha. All rights reserved.</span><span>Made for pharmacies in Pakistan</span></div>
+    </div>
+  </footer>
+  <a class="wa-float" id="wa-float" href="https://wa.me/923316368566" target="_blank" rel="noopener" aria-label="Chat with Nuskha on WhatsApp"><svg width="34" height="34" viewBox="0 0 32 32" fill="#fff" aria-hidden="true"><path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.6a10.6 10.6 0 0 1-5.4-1.5l-.4-.2-3.9 1 1-3.8-.3-.4A10.6 10.6 0 1 1 16 26.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7 0a8.7 8.7 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.7 3.7 0 0 0-1.1 2.7 6.4 6.4 0 0 0 1.3 3.4 14.7 14.7 0 0 0 5.6 5c2.1.9 2.9 1 4 .8a3.4 3.4 0 0 0 2.2-1.6 2.8 2.8 0 0 0 .2-1.6c0-.2-.3-.3-.6-.4z"/></svg></a>
+  <div class="modal" id="demo-modal" hidden role="dialog" aria-modal="true" aria-labelledby="demo-title">
+    <div class="modal-card">
+      <header><div><h3 id="demo-title">Request a demo</h3><p class="lead" style="font-size:16px">Tell us about your pharmacy and we'll set up a demo for you.</p></div>
+        <button class="icon-btn" type="button" data-close aria-label="Close">✕</button></header>
+      <form class="form" id="demo-form" novalidate>
+        <label>Your name *<input name="name" required minlength="2" maxlength="80" autocomplete="name"></label>
+        <label>Pharmacy name *<input name="pharmacy" required minlength="2" maxlength="120" autocomplete="organization"></label>
+        <label>City *<input name="city" required minlength="2" maxlength="60" autocomplete="address-level2"></label>
+        <label>Phone *<input name="phone" required inputmode="tel" maxlength="20" autocomplete="tel" placeholder="03xx xxxxxxx"></label>
+        <label>Email<input name="email" type="email" maxlength="120" autocomplete="email"></label>
+        <label>Number of branches<input name="branches" type="number" min="1" max="500" value="1"></label>
+        <label class="full">Software you use now (optional)<input name="current_software" maxlength="80"></label>
+        <label class="full">Message<textarea name="message" rows="3" maxlength="1000"></textarea></label>
+        <p class="err full" id="demo-err" hidden></p>
+        <div class="full"><button class="btn btn-navy" type="submit" id="demo-send">Send request</button></div>
+      </form>
+      <div class="thanks" id="demo-thanks" hidden><h3>Thank you!</h3><p class="lead" style="font-size:16px">We've received your request and will contact you soon.</p>
+        <button class="btn btn-outline" type="button" data-close>Close</button></div>
+    </div>
+  </div>
+<!--/nuskha:footer-->
+<script src="/script.js?v=20261120210439"></script>
 </body>
 </html>

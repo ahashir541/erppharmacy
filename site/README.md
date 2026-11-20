@@ -7,7 +7,8 @@ Static site (plain HTML, CSS and JavaScript). Live at https://nuskhapk.vercel.ap
 - `img/` screenshots (WebP) and icons · `download/Nuskha.zip` the installer (not in git; copied in at deploy)
 
 ## Placeholders to fill (top of `script.js`, object `SITE`)
-Anything left empty is hidden on the page.
+Anything left empty is hidden on the page. The client count, FBR section, live-demo button, regulators,
+certificates and measured results were taken out of the HTML until there is real data; add them back with it.
 
 | Setting | Now | Notes |
 |---|---|---|
@@ -27,6 +28,7 @@ Anything left empty is hidden on the page.
 Supabase → Table editor → `leads`. No email or WhatsApp alert is sent yet (needs an email service).
 
 ## Deploy
+Run `node prerender.mjs` first (writes the header, footer and blog cards into every page's HTML from `script.js`), then
 `vercel deploy --prod` from this folder (after copying `apps/server/release/Nuskha.zip` to `download/` and updating its SHA-256 in `download.html`).
 
 ## Checklist before launch

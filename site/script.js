@@ -16,6 +16,11 @@ const SITE = {
   measured_hours_saved: '',            // [measured_hours_saved]
   certifications: [],                  // [certification_logos] e.g. [{ name: 'ISO 27001', img: '/img/iso.webp' }]
   socials: { x: '', facebook: '', linkedin: '', instagram: '' },
+  founder: {                           // About page → Team
+    photo: '',                         // [founder_photo] e.g. '/img/team/hashir.webp'
+    role: 'Founder, Nuskha',
+    links: { linkedin: '', x: '', facebook: '', instagram: '', github: '', website: '' },  // [founder_links] full https:// links
+  },
   supabase: { url: 'https://sxdvifionzpvybugnvbk.supabase.co', anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4ZHZpZmlvbnpwdnlidWdudmJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUwOTUzNDQsImV4cCI6MjExMDY3MTM0NH0.VB9NYvY_-yM8ltrCZ0gXVETjvVPD1GaHofe6UBZm3gQ' },  // leads table (insert only)
 };
 
@@ -56,6 +61,8 @@ function header() {
         <div class="dd"><button type="button" aria-expanded="false">Company</button>
           <div class="dd-menu">
             <a href="/about.html"><b>About</b><span>Who we are</span></a>
+            <a href="/about.html#vision"><b>Vision &amp; Mission</b><span>What we are building</span></a>
+            <a href="/about.html#team"><b>Our Team</b><span>Meet the founder</span></a>
             <a href="/release-notes.html"><b>Release Notes</b><span>What's new in Nuskha</span></a>
           </div></div>
         <a href="/blog/">Blog</a>
@@ -104,7 +111,7 @@ function footer() {
           <li><a href="/download.html">Download &amp; install</a></li><li><a href="#request-demo" data-demo>Data import</a></li>
           <li><a href="#request-demo" data-demo>Staff training</a></li><li><a href="/login.html">Login to your pharmacy</a></li></ul></div>
         <div><h4>Company</h4><ul>
-          <li><a href="/about.html">About</a></li><li><a href="/release-notes.html">Release Notes</a></li><li><a href="/blog/">Blog</a></li></ul>
+          <li><a href="/about.html">About</a></li><li><a href="/about.html#team">Our Team</a></li><li><a href="/release-notes.html">Release Notes</a></li><li><a href="/blog/">Blog</a></li></ul>
           <p data-needs-social style="margin-top:14px">${social}</p></div>
       </div>
       <div class="bottom"><span>© ${new Date().getFullYear()} Nuskha. All rights reserved.</span><span>Made for pharmacies in Pakistan</span></div>
@@ -131,6 +138,27 @@ function footer() {
         <button class="btn btn-outline" type="button" data-close>Close</button></div>
     </div>
   </div>`;
+}
+
+function founderCard() {
+  const box = document.querySelector('[data-founder-links]');
+  if (!box) return;
+  const f = SITE.founder || {};
+  const img = document.querySelector('[data-founder-photo]');
+  if (img && f.photo) { img.src = f.photo; img.hidden = false; img.nextElementSibling.hidden = true; }
+  const role = document.querySelector('[data-founder-role]');
+  if (role && f.role) role.textContent = f.role;
+  const L = { linkedin: 'LinkedIn', x: 'X', facebook: 'Facebook', instagram: 'Instagram', github: 'GitHub', website: 'Website' };
+  const safe = (u) => /^https:\/\//.test(u || '');
+  const links = Object.entries(f.links || {}).filter(([, u]) => safe(u)).map(([k, u]) => [L[k] || k, u]);
+  if (SITE.whatsapp) links.push(['WhatsApp', `https://wa.me/${SITE.whatsapp}`]);
+  if (SITE.email) links.push(['Email', `mailto:${SITE.email}`]);
+  links.forEach(([label, href]) => {
+    const a = document.createElement('a');
+    a.className = `chip-link${label === 'LinkedIn' ? ' li' : ''}`; a.href = href; a.textContent = label;
+    if (href.startsWith('http')) { a.target = '_blank'; a.rel = 'noopener'; }
+    box.appendChild(a);
+  });
 }
 
 function hideEmpty() {
@@ -235,7 +263,7 @@ function motion() {
   if (reduce || !('IntersectionObserver' in window)) return;
   document.documentElement.classList.add('js-motion');
   // Scroll reveal, staggered inside each row of cards.
-  const groups = ['.sec-head', '.pain', '.feature', '.trust > div', '.post', '.pill', '.acc details', '.split > .copy', '.cloud-art', '.way', '.ways-note',
+  const groups = ['.sec-head', '.pain', '.feature', '.trust > div', '.post', '.pill', '.acc details', '.split > .copy', '.cloud-art', '.way', '.ways-note', '.vm-card', '.values > div', '.founder',
     '.dl-card', '.article > *', '.login-cards > div', '.checks li', '.lead.center'];
   const items = new Set();
   groups.forEach((sel) => document.querySelectorAll(`main ${sel}`).forEach((el) => {
@@ -264,4 +292,4 @@ function motion() {
 
 document.getElementById('header-slot').outerHTML = header();
 document.getElementById('footer-slot').outerHTML = footer();
-hideEmpty(); menus(); whatsapp(); demoForm(); shots(); blogCards(); motion();
+hideEmpty(); menus(); whatsapp(); demoForm(); shots(); blogCards(); founderCard(); motion();

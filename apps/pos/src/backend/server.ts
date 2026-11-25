@@ -119,4 +119,10 @@ export class ServerBackend implements PosBackend {
   }
   backups(now = false) { return post<BackupList>('backups', {}, this.headers(), now ? 'POST' : 'GET'); }
   setBackupCopy(folder: string) { return post<BackupList>('backups/copy-to', { folder }, this.headers()); }
+  mirrorStatus() { return post<MirrorStatus>('mirror/status', {}, this.headers()); }
+  mirrorEnable(newCode = false) { return post<MirrorStatus>('mirror/enable', { new_code: newCode }, this.headers()); }
+  mirrorDisable() { return post<MirrorStatus>('mirror/disable', {}, this.headers()); }
 }
+
+/** The owner's laptop live view (Nuskha Local sends a read-only copy to Nuskha Cloud). */
+export interface MirrorStatus { available: boolean; enabled: boolean; view_code: string | null; last_ok: string | null; last_error: string | null; online: boolean }

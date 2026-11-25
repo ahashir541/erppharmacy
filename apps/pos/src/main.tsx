@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.tsx';
+import { isViewRoute, OwnerView } from './screens/OwnerView.tsx';
 import { serverMode } from './backend/server.ts';
 import { softwareMode } from './desktop.ts';
 import { applyDisplayPrefs } from './office/admin.tsx';
@@ -14,6 +15,6 @@ softwareMode(serverMode);
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    {isViewRoute() ? <OwnerView /> : <App />}
   </React.StrictMode>,
 );

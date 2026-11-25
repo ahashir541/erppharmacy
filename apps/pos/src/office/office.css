@@ -270,3 +270,19 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .grn-table td input[type=date] { width: 140px; }
 .grn-table td input:not(.num):not([type=date]) { width: 96px; }
 .grn-table td.num { white-space: nowrap; }
+
+/* 1.1.0: Nuskha Owner, the read-only live view. */
+.owner-view-gate { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg, #f4f6f8); }
+.owner-view-gate .card { width: min(440px, 100%); padding: 28px; }
+.owner-view-gate h1 { margin: 4px 0 0; font-size: 24px; }
+.owner-view-gate input { font: 600 16px/1.2 ui-monospace, Consolas, monospace; letter-spacing: .04em; }
+.brand-line { display: flex; align-items: center; gap: 8px; color: var(--color-brand, #1b1f4b); }
+.live-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px; margin-bottom: 14px; border-radius: 10px;
+  background: #e8f6ee; color: #145c34; font-size: 13px; font-weight: 600; }
+.live-banner .dot { width: 8px; height: 8px; border-radius: 50%; background: #1f9d55; }
+.live-banner.stale { background: #fff4e0; color: #7a4b00; }
+.live-banner.stale .dot { background: #e69500; }
+/* Nothing to change in the live view: no action buttons, no forms, rows do not open editors. */
+.view-only .office-content .page-head .btn, .view-only .office-content .row-actions, .view-only .office-content td .btn,
+.view-only .office-content .wa-actions { display: none !important; }
+.view-only .office-content table tbody tr { cursor: default; pointer-events: none; }

@@ -786,5 +786,17 @@ export const SIGNATURES: Record<string, string[]> = {
   ],
   "office_reorder_list": [
     "p_branch"
+  ],
+  "mirror_push": [
+    "p_push_key",
+    "p_view_hash",
+    "p_meta",
+    "p_parts"
+  ],
+  "mirror_forget": [
+    "p_push_key"
+  ],
+  "mirror_read": [
+    "p_view_code"
   ]
 };

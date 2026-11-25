@@ -1,7 +1,7 @@
 // Settings on Nuskha Local: where the data is backed up, "Back up now", and the address other
 // counter PCs open to join (same shop network).
 import { useEffect, useState } from 'react';
-import { serverStatus, type BackupList, type LicenceStatus, type ServerBackend, type ServerStatus, type UpdateStatus } from '../backend/server.ts';
+import { serverStatus, type BackupList, type LicenceStatus, type MirrorStatus, type ServerBackend, type ServerStatus, type UpdateStatus } from '../backend/server.ts';
 import { errorText, rs } from '../util.ts';
 import { Modal, timeOf, type PageProps } from './ui.tsx';
 
@@ -180,5 +180,46 @@ function PayInvoice(props: { invoice: LicenceStatus['invoices'][number]; db: Ser
         <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>{busy ? '…' : 'Send to Nuskha'}</button></div>
       </form>
     </Modal>
+  );
+}
+
+/** Settings → Owner's laptop: a live, read-only copy of the back office for the owner's home laptop. */
+export function OwnerViewPanel(props: PageProps) {
+  const db = props.db as unknown as ServerBackend;
+  const [st, setSt] = useState<MirrorStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const load = () => db.mirrorStatus().then(setSt).catch((e) => setError(errorText(e)));
+    load();
+    const t = window.setInterval(load, 30_000);
+    return () => window.clearInterval(t);
+  }, []);
+  const act = async (f: () => Promise<MirrorStatus>) => {
+    setBusy(true); setError(null);
+    try { setSt(await f()); } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
+  };
+  if (st && !st.available) return null;
+  return (
+    <section className="panel">
+      <div className="panel-title">Owner's laptop · live view</div>
+      <p className="muted small">See this pharmacy's dashboard, sales, stock and udhaar from home or anywhere. The shop keeps working without internet;
+        whenever it has internet, Nuskha sends a read-only copy every minute. Nobody can change anything from the owner's laptop.</p>
+      {st?.enabled ? (
+        <>
+          <dl className="facts">
+            <dt>View code</dt><dd><code className="key-code">{st.view_code}</code><div className="muted small">Type this in Nuskha Owner on your laptop (download from the Nuskha website), or open app-nuskha.vercel.app/#/view. Keep it private, like a password.</div></dd>
+            <dt>Last sent</dt><dd>{st.last_ok ? timeOf(st.last_ok) : 'Not yet'}{st.last_error ? <div className="warn-text small">No internet right now; Nuskha keeps trying every minute. The shop is not affected.</div> : null}</dd>
+          </dl>
+          <div className="row-actions">
+            <button type="button" className="btn" disabled={busy} onClick={() => void act(() => db.mirrorEnable(true))}>New code (old laptops stop)</button>
+            <button type="button" className="btn ghost" disabled={busy} onClick={() => void act(() => db.mirrorDisable())}>Turn off and delete the copy</button>
+          </div>
+        </>
+      ) : (
+        <div className="row-actions"><button type="button" className="btn primary" disabled={busy || !st} onClick={() => void act(() => db.mirrorEnable(false))}>{busy ? 'Turning on…' : 'Turn on live view'}</button></div>
+      )}
+      {error && <div className="form-error">{error}</div>}
+    </section>
   );
 }

@@ -38,7 +38,12 @@ const NAV: NavItem[] = [
   { key: 'settings', label: 'Settings', icon: '⚙', group: 'Admin', render: (p) => <Settings {...p} /> },
 ];
 
-export function Office(props: AppProps & { session: Session; onOpenPos: () => void; onSignOut: () => void; onToggleLang: () => void }) {
+// Pages the owner's live view (read-only copy from the shop PC) can show.
+const VIEW_PAGES = new Set(['dashboard', 'invoices', 'customers', 'shifts', 'products', 'expiry', 'movements', 'suppliers', 'purchases']);
+
+export function Office(props: AppProps & { session: Session; onOpenPos: () => void; onSignOut: () => void; onToggleLang: () => void;
+                                           viewOnly?: { banner: ReactNode } }) {
+  const NAV_HERE = props.viewOnly ? NAV.filter((n) => VIEW_PAGES.has(n.key)) : NAV;
   const [page, setPage] = useState('dashboard');
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1200);
   const [palette, setPalette] = useState(false);
@@ -56,10 +61,10 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setPalette((p) => !p); return; }
       // Whole office without a mouse: F2 new sale, Ctrl+P purchases, Alt+1…9 the pages in order, ? the list of keys.
-      if (e.key === 'F2') { e.preventDefault(); props.onOpenPos(); return; }
+      if (e.key === 'F2' && !props.viewOnly) { e.preventDefault(); props.onOpenPos(); return; }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); setPage('purchases'); return; }
       if (e.altKey && /^[1-9]$/.test(e.key)) {
-        const pages = NAV.filter((n) => n.key !== 'pos');
+        const pages = NAV_HERE.filter((n) => n.key !== 'pos');
         const n = pages[Number(e.key) - 1];
         if (n) { e.preventDefault(); setPage(n.key); }
         return;
@@ -75,10 +80,10 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
   const ur = props.lang === 'ur';
   const L = (n: NavItem) => (ur ? LABEL_UR[n.key] ?? n.label : n.label);
   const G = (g: string) => (ur ? GROUP_LABEL_UR[g] ?? g : g);
-  const current = NAV.find((n) => n.key === page)!;
-  const groups = [...new Set(NAV.map((n) => n.group))];
+  const current = NAV_HERE.find((n) => n.key === page) ?? NAV_HERE[0]!;
+  const groups = [...new Set(NAV_HERE.map((n) => n.group))];
   return (
-    <div className={`office${collapsed ? ' collapsed' : ''}`}>
+    <div className={`office${collapsed ? ' collapsed' : ''}${props.viewOnly ? ' view-only' : ''}`}>
       <aside className="sidebar" aria-label="Main menu">
         <div className="sidebar-head">
           <button type="button" className="brand-home" title="Dashboard" onClick={() => go('dashboard')}>
@@ -91,7 +96,7 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
           {groups.map((g) => (
             <div key={g} className="nav-group">
               {!collapsed && <div className="nav-group-label">{G(g)}</div>}
-              {NAV.filter((n) => n.group === g).map((n) => (
+              {NAV_HERE.filter((n) => n.group === g).map((n) => (
                 <button key={n.key} type="button" title={L(n)} className={`nav-item${page === n.key ? ' on' : ''}${n.soon ? ' soon' : ''}`} onClick={() => go(n.key)}>
                   <span className="nav-icon" aria-hidden>{n.icon}</span>
                   {!collapsed && <span className="nav-label">{L(n)}</span>}
@@ -113,9 +118,10 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
             <span aria-hidden>⌕</span> Search or jump to… <kbd>Ctrl K</kbd>
           </button>
           <button type="button" className="link-btn" onClick={props.onToggleLang}>{props.lang === 'ur' ? 'English' : 'اردو'}</button>
-          <button type="button" className="btn primary" onClick={props.onOpenPos}>New sale</button>
+          {!props.viewOnly && <button type="button" className="btn primary" onClick={props.onOpenPos}>New sale</button>}
         </header>
         <main className="office-content">
+          {props.viewOnly?.banner}
           {current.render ? current.render(pageProps) : <ComingNext label={current.label} />}
         </main>
       </div>

@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { buildSetup, buildWindow } from './desktop-build.mjs';
+import { buildOwnerSetup, buildSetup, buildWindow } from './desktop-build.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -32,9 +32,15 @@ const hq = fs.existsSync(hqFile) ? JSON.parse(fs.readFileSync(hqFile, 'utf8')) :
 if (hq?.url && hq?.public_key) step(`Licensing on: Nuskha HQ at ${hq.url}`);
 else console.warn('! No hq.json: this Nuskha Local has licensing OFF (anyone can use it). Run build-hq.mjs first for a licensed build.');
 
+// Nuskha Cloud's public address and anon key (public by design), for the owner's live view.
+const cloudFile = path.join(here, 'cloud.json');
+const cloud = fs.existsSync(cloudFile) ? JSON.parse(fs.readFileSync(cloudFile, 'utf8')) : null;
+if (cloud?.url) step(`Owner live view: Nuskha Cloud at ${cloud.url}`);
+
 step(`Server ${VERSION}`);
 await build({
-  define: { __MEDFLOW_VERSION__: JSON.stringify(VERSION), __MEDFLOW_HQ__: hq?.url && hq?.public_key ? JSON.stringify({ url: hq.url, public_key: hq.public_key }) : 'undefined' },
+  define: { __MEDFLOW_VERSION__: JSON.stringify(VERSION), __MEDFLOW_HQ__: hq?.url && hq?.public_key ? JSON.stringify({ url: hq.url, public_key: hq.public_key }) : 'undefined',
+            __NUSKHA_CLOUD__: cloud?.url && cloud?.anon_key ? JSON.stringify({ url: cloud.url, anon_key: cloud.anon_key }) : 'undefined' },
   entryPoints: [path.join(here, 'src/main.ts')],
   outfile: path.join(out, 'medflow-server.mjs'),
   bundle: true, platform: 'node', format: 'esm', target: 'node20',
@@ -110,6 +116,8 @@ if (flag('--zip') && process.platform === 'win32') {
   console.log(`Done: ${zip}`);
   step('Setup');
   buildSetup(zip, path.join(here, 'release', 'NuskhaSetup.exe'));
+  step('Owner setup');
+  buildOwnerSetup(path.join(here, 'release', 'NuskhaOwnerSetup.exe'));
 } else {
   console.log(`Done: ${out}`);
 }

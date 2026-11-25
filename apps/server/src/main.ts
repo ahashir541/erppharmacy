@@ -16,6 +16,7 @@ import { backupKey, backupNow, keyText, listBackups, parseKey, restore, schedule
 import { ApiError, asPrincipal, callFunction, openDatabase } from './db.ts';
 import { claimPort, clientAddress, isLocal, lanAddresses, readJson, send, serveStatic } from './http.ts';
 import { Licence } from './licence.ts';
+import { Mirror } from './mirror.ts';
 import { startupGuard, startupOk, Updater } from './updater.ts';
 import { counterFor, linkCounter, ownerClaims, pharmacy, setupPharmacy } from './setup.ts';
 
@@ -72,6 +73,7 @@ async function main() {
     fs.rmSync(cfg.data, { recursive: true, force: true });
     // Older copies of the records kept by updates (data-<version>) go too.
     for (const d of fs.readdirSync(home)) if (/^data-/.test(d)) fs.rmSync(path.join(home, d), { recursive: true, force: true });
+    fs.rmSync(path.join(home, 'mirror.json'), { force: true });   // the owner's live view keys go too
     fs.rmSync(eraseMark, { force: true });
   }
   log(`Nuskha Local ${VERSION} starting · data ${cfg.data}`);
@@ -87,9 +89,13 @@ async function main() {
   await licence.start();
   if (licence.enabled) updater.start();
   const doBackup = () => backupNow(db, cfg.backups, cfg.copyTo, 30, log, bkey);
+  const mirror = new Mirror(db, path.join(home, 'mirror.json'), VERSION, log);
+  mirror.start();
   scheduleBackups(doBackup, cfg.backups, cfg.backupHour, log);
   licence.onErase = async (pharmacy) => {
     try { await doBackup(); } catch (e) { log(`Last backup before erasing failed: ${(e as Error).message}`); }
+    await mirror.disable().catch(() => {});
+    mirror.forget();
     fs.writeFileSync(eraseMark, JSON.stringify({ pharmacy, at: new Date().toISOString() }));
     // Stop; Nuskha starts again by itself (MedFlow-Server.cmd), erases, and shows the setup screen.
     setTimeout(() => { server.close(); void db.close().catch(() => {}).finally(() => process.exit(0)); }, 500);
@@ -138,6 +144,13 @@ async function main() {
       if (body.as !== 'owner' && fn.startsWith('office_')) throw new ApiError('Sign in as the owner on this counter', 403);
       const claims = body.as === 'owner' ? await ownerClaims(db, counter, sessionId) : device;
       return send(res, 200, { r: await asPrincipal(db, claims, (tx) => callFunction(tx, fn, args, body.rows === true)) });
+    }
+    if (route === 'mirror/status' || route === 'mirror/enable' || route === 'mirror/disable') {
+      // The owner's laptop live view: only the owner turns it on or off.
+      await ownerClaims(db, counter, sessionId);
+      if (route === 'mirror/enable') return send(res, 200, await mirror.enable(body.new_code === true));
+      if (route === 'mirror/disable') return send(res, 200, await mirror.disable());
+      return send(res, 200, mirror.status());
     }
     if (route === 'licence/check') return send(res, 200, await licence.checkIn());
     if (route === 'update/install') {

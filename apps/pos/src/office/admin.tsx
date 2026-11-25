@@ -1,7 +1,7 @@
 import { checkPin, hashPin } from '@medflow/core';
 import { useState } from 'react';
 import { toPaisa } from '../util.ts';
-import { isServer, LicencePanel, LocalServerPanel } from './localserver.tsx';
+import { isServer, LicencePanel, LocalServerPanel, OwnerViewPanel } from './localserver.tsx';
 import { RolePermissions } from './roles.tsx';
 import { Modal, money, PageHead, Stat, Table, timeOf, useLoad, useSubmit, type PageProps } from './ui.tsx';
 
@@ -188,6 +188,7 @@ export function Settings(props: PageProps) {
       <div className="grid-2">
         {isServer(props.db) && <LicencePanel {...props} />}
         {isServer(props.db) && <LocalServerPanel {...props} />}
+        {isServer(props.db) && <OwnerViewPanel {...props} />}
         <section className="panel">
           <div className="panel-title">Business</div>
           {b ? (

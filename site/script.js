@@ -4,7 +4,7 @@ const SITE = {
   tagline: 'Pharmacy software for Pakistan',
   phone: '+92 331 6368566',
   whatsapp: '923316368566',           // digits only, with country code
-  email: 'ahashir541@gmail.com',
+  email: '[COMPANY EMAIL]',          // [COMPANY EMAIL] a company address (not a personal Gmail)
   address: '',                         // [address]
   demo_url: '',                        // [demo_url] a live demo link, if you have one
   cloud_login: 'https://app-nuskha.vercel.app',
@@ -49,7 +49,7 @@ function header() {
             <a href="/features.html#pos"><b>Billing &amp; POS</b><span>Fast counter billing</span></a>
             <a href="/features.html#udhaar"><b>Udhaar Ledger</b><span>Customer and supplier credit</span></a>
             <a href="/features.html#reports"><b>Reports</b><span>Sales, profit, cash</span></a>
-            <a href="/#two-ways"><b>Nuskha Local</b><span>Installed on your shop PC, works offline</span></a>
+            <a href="/#two-ways"><b>Nuskha Local</b><span>On your shop PC, works offline day to day</span></a>
             <a href="/#two-ways"><b>Nuskha Cloud</b><span>In your browser, open it from anywhere</span></a>
           </div></div>
         <div class="dd"><button type="button" aria-expanded="false">Services</button>
@@ -70,10 +70,6 @@ function header() {
         <a href="/blog/">Blog</a>
         <a href="/download.html">Download</a>
         <a href="/#contact">Contact</a>
-        <div class="mobile-only">
-          <a class="login-btn js-login" href="/login.html">Pharmacy Login</a>
-          <a class="btn btn-navy" href="#request-demo" data-demo>Request a Demo</a>
-        </div>
       </nav>
       <div class="head-actions">
         <button class="icon-btn" type="button" id="search-toggle" aria-label="Search the blog" aria-expanded="false">${ICON.search}</button>
@@ -99,10 +95,10 @@ function footer() {
       <div class="cols">
         <div style="display:grid;gap:14px;align-content:start">
           <a class="logo" href="/"><img src="/img/icon-192.png" alt="" width="42" height="42"><b>Nuskha</b></a>
-          <p>Pharmacy management software for Pakistan. Billing, stock, expiry and udhaar — with or without internet.</p>
+          <p>Pharmacy management software for Pakistan. Billing, stock, expiry and udhaar. Nuskha Local works offline day to day; Nuskha Cloud runs in your browser.</p>
           <ul>
             <li data-needs="phone">Phone: <a href="tel:${SITE.phone.replace(/\s/g, '')}">${SITE.phone}</a></li>
-            <li data-needs="email">Email: <a href="mailto:${SITE.email}">${SITE.email}</a></li>
+            <li data-needs="email">Email: ${/^\[/.test(SITE.email) ? SITE.email : `<a href="mailto:${SITE.email}">${SITE.email}</a>`}</li>
             <li data-needs="address">${SITE.address}</li>
           </ul>
         </div>
@@ -154,7 +150,7 @@ function founderCard() {
   const safe = (u) => /^https:\/\//.test(u || '');
   const links = Object.entries(f.links || {}).filter(([, u]) => safe(u)).map(([k, u]) => [L[k] || k, u]);
   if (SITE.whatsapp) links.push(['WhatsApp', `https://wa.me/${SITE.whatsapp}`]);
-  if (SITE.email) links.push(['Email', `mailto:${SITE.email}`]);
+  if (SITE.email && !/^\[/.test(SITE.email)) links.push(['Email', `mailto:${SITE.email}`]);
   links.forEach(([label, href]) => {
     const a = document.createElement('a');
     a.className = `chip-link${label === 'LinkedIn' ? ' li' : ''}`; a.href = href; a.textContent = label;
@@ -278,7 +274,7 @@ function blogCards() {
   const limit = Number(el.dataset.limit || POSTS.length);
   el.innerHTML = POSTS.slice(0, limit).map((p) => `
     <a class="post" href="${p.href}"><div class="pcard"><img class="pbg" src="${p.img}" alt="${p.title}" width="640" height="400" loading="lazy" decoding="async"><span class="ptag">${p.cats[0]}</span>
-      <div class="ptitle" aria-hidden="true"><span class="pe">${p.eyebrow}</span><b class="l1">${p.l1}</b><b class="l2">${p.l2}</b><span class="pbox">${p.box}</span></div></div>
+      <div class="ptitle" aria-hidden="true"><span class="pe">${p.eyebrow}</span> <b class="l1">${p.l1}</b> <b class="l2">${p.l2}</b> <span class="pbox">${p.box}</span></div></div>
       <div class="body"><div class="cats">${p.cats.map((c) => `<span>${c}</span>`).join('')}</div><h3>${p.title}</h3><p>${p.excerpt}</p><span class="more">Learn more →</span></div></a>`).join('');
 }
 

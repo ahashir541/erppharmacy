@@ -19,7 +19,7 @@ const settle = (html) => html
 
 const cards = (limit) => POSTS.slice(0, limit).map((p) => `
     <a class="post" href="${p.href}"><div class="pcard"><img class="pbg" src="${p.img}" alt="${p.title}" width="640" height="400" loading="lazy" decoding="async"><span class="ptag">${p.cats[0]}</span>
-      <div class="ptitle" aria-hidden="true"><span class="pe">${p.eyebrow}</span><b class="l1">${p.l1}</b><b class="l2">${p.l2}</b><span class="pbox">${p.box}</span></div></div>
+      <div class="ptitle" aria-hidden="true"><span class="pe">${p.eyebrow}</span> <b class="l1">${p.l1}</b> <b class="l2">${p.l2}</b> <span class="pbox">${p.box}</span></div></div>
       <div class="body"><div class="cats">${p.cats.map((c) => `<span>${c}</span>`).join('')}</div><h3>${p.title}</h3><p>${p.excerpt}</p><span class="more">Learn more →</span></div></a>`).join('');
 
 const block = (name, html) => `<!--nuskha:${name}-->${html}\n<!--/nuskha:${name}-->`;

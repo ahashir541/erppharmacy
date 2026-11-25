@@ -102,6 +102,20 @@ try {
   check('delivery saved without batch or expiry', await delivered.waitFor({ timeout: 15_000 }).then(() => true, () => false),
     await delivered.innerText().catch(() => (page.locator('.form-error').innerText().catch(() => ''))));
 
+  // ---- Edit the delivery (20 was wrong: 15), then delete a second one ----
+  await delivered.getByRole('button', { name: 'Edit' }).click();
+  const eqty = page.locator('.grn-table tbody tr').first().locator('input').first();
+  await eqty.waitFor({ timeout: 15_000 });
+  check('edit opens the delivery as saved', (await eqty.inputValue()) === '20', await eqty.inputValue());
+  await eqty.fill('15');
+  await page.keyboard.press('Control+s');
+  const edited = page.locator('table tbody tr', { hasText: 'Adeel Distributors' });
+  await page.waitForTimeout(2500);
+  check('the edited delivery replaces the old one', (await edited.count()) === 1 && /GRN-000002/.test(await edited.first().innerText()), await edited.first().innerText().catch(() => ''));
+  await edited.first().getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('button', { name: 'Yes, delete' }).click();
+  check('delete removes the delivery', await edited.first().waitFor({ state: 'detached', timeout: 15_000 }).then(() => true, () => false));
+
   // ---- POS: Complete sale in view, and a used bill number does not stop the sale ----
   await page.getByRole('button', { name: 'New sale' }).last().click();
   await page.getByLabel('Opening cash (Rs)').fill('5000');

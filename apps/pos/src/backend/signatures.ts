@@ -832,5 +832,18 @@ export const SIGNATURES: Record<string, string[]> = {
   "office_product_edit": [
     "p_product",
     "p_branch"
+  ],
+  "void_grn": [
+    "p_grn",
+    "p_reason",
+    "p_session"
+  ],
+  "replace_grn": [
+    "p_old",
+    "p",
+    "p_session"
+  ],
+  "office_grn_detail": [
+    "p_grn"
   ]
 };

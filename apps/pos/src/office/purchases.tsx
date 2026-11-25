@@ -35,7 +35,7 @@ const useSuppliers = (props: PageProps) => useLoad(() => props.db.office<Supplie
 
 export function Purchases(props: PageProps) {
   const [tab, setTab] = useState<'deliveries' | 'orders' | 'returns'>('deliveries');
-  const [form, setForm] = useState<null | { kind: 'delivery'; order?: OrderRow } | { kind: 'order' } | { kind: 'return' }>(null);
+  const [form, setForm] = useState<null | { kind: 'delivery'; order?: OrderRow; edit?: DeliveryRow } | { kind: 'order' } | { kind: 'return' }>(null);
   const [n, setN] = useState(0);
   const done = () => { setForm(null); setN((x) => x + 1); };
   return (
@@ -50,10 +50,10 @@ export function Purchases(props: PageProps) {
           <button key={t} type="button" className={`tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>{t[0]!.toUpperCase() + t.slice(1)}</button>
         ))}
       </div>
-      {tab === 'deliveries' && <Deliveries {...props} key={n} />}
+      {tab === 'deliveries' && <Deliveries {...props} key={n} onEdit={(d) => setForm({ kind: 'delivery', edit: d })} onChanged={done} />}
       {tab === 'orders' && <Orders {...props} key={n} onReceive={(o) => setForm({ kind: 'delivery', order: o })} />}
       {tab === 'returns' && <Returns {...props} key={n} />}
-      {form?.kind === 'delivery' && <ReceiveDelivery {...props} order={form.order ?? null} onClose={() => setForm(null)} onSaved={done} />}
+      {form?.kind === 'delivery' && <ReceiveDelivery {...props} order={form.order ?? null} edit={form.edit ?? null} onClose={() => setForm(null)} onSaved={done} />}
       {form?.kind === 'order' && <NewOrder {...props} onClose={() => setForm(null)} onSaved={done} />}
       {form?.kind === 'return' && <NewReturn {...props} onClose={() => setForm(null)} onSaved={done} />}
     </>
@@ -62,8 +62,10 @@ export function Purchases(props: PageProps) {
 
 interface DeliveryRow { id: string; grn_number: string; received_at: string; supplier: string; invoice_no: string | null; total: number | null; open: number | null; lines: number }
 
-function Deliveries(props: PageProps) {
+function Deliveries(props: PageProps & { onEdit: (d: DeliveryRow) => void; onChanged: () => void }) {
   const { data, error } = useLoad(() => props.db.office<DeliveryRow[]>('deliveries', props.branchId), []);
+  const [deleting, setDeleting] = useState<DeliveryRow | null>(null);
+  const del = useSubmit(() => props.db.ownerCall('void_grn', deleting!.id, 'Deleted in Purchases', null), () => { setDeleting(null); props.onChanged(); });
   const total = (data ?? []).reduce((s, r) => s + Number(r.total ?? 0), 0);
   return (
     <>
@@ -80,7 +82,20 @@ function Deliveries(props: PageProps) {
         { label: 'Items', value: (r) => r.lines, num: true },
         { label: 'Total', value: (r) => money(r.total), num: true },
         { label: 'Status', value: (r) => (r.total === null ? <span className="pill warn">Awaiting invoice</span> : Number(r.open ?? 0) > 0 ? <span className="pill warn">Unpaid</span> : <span className="pill good">Paid</span>) },
+        { label: '', value: (r) => (
+          <div className="row-actions">
+            <button type="button" className="btn small-btn" onClick={(e) => { e.stopPropagation(); props.onEdit(r); }}>Edit</button>
+            <button type="button" className="btn small-btn ghost bad-text" onClick={(e) => { e.stopPropagation(); setDeleting(r); }}>Delete</button>
+          </div>) },
       ]} />
+      {deleting && (
+        <Modal title={`Delete ${deleting.grn_number}?`} onClose={() => setDeleting(null)}>
+          <p>The stock of this delivery leaves the shelf again{deleting.total !== null ? ', and its bill is removed from what you owe ' + deleting.supplier : ''}. This cannot be undone.</p>
+          {del.error && <div className="form-error">{del.error}</div>}
+          <div className="row-actions"><button type="button" className="btn ghost" onClick={() => setDeleting(null)}>No</button>
+            <button type="button" className="btn danger" disabled={del.busy} onClick={() => void del.submit()}>{del.busy ? 'Deleting…' : 'Yes, delete'}</button></div>
+        </Modal>
+      )}
     </>
   );
 }
@@ -118,7 +133,13 @@ function ProductSearchBox(props: PageProps & { onPick: (p: Hit) => void; inputRe
   );
 }
 
-function ReceiveDelivery(props: PageProps & { order: OrderRow | null; onClose: () => void; onSaved: () => void }) {
+interface GrnDetail { id: string; grn_number: string; supplier_id: string; invoice_no: string | null; invoice_date: string | null;
+  lines: Array<{ product_id: string; brand_name: string; unit_id: string; qty: number; bonus: number; batch: string | null; expiry: string | null;
+                 cost: number | null; discount: number | null; retail: number | null; units: ProductPick['units'] }> }
+
+function ReceiveDelivery(props: PageProps & { order: OrderRow | null; edit?: DeliveryRow | null; onClose: () => void; onSaved: () => void }) {
+  const editing = useLoad(() => (props.edit ? props.db.office<GrnDetail>('grn_detail', props.edit.id) : Promise.resolve(null)), []);
+  const [loadedEdit, setLoadedEdit] = useState(false);
   const suppliers = useSuppliers(props);
   const accounts = useMoneyAccounts(props);
   const orderLines = useLoad(() => (props.order ? props.db.office<{ id: string; product_id: string; brand_name: string; unit_id: string; qty: number; bonus_qty: number;
@@ -135,6 +156,19 @@ function ReceiveDelivery(props: PageProps & { order: OrderRow | null; onClose: (
   const qtyRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [focusKey, setFocusKey] = useState<string | null>(null);
   useEffect(() => { if (focusKey) { qtyRefs.current[focusKey]?.focus(); qtyRefs.current[focusKey]?.select(); setFocusKey(null); } }, [focusKey]);
+  // Edit: the delivery as it was saved; saving replaces it.
+  if (props.edit && editing.data && !loadedEdit) {
+    const d = editing.data;
+    setLoadedEdit(true);
+    setSupplier(d.supplier_id);
+    setInvoiceNo(d.invoice_no ?? '');
+    if (d.invoice_date) setInvoiceDate(d.invoice_date);
+    const first = d.lines.find((l) => l.cost && l.qty);
+    if (first?.discount) setDiscPct(String(Math.round((first.discount / (first.qty * first.cost!)) * 10000) / 100));
+    setLines(d.lines.map((l) => ({ ...emptyLine(), product: { id: l.product_id, brand_name: l.brand_name, units: l.units ?? [] }, unitId: l.unit_id,
+      qty: String(l.qty), bonus: l.bonus ? String(l.bonus) : '', batch: l.batch ?? '', expiry: l.expiry ? String(l.expiry).slice(0, 10) : '',
+      cost: l.cost != null ? String(l.cost / 100) : '', retail: l.retail != null ? String(l.retail / 100) : '' })));
+  }
   if (props.order && orderLines.data && !loadedOrder) {
     setLoadedOrder(true);
     setLines(orderLines.data.map((l) => ({ ...emptyLine(), product: { id: l.product_id, brand_name: l.brand_name, units: l.units ?? [] }, unitId: l.unit_id,
@@ -172,7 +206,7 @@ function ReceiveDelivery(props: PageProps & { order: OrderRow | null; onClose: (
     const noUnit = ready.find((l) => !(l.unitId || l.product!.units[0]?.id));
     if (noUnit) throw new Error(`${noUnit.product!.brand_name} has no pack size yet. Open it in Products and add one.`);
     const paidNow = toPaisa(paid || '0') ?? 0;
-    await props.db.ownerCall('post_grn', {
+    const grn = {
       id: crypto.randomUUID(), branch_id: props.branchId, supplier_id: supplier, purchase_order_id: props.order?.id ?? null,
       supplier_invoice_number: invoiceNo || null,
       lines: ready.map((l) => ({ id: crypto.randomUUID(), po_line_id: l.poLineId ?? null, product_unit_id: l.unitId || l.product!.units[0]!.id,
@@ -180,7 +214,9 @@ function ReceiveDelivery(props: PageProps & { order: OrderRow | null; onClose: (
         ...(l.cost ? { unit_cost: toPaisa(l.cost) ?? 0, discount_amount: discOf(l) } : {}), retail_price: l.retail ? toPaisa(l.retail) : null })),
       ...(invoiceNo ? { invoice: { supplier_invoice_number: invoiceNo, invoice_date: invoiceDate, expected_grand_total: total, paid_at_receipt: paidNow,
         payment: chosen ? { method: chosen.kind === 'drawer' ? 'cash' : 'bank_transfer', ...(chosen.kind === 'drawer' ? { drawer_session_id: chosen.id } : { bank_account_id: chosen.id }) } : {} } } : {}),
-    }, null);
+    };
+    if (props.edit) await props.db.ownerCall('replace_grn', props.edit.id, grn, null);
+    else await props.db.ownerCall('post_grn', grn, null);
   }, props.onSaved);
   // Ctrl+S saves from anywhere in the form.
   useEffect(() => {
@@ -190,7 +226,7 @@ function ReceiveDelivery(props: PageProps & { order: OrderRow | null; onClose: (
   });
   const backToSearch = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); searchRef.current?.focus(); } };
   return (
-    <Modal title={props.order ? `Receive order ${props.order.po_number}` : 'Receive delivery'} onClose={props.onClose} wide>
+    <Modal title={props.edit ? `Edit delivery ${props.edit.grn_number}` : props.order ? `Receive order ${props.order.po_number}` : 'Receive delivery'} onClose={props.onClose} wide>
       <form className="stack" onSubmit={submit}>
         <div className="form-grid grn-head">
           <label className="field"><span>Supplier *</span>

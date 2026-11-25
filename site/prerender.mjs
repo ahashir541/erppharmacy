@@ -1,11 +1,13 @@
 // Writes the header, footer and blog cards into every page's HTML, so search engines and slow phones get
 // them at once (script.js only adds behaviour on top). Uses the same templates and SITE settings as
 // script.js. Run after changing script.js or a page:  node prerender.mjs
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const ver = (f) => crypto.createHash('sha256').update(fs.readFileSync(path.join(here, f))).digest('hex').slice(0, 10);
 const src = fs.readFileSync(path.join(here, 'script.js'), 'utf8');
 const cut = src.indexOf("\nconst headerSlot = document.getElementById('header-slot')");
 if (cut < 0) throw new Error('script.js: the header-slot line was not found');
@@ -43,6 +45,8 @@ for (const rel of pages) {
     if (marked.test(html)) html = html.replace(marked, filled);
     else html = html.replace(`${posts[0]}</div>`, `${posts[0]}${filled}</div>`);
   }
+  // Cache-busting: styles.css and script.js are cached for a year, so their ?v= is the hash of their content.
+  html = html.replace(/\/styles\.css\?v=[\w-]*/g, `/styles.css?v=${ver('styles.css')}`).replace(/\/script\.js\?v=[\w-]*/g, `/script.js?v=${ver('script.js')}`);
   fs.writeFileSync(file, html);
   console.log('prerendered', rel);
 }

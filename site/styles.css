@@ -687,3 +687,6 @@ main > section.compliance { min-height: 0; }
 .quote-card { max-width: 640px; margin: 0 auto; border: 1px dashed var(--line); border-radius: 16px; padding: 26px 22px; text-align: center; color: var(--muted); background: #fff; }
 
 .hero-kicker { font: 600 14px/1.3 var(--head); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+
+.hero-sub { font: 600 21px/1.4 var(--head); color: var(--navy); margin: 0 0 14px; }
+@media (max-width: 600px) { .hero-sub { font-size: 18px; } }

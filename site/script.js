@@ -4,7 +4,7 @@ const SITE = {
   tagline: 'Pharmacy software for Pakistan',
   phone: '+92 331 6368566',
   whatsapp: '923316368566',           // digits only, with country code
-  email: '[COMPANY EMAIL]',          // [COMPANY EMAIL] a company address (not a personal Gmail)
+  email: 'nuskha.pos@gmail.com',
   address: '',                         // [address]
   demo_url: '',                        // [demo_url] a live demo link, if you have one
   cloud_login: 'https://app-nuskha.vercel.app',

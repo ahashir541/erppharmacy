@@ -41,7 +41,7 @@ section { padding-block: 90px; }
 .btn:active { transform: translateY(1px); }
 
 /* Header */
-.site-header { position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, .96); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); box-shadow: 0 4px 18px rgba(26, 20, 70, .05); }
+.site-header { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 1px solid var(--line); box-shadow: 0 4px 18px rgba(26, 20, 70, .05); }
 .site-header .wrap { display: flex; align-items: center; gap: 22px; min-height: 84px; }
 .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 .logo img { width: 42px; height: 42px; border-radius: 11px; }
@@ -362,9 +362,9 @@ section { padding-block: 90px; }
 
 /* Header shrinks a little and gains a shadow after scrolling */
 .site-header { transition: box-shadow .25s, background .25s; }
-.site-header .wrap { transition: min-height .25s var(--ease-out); }
-.site-header.scrolled { box-shadow: 0 8px 28px rgba(26, 20, 70, .12); background: rgba(255,255,255,.98); }
-@media (min-width: 1025px) { .site-header.scrolled .wrap { min-height: 62px; } }
+
+.site-header.scrolled { box-shadow: 0 8px 28px rgba(26, 20, 70, .12); }
+/* The header keeps its height when scrolled: changing it made the page jump near the top. */
 .logo img { transition: transform .5s var(--ease-spring); }
 .logo:hover img { transform: rotate(-12deg) scale(1.08); }
 
@@ -690,3 +690,6 @@ main > section.compliance { min-height: 0; }
 
 .hero-sub { font: 600 21px/1.4 var(--head); color: var(--navy); margin: 0 0 14px; }
 @media (max-width: 600px) { .hero-sub { font-size: 18px; } }
+
+/* Smooth scrolling on phones: the floating hero pictures stay still on small screens. */
+@media (max-width: 960px) { .devices .laptop, .devices .tablet, .devices .phone { animation: none; } }

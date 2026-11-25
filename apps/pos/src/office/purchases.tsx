@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toPaisa } from '../util.ts';
 import { useMoneyAccounts } from './parties.tsx';
 import { dateOf, Modal, money, PageHead, Stat, Table, timeOf, useLoad, useSubmit, type PageProps } from './ui.tsx';
@@ -19,7 +19,7 @@ export function ProductPicker(props: PageProps & { value: ProductPick | null; on
   const hits = useProductSearch(props, open ? q : '');
   return (
     <div className="search-wrap">
-      <input value={q} placeholder="Medicine" onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+      <input value={q} placeholder="Product" onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 150)}
              onChange={(e) => { setQ(e.target.value); setOpen(true); }} />
       {open && (hits.data?.length ?? 0) > 0 && (
         <ul className="results small-results">
@@ -30,7 +30,7 @@ export function ProductPicker(props: PageProps & { value: ProductPick | null; on
   );
 }
 
-interface Supplier { id: string; name: string; payment_terms_days: number | null }
+interface Supplier { id: string; name: string; payment_terms_days: number | null; discount_pct?: number | string }
 const useSuppliers = (props: PageProps) => useLoad(() => props.db.office<Supplier[]>('suppliers'), []);
 
 export function Purchases(props: PageProps) {
@@ -85,78 +85,153 @@ function Deliveries(props: PageProps) {
   );
 }
 
+interface Hit extends ProductPick { last_unit_id: string | null; last_cost: number | null; last_batch: string | null; last_expiry: string | null; last_retail: number | null }
+
+/** Search-first product box for deliveries: type, arrow keys, Enter adds the product. */
+function ProductSearchBox(props: PageProps & { onPick: (p: Hit) => void; inputRef: React.MutableRefObject<HTMLInputElement | null> }) {
+  const [q, setQ] = useState('');
+  const [at, setAt] = useState(0);
+  const hits = useLoad(() => (q.trim().length < 2 ? Promise.resolve([] as Hit[]) : props.db.office<Hit[]>('product_search', q.trim())), [q]);
+  const list = hits.data ?? [];
+  const pick = (h: Hit | undefined) => { if (!h) return; props.onPick(h); setQ(''); setAt(0); };
+  return (
+    <div className="search-wrap grn-search">
+      <input ref={props.inputRef} autoFocus value={q} placeholder="Search product: name, formula or barcode, then Enter"
+             onChange={(e) => { setQ(e.target.value); setAt(0); }}
+             onKeyDown={(e) => {
+               if (e.key === 'ArrowDown') { e.preventDefault(); setAt((a) => Math.min(a + 1, list.length - 1)); }
+               else if (e.key === 'ArrowUp') { e.preventDefault(); setAt((a) => Math.max(a - 1, 0)); }
+               else if (e.key === 'Enter') { e.preventDefault(); pick(list[at]); }
+             }} />
+      {list.length > 0 && (
+        <ul className="results small-results">
+          {list.map((h, k) => (
+            <li key={h.id} className={k === at ? 'on' : ''} onMouseDown={(e) => { e.preventDefault(); pick(h); }}>
+              <span className="r-name">{h.brand_name}</span>
+              <span className="muted small">{h.last_cost != null ? `last cost ${money(h.last_cost)}` : 'not bought before'}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {q.trim().length >= 2 && hits.data && list.length === 0 && <div className="muted small">Not found. Add it in Products → Add product, then search again.</div>}
+    </div>
+  );
+}
+
 function ReceiveDelivery(props: PageProps & { order: OrderRow | null; onClose: () => void; onSaved: () => void }) {
   const suppliers = useSuppliers(props);
   const accounts = useMoneyAccounts(props);
   const orderLines = useLoad(() => (props.order ? props.db.office<{ id: string; product_id: string; brand_name: string; unit_id: string; qty: number; bonus_qty: number;
     units: ProductPick['units'] }[]>('order_lines', props.order.id) : Promise.resolve([])), []);
   const [supplier, setSupplier] = useState(props.order?.supplier_id ?? '');
+  const [discPct, setDiscPct] = useState('');
   const [invoiceNo, setInvoiceNo] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(props.today);
-  const [lines, setLines] = useState<Line[]>([emptyLine()]);
+  const [lines, setLines] = useState<Line[]>([]);
   const [loadedOrder, setLoadedOrder] = useState(false);
   const [paid, setPaid] = useState('');
   const [acc, setAcc] = useState('');
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const qtyRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  useEffect(() => { if (focusKey) { qtyRefs.current[focusKey]?.focus(); qtyRefs.current[focusKey]?.select(); setFocusKey(null); } }, [focusKey]);
   if (props.order && orderLines.data && !loadedOrder) {
     setLoadedOrder(true);
-    setLines(orderLines.data.map((l) => ({ ...emptyLine(), product: { id: l.product_id, brand_name: l.brand_name, units: l.units }, unitId: l.unit_id,
+    setLines(orderLines.data.map((l) => ({ ...emptyLine(), product: { id: l.product_id, brand_name: l.brand_name, units: l.units ?? [] }, unitId: l.unit_id,
                                             qty: String(l.qty), bonus: l.bonus_qty ? String(l.bonus_qty) : '', poLineId: l.id, ordered: l.qty })));
   }
+  const chooseSupplier = (id: string) => {
+    setSupplier(id);
+    const s = (suppliers.data ?? []).find((x) => x.id === id);
+    setDiscPct(s && Number(s.discount_pct) > 0 ? String(Number(s.discount_pct)) : '');
+  };
   const upd = (i: number, patch: Partial<Line>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
-  const lineTotal = (l: Line) => (Number(l.qty) || 0) * (toPaisa(l.cost) ?? 0);
+  const add = (h: Hit) => {
+    const same = lines.find((l) => l.product?.id === h.id && !l.poLineId);
+    if (same) { upd(lines.indexOf(same), { qty: String((Number(same.qty) || 0) + 1) }); setFocusKey(same.key); return; }
+    const units = h.units ?? [];
+    const line: Line = { ...emptyLine(), product: { id: h.id, brand_name: h.brand_name, units },
+      unitId: (h.last_unit_id && units.some((u) => u.id === h.last_unit_id) ? h.last_unit_id : units[0]?.id) ?? '',
+      batch: h.last_batch && h.last_batch !== '-' ? h.last_batch : '',
+      cost: h.last_cost != null ? String(h.last_cost / 100) : '', retail: h.last_retail != null ? String(h.last_retail / 100) : '' };
+    setLines((ls) => [...ls, line]);
+    setFocusKey(line.key);
+  };
+  const pct = Math.min(Math.max(Number(discPct) || 0, 0), 100);
+  const gross = (l: Line) => (Number(l.qty) || 0) * (toPaisa(l.cost) ?? 0);
+  const discOf = (l: Line) => Math.round((gross(l) * pct) / 100);
+  const lineTotal = (l: Line) => gross(l) - discOf(l);
   const total = lines.reduce((s, l) => s + lineTotal(l), 0);
+  const saved = lines.reduce((s, l) => s + discOf(l), 0);
   const mismatches = lines.filter((l) => l.ordered !== undefined && Number(l.qty) !== l.ordered);
   const chosen = (accounts.data ?? []).find((a) => a.id === acc) ?? accounts.data?.[0];
   const { busy, error, submit } = useSubmit(async () => {
-    const ready = lines.filter((l) => l.product);
+    const ready = lines.filter((l) => l.product && (Number(l.qty) || 0) + (Number(l.bonus) || 0) > 0);
     if (!supplier) throw new Error('Choose the supplier');
-    if (!ready.length) throw new Error('Add at least one medicine');
+    if (!ready.length) throw new Error('Search a product and enter how many arrived');
+    const noUnit = ready.find((l) => !(l.unitId || l.product!.units[0]?.id));
+    if (noUnit) throw new Error(`${noUnit.product!.brand_name} has no pack size yet. Open it in Products and add one.`);
     const paidNow = toPaisa(paid || '0') ?? 0;
     await props.db.ownerCall('post_grn', {
       id: crypto.randomUUID(), branch_id: props.branchId, supplier_id: supplier, purchase_order_id: props.order?.id ?? null,
       supplier_invoice_number: invoiceNo || null,
       lines: ready.map((l) => ({ id: crypto.randomUUID(), po_line_id: l.poLineId ?? null, product_unit_id: l.unitId || l.product!.units[0]!.id,
-        batch_number: l.batch, expiry_date: l.expiry, qty: Number(l.qty) || 0, bonus_qty: Number(l.bonus) || 0,
-        unit_cost: toPaisa(l.cost) ?? 0, retail_price: l.retail ? toPaisa(l.retail) : null })),
+        batch_number: l.batch || null, expiry_date: l.expiry || null, qty: Number(l.qty) || 0, bonus_qty: Number(l.bonus) || 0,
+        ...(l.cost ? { unit_cost: toPaisa(l.cost) ?? 0, discount_amount: discOf(l) } : {}), retail_price: l.retail ? toPaisa(l.retail) : null })),
       ...(invoiceNo ? { invoice: { supplier_invoice_number: invoiceNo, invoice_date: invoiceDate, expected_grand_total: total, paid_at_receipt: paidNow,
         payment: chosen ? { method: chosen.kind === 'drawer' ? 'cash' : 'bank_transfer', ...(chosen.kind === 'drawer' ? { drawer_session_id: chosen.id } : { bank_account_id: chosen.id }) } : {} } } : {}),
     }, null);
   }, props.onSaved);
+  // Ctrl+S saves from anywhere in the form.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); void submit(); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+  const backToSearch = (e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); searchRef.current?.focus(); } };
   return (
     <Modal title={props.order ? `Receive order ${props.order.po_number}` : 'Receive delivery'} onClose={props.onClose} wide>
       <form className="stack" onSubmit={submit}>
-        <div className="form-grid">
+        <div className="form-grid grn-head">
           <label className="field"><span>Supplier *</span>
-            <select required value={supplier} onChange={(e) => setSupplier(e.target.value)} disabled={!!props.order}>
-              <option value="">Choose…</option>{(suppliers.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            <select required value={supplier} onChange={(e) => chooseSupplier(e.target.value)} disabled={!!props.order}>
+              <option value="">Choose…</option>{(suppliers.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}{Number(s.discount_pct) > 0 ? ` · ${Number(s.discount_pct)}% off` : ''}</option>)}
             </select>
           </label>
-          <label className="field"><span>Supplier's invoice no.</span><input value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} placeholder="Blank = enter the invoice later" /></label>
+          <label className="field"><span>Supplier discount %</span><input inputMode="decimal" value={discPct} onChange={(e) => setDiscPct(e.target.value)} placeholder="0" /></label>
+          <label className="field"><span>Supplier's invoice no.</span><input value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} placeholder="Optional" /></label>
           <label className="field"><span>Invoice date</span><input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></label>
         </div>
-        <div className="table-wrap">
-          <table className="table grn-table">
-            <thead><tr><th>Medicine</th><th>Unit</th><th>Batch</th><th>Expiry</th><th className="num">Qty</th><th className="num">Bonus</th><th className="num">Cost / unit</th><th className="num">Sell / unit</th><th className="num">Total</th><th /></tr></thead>
-            <tbody>
-              {lines.map((l, i) => (
-                <tr key={l.key} className={l.ordered !== undefined && Number(l.qty) !== l.ordered ? 'mismatch' : ''}>
-                  <td style={{ minWidth: 180 }}><ProductPicker {...props} value={l.product} onPick={(p) => upd(i, { product: p, unitId: p.units[0]?.id ?? '' })} /></td>
-                  <td><select value={l.unitId} onChange={(e) => upd(i, { unitId: e.target.value })}>{(l.product?.units ?? []).map((u) => <option key={u.id} value={u.id}>{u.name}{u.factor > 1 ? ` (${u.factor})` : ''}</option>)}</select></td>
-                  <td><input value={l.batch} onChange={(e) => upd(i, { batch: e.target.value })} required={!!l.product} /></td>
-                  <td><input type="date" value={l.expiry} onChange={(e) => upd(i, { expiry: e.target.value })} required={!!l.product} /></td>
-                  <td><input className="num" inputMode="numeric" value={l.qty} onChange={(e) => upd(i, { qty: e.target.value })} />{l.ordered !== undefined && <div className="muted small">ordered {l.ordered}</div>}</td>
-                  <td><input className="num" inputMode="numeric" value={l.bonus} onChange={(e) => upd(i, { bonus: e.target.value })} placeholder="0" /></td>
-                  <td><input className="num" inputMode="decimal" value={l.cost} onChange={(e) => upd(i, { cost: e.target.value })} /></td>
-                  <td><input className="num" inputMode="decimal" value={l.retail} onChange={(e) => upd(i, { retail: e.target.value })} placeholder="MRP" /></td>
-                  <td className="num">{money(lineTotal(l))}</td>
-                  <td><button type="button" className="icon-btn" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} aria-label="Remove">×</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ProductSearchBox {...props} inputRef={searchRef} onPick={add} />
+        {lines.length > 0 ? (
+          <div className="table-wrap">
+            <table className="table grn-table">
+              <thead><tr><th>Product</th><th className="num">Qty</th><th>Unit</th><th className="num">Bonus</th><th className="num">Cost / unit</th><th className="num">Sell / unit</th><th>Batch</th><th>Expiry</th><th className="num">Total</th><th /></tr></thead>
+              <tbody>
+                {lines.map((l, i) => (
+                  <tr key={l.key} className={l.ordered !== undefined && Number(l.qty) !== l.ordered ? 'mismatch' : ''}>
+                    <td className="grn-name">{l.product?.brand_name}</td>
+                    <td><input ref={(el) => { qtyRefs.current[l.key] = el; }} className="num" inputMode="numeric" value={l.qty} placeholder="0"
+                               onChange={(e) => upd(i, { qty: e.target.value })} onKeyDown={backToSearch} />{l.ordered !== undefined && <div className="muted small">ordered {l.ordered}</div>}</td>
+                    <td><select value={l.unitId} onChange={(e) => upd(i, { unitId: e.target.value })}>
+                      {(l.product?.units ?? []).length ? l.product!.units.map((u) => <option key={u.id} value={u.id}>{u.name}{u.factor > 1 ? ` (${u.factor})` : ''}</option>)
+                        : <option value="">No pack size</option>}
+                    </select></td>
+                    <td><input className="num" inputMode="numeric" value={l.bonus} onChange={(e) => upd(i, { bonus: e.target.value })} onKeyDown={backToSearch} placeholder="0" /></td>
+                    <td><input className="num" inputMode="decimal" value={l.cost} onChange={(e) => upd(i, { cost: e.target.value })} onKeyDown={backToSearch} /></td>
+                    <td><input className="num" inputMode="decimal" value={l.retail} onChange={(e) => upd(i, { retail: e.target.value })} onKeyDown={backToSearch} placeholder="MRP" /></td>
+                    <td><input value={l.batch} onChange={(e) => upd(i, { batch: e.target.value })} onKeyDown={backToSearch} placeholder="Optional" /></td>
+                    <td><input type="date" value={l.expiry} onChange={(e) => upd(i, { expiry: e.target.value })} onKeyDown={backToSearch} /></td>
+                    <td className="num">{money(lineTotal(l))}</td>
+                    <td><button type="button" className="icon-btn" tabIndex={-1} onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} aria-label="Remove">×</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <div className="empty-hint muted">Search a product above. Its pack size, last cost, price and batch fill in; you only type the quantity.</div>}
         <div className="row-between">
-          <button type="button" className="btn" onClick={() => setLines((ls) => [...ls, emptyLine()])}>+ Add line</button>
+          <span className="muted small">{lines.length} item(s){saved > 0 ? ` · supplier discount saves ${money(saved)}` : ''}</span>
           <div className="grand-mini">Invoice total <strong>{money(total)}</strong></div>
         </div>
         {mismatches.length > 0 && <div className="message info">⚠ {mismatches.length} line(s) differ from the order: {mismatches.map((l) => `${l.product?.brand_name} ${l.qty} of ${l.ordered}`).join(', ')}. The order stays open for the rest.</div>}
@@ -166,9 +241,9 @@ function ReceiveDelivery(props: PageProps & { order: OrderRow | null; onClose: (
             <label className="field"><span>Paid from</span><select value={chosen?.id ?? ''} onChange={(e) => setAcc(e.target.value)}>{(accounts.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
           </div>
         )}
-        <p className="muted small">Bonus units cost nothing, so they lower the average cost of the batch. Expired stock is refused; stock expiring within 90 days is flagged.</p>
+        <p className="muted small">Enter after a quantity goes back to the search box. Batch and expiry are optional. Bonus units cost nothing, so they lower the average cost. Ctrl+S saves.</p>
         {error && <div className="form-error">{error}</div>}
-        <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>Save delivery</button></div>
+        <div className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>Save delivery (Ctrl+S)</button></div>
       </form>
     </Modal>
   );

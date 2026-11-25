@@ -9,11 +9,12 @@ import { useMemo, useState } from 'react';
 import { errorText } from '../util.ts';
 import { amt, DEFAULTS, fill, openWa, reorderText, setWaMode, signature, summaryText, waDate, waMode, waPhone, type WaLang, type WaMode } from '../wa.ts';
 import { ProductPicker } from './purchases.tsx';
+import { printUdhaarLetter } from '../letter.ts';
 import { dateOf, money, PageHead, Stat, Table, timeOf, useLoad, useSubmit, type PageProps } from './ui.tsx';
 
 export interface WaSettings {
   pharmacy: string; owner_phone: string | null; number: string | null; owner_number: string | null; language: WaLang; interval_days: number;
-  template_udhaar: string | null; template_refill: string | null;
+  template_udhaar: string | null; template_refill: string | null; address?: string | null; phone?: string | null;
 }
 export interface DueRow {
   account_id: string; customer_id: string | null; account_number: string; name: string; phone: string | null; reminders_on: boolean;
@@ -127,7 +128,12 @@ function UdhaarReminders(props: PageProps & { s: WaSettings }) {
         { label: 'For', value: (r) => <><strong>{r.days} days</strong><div className="muted small">since {dateOf(r.oldest_bill)}</div></>, num: true },
         { label: 'Last reminder', value: (r) => (sent[r.account_id] ? <span className="pill good">Sent now</span> : r.last_reminded_at ? timeOf(r.last_reminded_at) : <span className="muted">never</span>) },
         { label: 'Reminders', value: (r) => <label className="check" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={r.reminders_on} disabled={!r.customer_id} onChange={(e) => void toggle(r, e.target.checked)} /> {r.reminders_on ? 'On' : 'Off'}</label> },
-        { label: '', value: (r) => <button type="button" className={`btn small-btn wa-btn${r.due && !sent[r.account_id] ? '' : ' quiet'}`} disabled={!waPhone(r.phone)} title={m.udhaar(r)} onClick={(e) => { e.stopPropagation(); void send(r); }}><WaIcon /> Send</button> },
+        { label: '', value: (r) => (
+          <div className="row-actions">
+            <button type="button" className="btn small-btn" title="Formal letter on your letterhead. Choose Save as PDF, then attach it in WhatsApp."
+                    onClick={(e) => { e.stopPropagation(); printUdhaarLetter({ pharmacy: props.s.pharmacy, address: props.s.address, phone: props.s.phone, number: props.s.number }, r); }}>Letter (PDF)</button>
+            <button type="button" className={`btn small-btn wa-btn${r.due && !sent[r.account_id] ? '' : ' quiet'}`} disabled={!waPhone(r.phone)} title={m.udhaar(r)} onClick={(e) => { e.stopPropagation(); void send(r); }}><WaIcon /> Send</button>
+          </div>) },
       ]} />
       <p className="muted small">"Send next" goes through everyone who is due: reminders on, a mobile number, a bill past its due date, and not reminded in the last {props.s.interval_days} days. You can send to anyone with the Send button.</p>
     </>

@@ -344,3 +344,19 @@ h2 { font-size: 19px; margin: 0 0 8px; }
 html.software, html.software body { -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
 html.software :is(input, textarea, [contenteditable], td, .receipt, pre, code, .key-code, .message, .form-error, dd, .wa-preview) { -webkit-user-select: text; user-select: text; }
 html.software img { -webkit-user-drag: none; }
+
+/* 1.0.3: Complete sale always visible; a tighter right column on laptop screens. */
+.side { gap: 8px; }
+.side .panel { padding: 10px 12px; gap: 8px; }
+.side .methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.side .method { padding: 6px 4px; font-size: 13px; }
+.side .walk-in { display: none; }
+.pay-sticky { position: sticky; bottom: 0; z-index: 2; width: 100%; box-shadow: 0 -8px 16px var(--bg, #f4f6f8); }
+
+/* 1.0.3: no white rubber-band when scrolling or dragging past the top or bottom. */
+html, body, #root { overscroll-behavior: none; background: var(--bg, #f4f6f8); }
+* { overscroll-behavior: contain; }
+
+/* Every receipt carries a small Nuskha mark. */
+.rc-powered { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 10px; margin-top: 6px; }
+.rc-powered img { filter: grayscale(1); }

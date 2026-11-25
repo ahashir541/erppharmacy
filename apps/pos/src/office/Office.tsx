@@ -26,7 +26,7 @@ const NAV: NavItem[] = [
   { key: 'shifts', label: 'Shifts', icon: '◷', group: 'Sales', render: (p) => <Shifts {...p} /> },
   { key: 'products', label: 'Products & stock', icon: '▤', group: 'Inventory', render: (p) => <Products {...p} /> },
   { key: 'expiry', label: 'Expiry', icon: '⚠', group: 'Inventory', render: (p) => <Expiry {...p} /> },
-  { key: 'counts', label: 'Stock count', icon: '☑', group: 'Inventory', render: (p) => <StockCounts {...p} /> },
+  { key: 'counts', label: 'Shelf check', icon: '☑', group: 'Inventory', render: (p) => <StockCounts {...p} /> },
   { key: 'movements', label: 'Stock movements', icon: '⇅', group: 'Inventory', render: (p) => <Movements {...p} /> },
   { key: 'suppliers', label: 'Suppliers', icon: '⛟', group: 'Purchasing', render: (p) => <Suppliers {...p} /> },
   { key: 'purchases', label: 'Purchases', icon: '⊕', group: 'Purchasing', render: (p) => <Purchases {...p} /> },
@@ -42,6 +42,7 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
   const [page, setPage] = useState('dashboard');
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1200);
   const [palette, setPalette] = useState(false);
+  const [keysHelp, setKeysHelp] = useState(false);
   const pageProps: PageProps = useMemo(() => ({ db: props.backend, branchId: props.ctx.branch.id, today: props.ctx.today, go: (k) => setPage(k) }),
     [props.backend, props.ctx]);
 
@@ -53,7 +54,19 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setPalette((p) => !p); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setPalette((p) => !p); return; }
+      // Whole office without a mouse: F2 new sale, Ctrl+P purchases, Alt+1…9 the pages in order, ? the list of keys.
+      if (e.key === 'F2') { e.preventDefault(); props.onOpenPos(); return; }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); setPage('purchases'); return; }
+      if (e.altKey && /^[1-9]$/.test(e.key)) {
+        const pages = NAV.filter((n) => n.key !== 'pos');
+        const n = pages[Number(e.key) - 1];
+        if (n) { e.preventDefault(); setPage(n.key); }
+        return;
+      }
+      const typing = e.target instanceof HTMLElement && (e.target.closest('input, textarea, select, [contenteditable="true"]') !== null);
+      if (!typing && e.key === '?') { e.preventDefault(); setKeysHelp((v) => !v); }
+      if (e.key === 'Escape') setKeysHelp(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -107,6 +120,20 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
         </main>
       </div>
       {palette && <CommandPalette onPick={go} onClose={() => setPalette(false)} />}
+      {keysHelp && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onMouseDown={() => setKeysHelp(false)}>
+          <div className="card keys-help">
+            <div className="modal-head"><h2>Keyboard shortcuts</h2></div>
+            <table className="table"><tbody>
+              {[['Ctrl+K', 'Jump to any page'], ['F2', 'New sale (POS)'], ['Ctrl+P', 'Purchases'], ['Alt+1 … Alt+9', 'Pages in the sidebar, top to bottom'],
+                ['Tab / Shift+Tab', 'Next / previous field'], ['Enter', 'Save the form · pick the highlighted result'], ['↑ ↓', 'Move through search results'],
+                ['Esc', 'Close a window'], ['Ctrl+S', 'Save a delivery'],
+                ['POS: F3 · F4 · F7 · F10 · Ctrl+M', 'Search · customer · bill discount · cash received · payment method'], ['?', 'Show or hide this list']]
+                .map(([k, v]) => <tr key={k}><td><kbd>{k}</kbd></td><td>{v}</td></tr>)}
+            </tbody></table>
+          </div>
+        </div>
+      )}
       <div id="print-area" aria-hidden />
     </div>
   );

@@ -1,0 +1,2 @@
+Website (nuskhapk.vercel.app). index.html = home, features.html, download.html, guide.html, about.html.
+download\ mein NuskhaSetup.exe. Deploy: node prerender.mjs; vercel deploy --prod --yes

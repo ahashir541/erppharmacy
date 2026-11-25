@@ -1,0 +1,1 @@
+Pharmacy wali app (POS + Back office). Screens 'src' mein hain. Pehle src\_YE FOLDER KYA HAI.txt parhein.

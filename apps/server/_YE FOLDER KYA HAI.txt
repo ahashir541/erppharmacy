@@ -1,0 +1,3 @@
+Local program banata hai. Command: node build.mjs --zip --update
+Bani hui files 'release' mein aati hain; har version ki copy D:\Nuskha\2 Versions mein rakhein.
+e2e = asli program chala kar test.

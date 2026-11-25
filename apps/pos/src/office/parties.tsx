@@ -191,10 +191,11 @@ function PaymentForm(props: PageProps & { type: 'customer_account' | 'supplier';
 }
 
 // ---- Suppliers -------------------------------------------------------------------------------
-interface SupplierRow { id: string; name: string; phone: string | null; payment_terms_days: number | null; balance: number }
+interface SupplierRow { id: string; name: string; phone: string | null; payment_terms_days: number | null; discount_pct?: number | string; balance: number }
 
 export function Suppliers(props: PageProps) {
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<SupplierRow | null>(null);
   const [open, setOpen] = useState<SupplierRow | null>(null);
   const { data, error, reload } = useLoad(() => props.db.office<SupplierRow[]>('suppliers'), []);
   const ageing = useLoad(() => props.db.ownerTable<Ageing>('party_ageing', 'supplier', props.today), [data]);
@@ -213,28 +214,36 @@ export function Suppliers(props: PageProps) {
       <Table rows={data} error={error} onRow={setOpen} cols={[
         { label: 'Supplier', value: (r) => <><strong>{r.name}</strong><div className="muted small">{r.phone}</div></> },
         { label: 'Terms', value: (r) => (r.payment_terms_days ? `${r.payment_terms_days} days` : 'cash') },
+        { label: 'Discount', value: (r) => (Number(r.discount_pct) > 0 ? `${Number(r.discount_pct)}%` : '—'), num: true },
         { label: 'You owe', value: (r) => <strong className={r.balance > 0 ? 'warn-text' : ''}>{money(r.balance)}</strong>, num: true },
+        { label: '', value: (r) => <button type="button" className="btn small-btn" onClick={(e) => { e.stopPropagation(); setEditing(r); }}>Edit</button> },
       ]} />
       {adding && <NewSupplier {...props} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); reload(); }} />}
+      {editing && <NewSupplier {...props} row={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />}
       {open && <Khata {...props} type="supplier" id={open.id} title={open.name} onClose={() => { setOpen(null); reload(); }} />}
     </>
   );
 }
 
-function NewSupplier(props: PageProps & { onClose: () => void; onSaved: () => void }) {
-  const [f, setF] = useState({ name: '', contact_name: '', phone: '', city: '', ntn: '', terms: '30' });
+function NewSupplier(props: PageProps & { row?: SupplierRow; onClose: () => void; onSaved: () => void }) {
+  const r = props.row;
+  const [f, setF] = useState({ name: r?.name ?? '', contact_name: '', phone: r?.phone ?? '', city: '', ntn: '',
+                               terms: r ? String(r.payment_terms_days ?? 0) : '30', discount: r && Number(r.discount_pct) > 0 ? String(Number(r.discount_pct)) : '' });
   const set = (k: keyof typeof f, v: string) => setF((x) => ({ ...x, [k]: v }));
-  const { busy, error, submit } = useSubmit(() => props.db.ownerCall('save_supplier', {
-    name: f.name, contact_name: f.contact_name || null, phone: f.phone || null, whatsapp: f.phone || null, city: f.city || null, ntn: f.ntn || null,
-    payment_terms_days: Number(f.terms) || 0 }), props.onSaved);
+  const { busy, error, submit } = useSubmit(() => props.db.ownerCall('save_supplier', r
+    ? { id: r.id, name: f.name, phone: f.phone || null, whatsapp: f.phone || null, payment_terms_days: Number(f.terms) || 0, discount_pct: Number(f.discount) || 0 }
+    : { name: f.name, contact_name: f.contact_name || null, phone: f.phone || null, whatsapp: f.phone || null, city: f.city || null, ntn: f.ntn || null,
+        payment_terms_days: Number(f.terms) || 0, discount_pct: Number(f.discount) || 0 }), props.onSaved);
   return (
-    <Modal title="New supplier" onClose={props.onClose}>
+    <Modal title={r ? `Edit ${r.name}` : 'New supplier'} onClose={props.onClose}>
       <form className="form-grid" onSubmit={submit}>
         <label className="field span-2"><span>Name *</span><input required autoFocus value={f.name} onChange={(e) => set('name', e.target.value)} /></label>
         <label className="field"><span>Contact person</span><input value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></label>
         <label className="field"><span>Mobile / WhatsApp</span><input value={f.phone} onChange={(e) => set('phone', e.target.value)} /></label>
         <label className="field"><span>City</span><input value={f.city} onChange={(e) => set('city', e.target.value)} /></label>
         <label className="field"><span>Payment terms (days)</span><input inputMode="numeric" value={f.terms} onChange={(e) => set('terms', e.target.value)} /></label>
+        <label className="field"><span>Usual discount %</span><input inputMode="decimal" value={f.discount} onChange={(e) => set('discount', e.target.value)} placeholder="e.g. 13" /></label>
+        <p className="muted small span-2">The discount fills in by itself when you receive a delivery from this supplier.</p>
         {error && <div className="form-error span-2">{error}</div>}
         <div className="row-actions span-2"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>Save supplier</button></div>
       </form>

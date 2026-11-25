@@ -55,7 +55,7 @@ export function ReceiptView(props: { r: ReceiptData; width?: 58 | 80; returnNote
       <footer className="rc-foot">
         {r.footer && <div>{r.footer}</div>}
         <div className="rc-thanks">Thank you · شکریہ</div>
-        <div className="rc-powered">Nuskha</div>
+        <div className="rc-powered"><img src="/icon-48.png" alt="" width="14" height="14" /> Nuskha · nuskhapk.vercel.app</div>
       </footer>
     </div>
   );

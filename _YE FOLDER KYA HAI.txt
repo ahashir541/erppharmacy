@@ -1,0 +1,11 @@
+NUSKHA KA SOURCE CODE (asal software). Isi se Local program, Cloud app, HQ aur website bante hain.
+
+apps\pos       = Jo pharmacy dekhti hai: POS (counter) aur Back office ki saari screens. Local aur Cloud dono yahi use karte hain.
+apps\hq        = Nuskha HQ: aap ka owner console (pharmacies, licence, invoices, updates).
+apps\server    = Local program banane wala hissa: server, Nuskha.exe, NuskhaSetup.exe, update file. Banaya hua maal 'release' mein aata hai.
+packages\db    = Database: saare hisaab ke formulas (SQL) aur un ke tests.
+packages\core  = Bill, qeemat, permissions ke formule jo app aur database dono mein ek jaise chalte hain.
+site           = Website nuskhapk.vercel.app ke pages.
+docs           = Purane design notes.
+legacy         = Purana (Streamlit wala) version. Istemal nahi hota.
+node_modules   = Download ki hui libraries. Kabhi haath na lagayein; mit jayein to 'pnpm install' se wapas.

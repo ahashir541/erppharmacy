@@ -45,9 +45,10 @@ select tests.as_device(tests.id('auth_device_a1'));
 select public.start_staff_session(tests.id('storekeeper_a'), tests.id('sess_k'));
 select throws_ok($$select public.post_grn(tests.grn1('{"unit_cost": 180}'), tests.id('sess_k'))$$, '42501', null,
                  'a store keeper cannot enter prices');
-select throws_ok(format($q$select public.post_grn(jsonb_build_object('supplier_id', %L, 'lines', jsonb_build_array(jsonb_build_object(
-  'product_unit_id', %L, 'batch_number', 'old', 'expiry_date', current_date - 1, 'qty', 5))), %L)$q$,
-  tests.kept('sup') #>> '{}', tests.id('product_unit_a'), tests.id('sess_k')), 'P0001', null, 'expired goods are refused at the door');
+-- 1.0.3: expiry is optional and never blocks a delivery; an expired batch comes in with a warning.
+select is((public.post_grn(jsonb_build_object('supplier_id', tests.kept('sup') #>> '{}', 'lines', jsonb_build_array(jsonb_build_object(
+  'product_unit_id', tests.id('product_unit_a'), 'batch_number', 'old', 'expiry_date', current_date - 1, 'qty', 5))), tests.id('sess_k'))
+  -> 'warnings' -> 0 ->> 'kind'), 'expired', 'expired goods come in with a warning, never refused');
 select tests.keep('g1', public.post_grn(tests.grn1(), tests.id('sess_k')));
 select is((public.post_grn(tests.grn1(), tests.id('sess_k')) ->> 'duplicate')::boolean, true, 'posting the same delivery twice is recognised');
 reset role;

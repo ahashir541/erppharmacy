@@ -1,0 +1,9 @@
+Pharmacy app ki files:
+
+office\        = Back office ke saare pages (har page ki file ka naam us ke andar ki note mein).
+screens\       = Counter (POS), sign-in, receipt, return.
+wa.ts          = WhatsApp messages ke alfaaz (udhaar reminder, receipt, refill).
+letter.ts      = Udhaar reminder ka formal PDF letter.
+i18n.ts        = Counter par Urdu/English alfaaz.
+styles.css, tokens.css = Rang aur design.
+backend\       = Local ya Cloud se baat karne wala hissa. Na chhedein.

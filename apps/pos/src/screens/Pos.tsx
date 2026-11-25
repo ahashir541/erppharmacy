@@ -147,12 +147,23 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
     setBusy(true);
     setMessage(null);
     try {
-      const payload = salePayload(cart, priced, settlement, { saleId: saleId.current, seq: nextSeq, drawerSessionId: ctx.open_shift!.drawer_session_id },
-        extraApprovals, uuid);
-      const withRx = rx ? { ...payload, prescription: { id: rx.id, patient_name: rx.patient_name, doctor_name: rx.doctor_name, pharmacist_id: rx.pharmacist_id } } : payload;
-      const result = await backend.postSale(withRx, session.sessionId);
+      // The bill number is this PC's next number. If another window or a linked PC used it meanwhile,
+      // take the next free one and try again instead of stopping the sale.
+      let seq = nextSeq;
+      let result: Awaited<ReturnType<typeof backend.postSale>> | null = null;
+      for (let tries = 0; !result; tries++) {
+        const payload = salePayload(cart, priced, settlement, { saleId: saleId.current, seq, drawerSessionId: ctx.open_shift!.drawer_session_id },
+          extraApprovals, uuid);
+        const withRx = rx ? { ...payload, prescription: { id: rx.id, patient_name: rx.patient_name, doctor_name: rx.doctor_name, pharmacist_id: rx.pharmacist_id } } : payload;
+        try {
+          result = await backend.postSale(withRx, session.sessionId);
+        } catch (e) {
+          if (tries < 50 && /already used on this PC/i.test((e as Error)?.message ?? '')) { seq++; continue; }
+          throw e;
+        }
+      }
+      setNextSeq(seq + 1);
       const receipt = await backend.receipt(result.sale_id);
-      setNextSeq((n) => n + 1);
       setDialog({ kind: 'receipt', data: receiptData(receipt, session.staff.name, cart.customer?.name ?? null, ctx.settings.receipt_footer) });
     } catch (err) {
       if (err instanceof PosError && err.needsApproval && err.detail) {
@@ -445,10 +456,11 @@ export function Pos(props: AppProps & { session: Session; onSignOut: () => void;
             {settlement && settlement.udhaar > 0 && (
               <div className={`khata-note${cart.customer ? '' : ' warn'}`}>{t('pos.on_khata')}: {rs(settlement.udhaar)}{cart.customer ? ` · ${cart.customer.name}` : ` · ${t('sale.udhaar_choose_customer')}`}</div>
             )}
-            <button type="button" className="btn pay" disabled={busy || !cart.lines.length} onClick={() => void complete()}>
-              {busy ? t('pos.saving') : `${t('pos.complete')}`}
-            </button>
           </div>
+          {/* Always in view at the bottom of the column: no scrolling to finish a sale. */}
+          <button type="button" className="btn pay pay-sticky" disabled={busy || !cart.lines.length} onClick={() => void complete()}>
+            {busy ? t('pos.saving') : `${t('pos.complete')}`}
+          </button>
         </aside>
       </main>
 

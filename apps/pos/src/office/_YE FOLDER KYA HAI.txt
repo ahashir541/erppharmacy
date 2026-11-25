@@ -1,0 +1,16 @@
+Back office ke pages, file ba file:
+
+Office.tsx     = Sidebar (pages ke naam aur tarteeb), shortcuts.
+sales.tsx      = Dashboard, Sales & invoices, Shifts.
+parties.tsx    = Customers & udhaar (khata), Suppliers.
+whatsapp.tsx   = WhatsApp & reminders.
+stock.tsx      = Products & stock, Add product, Opening stock, Expiry, Stock movements.
+counts.tsx     = Shelf check (stock count).
+purchases.tsx  = Purchases: Receive delivery, orders, returns to supplier.
+money.tsx      = Expenses, Accounts & books, Reports.
+admin.tsx      = Team, Settings, Approvals & alerts.
+roles.tsx      = Role ki permissions.
+importer.tsx   = Excel se products import.
+localserver.tsx= Settings mein licence, backups, doosre PC jodna.
+office.css     = Back office ka design.
+ui.tsx         = Chhote hisse (table, modal) jo sab pages use karte hain. Na chhedein.

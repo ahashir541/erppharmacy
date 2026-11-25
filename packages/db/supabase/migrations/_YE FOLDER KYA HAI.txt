@@ -1,0 +1,3 @@
+DATABASE KE FORMULAS. Har file ek tabdeeli hai, number ke hisaab se chalti hai.
+Purani file KABHI na badlein. Nayi tabdeeli = nayi file, agla number.
+Test: packages\db mein 'node scripts\test-db.mjs'.

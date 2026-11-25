@@ -51,7 +51,7 @@ export const DEFAULTS: Record<'udhaar' | 'receipt' | 'refill', Record<WaLang, st
   udhaar: {
     ur: 'السلام علیکم {name}،\n{pharmacy} میں آپ کے کھاتے میں {amount} باقی ہیں، جو {days} دن سے ہیں ({since} سے)۔\nمہربانی فرما کر جلد ادائیگی کر دیں۔ شکریہ!\n{sign}',
     roman: 'Assalam-o-Alaikum {name},\n{pharmacy} mein aap ke khaate mein {amount} baqi hain, jo {days} din se hain ({since} se).\nMehrbani kar ke jald ada kar dein. Shukriya!\n{sign}',
-    en: 'Assalam-o-Alaikum {name},\nA reminder from {pharmacy}: {amount} is due on your account, for {days} days (since {since}).\nPlease clear it at your earliest. Thank you!\n{sign}',
+    en: 'Dear {name},\n\nThis is a courteous reminder from {pharmacy} that {amount} remains outstanding on your account, unpaid for {days} days (since {since}).\n\nWe would be grateful if you could settle it at your earliest convenience. If you have already paid, please disregard this message.\n\nKind regards,\n{sign}',
   },
   receipt: {
     ur: 'السلام علیکم {name}،\n{pharmacy} کو آپ کی طرف سے {paid} موصول ہو گئے ({date})۔ شکریہ!\nباقی ادھار: {balance}\n{sign}',

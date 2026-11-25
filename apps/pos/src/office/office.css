@@ -252,3 +252,21 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .office-content::-webkit-scrollbar-thumb { background: #c9c6dd; border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
 .office-content::-webkit-scrollbar-track { background: transparent; }
 @media print { .office, .office-main, .office-content { height: auto !important; overflow: visible !important; } }
+
+/* 1.0.3: keyboard first. A clear ring on whatever has focus, and the shortcut sheet. */
+:focus-visible { outline: 2px solid var(--color-brand, #1b1f4b); outline-offset: 2px; }
+.keys-help { width: min(560px, 100%); }
+.keys-help kbd { font: 600 12px/1 Inter, system-ui, sans-serif; background: var(--surface-2, #eef0f5); border: 1px solid var(--color-border, #d6d9e2); border-radius: 5px; padding: 3px 6px; white-space: nowrap; }
+.grn-search input { font-size: 16px; padding: 12px 14px; width: 100%; }
+.grn-search .results li.on { background: var(--surface-2, #eef0f5); }
+.grn-search .results li { display: flex; justify-content: space-between; gap: 12px; }
+.grn-name { font-weight: 600; min-width: 180px; }
+.empty-hint { border: 1px dashed var(--color-border, #d6d9e2); border-radius: 10px; padding: 18px; text-align: center; }
+
+/* 1.0.3: the delivery table has room for every column on a laptop screen. */
+.modal-backdrop .card.wide:has(.grn-table) { width: min(1280px, 96vw); }
+.grn-table select { min-width: 120px; }
+.grn-table td input.num { width: 76px; }
+.grn-table td input[type=date] { width: 140px; }
+.grn-table td input:not(.num):not([type=date]) { width: 96px; }
+.grn-table td.num { white-space: nowrap; }

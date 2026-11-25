@@ -556,6 +556,8 @@ async function counterSeesNoMoney(db) {
     'plan_features.limit_value',
     // Not totals: the float and count the salesman entered themselves, public plan prices, a yes/no flag.
     'drawer_sessions.opening_float', 'drawer_sessions.counted_cash', 'plans.price_monthly', 'plans.price_yearly', 'devices.pending_changes',
+    // A percentage, not a total: the supplier's usual discount.
+    'suppliers.discount_pct',
   ]);
   await db.exec(`begin; select tests.fixture();`);
   const id = async (name) => (await db.query('select tests.id($1) id', [name])).rows[0].id;

@@ -30,7 +30,7 @@ export function Products(props: PageProps) {
       <PageHead title="Products & stock" sub="Medicines, pack sizes, prices and what is on the shelf at this branch">
         {csvButton('products', data, cols)}
         <button type="button" className="btn" onClick={() => setImporting(true)}>Import from Excel</button>
-        <button type="button" className="btn primary" onClick={() => setAdding(true)}>+ Add medicine</button>
+        <button type="button" className="btn primary" onClick={() => setAdding(true)}>+ Add product</button>
       </PageHead>
       <div className="stats">
         <Stat label="Medicines" value={data?.length ?? '…'} />
@@ -65,9 +65,9 @@ function AddMedicine(props: PageProps & { onClose: () => void; onSaved: () => vo
     if (r.error_count) { const e = r.errors[0] ?? {}; throw new Error(String(e.error ?? e.message ?? JSON.stringify(e))); }
   }, props.onSaved);
   return (
-    <Modal title="Add medicine" onClose={props.onClose} wide>
+    <Modal title="Add product" onClose={props.onClose} wide>
       <form className="form-grid" onSubmit={submit}>
-        <label className="field span-2"><span>Medicine name *</span><input required autoFocus value={f.brand_name} onChange={(e) => set('brand_name', e.target.value)} placeholder="e.g. Panadol 500mg Tablet" /></label>
+        <label className="field span-2"><span>Product name *</span><input required autoFocus value={f.brand_name} onChange={(e) => set('brand_name', e.target.value)} placeholder="e.g. Panadol 500mg Tablet" /></label>
         <label className="field"><span>Generic / formula</span><input value={f.generic} onChange={(e) => set('generic', e.target.value)} placeholder="Paracetamol" /></label>
         <label className="field"><span>Strength</span><input value={f.strength} onChange={(e) => set('strength', e.target.value)} placeholder="500mg" /></label>
         <label className="field"><span>Company</span><input value={f.manufacturer} onChange={(e) => set('manufacturer', e.target.value)} placeholder="GSK" /></label>
@@ -86,7 +86,7 @@ function AddMedicine(props: PageProps & { onClose: () => void; onSaved: () => vo
         <label className="check"><input type="checkbox" checked={f.rx} onChange={(e) => set('rx', e.target.checked)} /> Needs a prescription</label>
         <label className="check"><input type="checkbox" checked={f.controlled} onChange={(e) => set('controlled', e.target.checked)} /> Controlled drug</label>
         {error && <div className="form-error span-2">{error}</div>}
-        <div className="row-actions span-2"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>Save medicine</button></div>
+        <div className="row-actions span-2"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>Save product</button></div>
       </form>
     </Modal>
   );
@@ -98,14 +98,14 @@ function AddStock(props: PageProps & { product: ProductRow; onClose: () => void;
   const set = (k: keyof typeof f, v: string) => setF((x) => ({ ...x, [k]: v }));
   const unit = f.unit || units?.[0]?.code || props.product.base_unit;
   const { busy, error, submit } = useSubmit(() => props.db.ownerCall('receive_opening_stock', props.branchId, [{
-    product_id: props.product.id, batch_number: f.batch, expiry_date: f.expiry, qty: Number(f.qty), unit,
+    product_id: props.product.id, batch_number: f.batch || null, expiry_date: f.expiry || null, qty: Number(f.qty), unit,
     total_cost: f.cost ? toPaisa(f.cost) : undefined }], null), props.onSaved);
   return (
     <Modal title={`Opening stock · ${props.product.brand_name}`} onClose={props.onClose}>
       <p className="muted">Stock already on the shelf when you start with Nuskha. New deliveries go through Purchases.</p>
       <form className="form-grid" onSubmit={submit}>
-        <label className="field"><span>Batch no. *</span><input required autoFocus value={f.batch} onChange={(e) => set('batch', e.target.value)} /></label>
-        <label className="field"><span>Expiry *</span><input required type="date" value={f.expiry} onChange={(e) => set('expiry', e.target.value)} /></label>
+        <label className="field"><span>Batch no.</span><input autoFocus value={f.batch} placeholder="Optional" onChange={(e) => set('batch', e.target.value)} /></label>
+        <label className="field"><span>Expiry</span><input type="date" value={f.expiry} onChange={(e) => set('expiry', e.target.value)} /></label>
         <label className="field"><span>Quantity *</span><input required inputMode="numeric" value={f.qty} onChange={(e) => set('qty', e.target.value)} /></label>
         <label className="field"><span>Unit</span>
           <select value={unit} onChange={(e) => set('unit', e.target.value)}>{(units ?? []).map((u) => <option key={u.code} value={u.code}>{u.name}{u.factor > 1 ? ` (${u.factor})` : ''}</option>)}</select>

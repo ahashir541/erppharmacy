@@ -1,0 +1,7 @@
+Counter ki screens:
+
+Pos.tsx        = Nayi sale (POS).
+ReceiptView.tsx= Chhapne wala bill (receipt).
+ReturnDialog.tsx = Return.
+Dialogs.tsx    = Sale ke baad ki khirkiyan.
+LicenceBar.tsx = Neeche licence wali patti.

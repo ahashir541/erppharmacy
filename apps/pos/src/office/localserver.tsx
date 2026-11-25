@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { serverStatus, type BackupList, type LicenceStatus, type MirrorStatus, type ServerBackend, type ServerStatus, type UpdateStatus } from '../backend/server.ts';
 import { errorText, rs } from '../util.ts';
-import { Modal, timeOf, type PageProps } from './ui.tsx';
+import { Info, Modal, timeOf, type PageProps } from './ui.tsx';
 
 export const isServer = (db: PageProps['db']): db is PageProps['db'] & ServerBackend => typeof (db as Partial<ServerBackend>).backups === 'function';
 
-export function LocalServerPanel(props: PageProps) {
+export function LocalServerPanel(props: PageProps & { part?: 'backups' | 'counters' }) {
+  const part = props.part ?? 'backups';
   const db = props.db as unknown as ServerBackend;
   const [list, setList] = useState<BackupList | null>(null);
   const [status, setStatus] = useState<ServerStatus | null>(null);
@@ -34,24 +35,30 @@ export function LocalServerPanel(props: PageProps) {
   const last = list?.list[0];
   return (
     <section className="panel">
-      <div className="panel-title">Nuskha Local · backups and counters</div>
+      <div className="panel-title">{part === 'counters' ? 'Counter PCs' : 'Backups'}</div>
+      {part === 'counters' ? (
+        <>
+          <dl className="facts">
+            <dt>Add a PC <Info text="On another PC of the shop, open one of these addresses in Chrome or Edge (or install Nuskha there) and link it with your owner PIN. A 100.x address works through Tailscale, from anywhere." /></dt>
+            <dd>{status ? (status.addresses.join(', ') || 'No shop network found') : '…'}</dd>
+          </dl>
+        </>
+      ) : (<>
       <dl className="facts">
-        <dt>Last backup</dt><dd>{last ? `${timeOf(last.at)} · ${(last.size / 1048576).toFixed(1)} MB` : list ? 'None yet' : '…'}</dd>
+        <dt>Last backup <Info text="A backup is made every night at 11 pm and kept for 30 days (desktop icon: Nuskha Backups)." /></dt><dd>{last ? `${timeOf(last.at)} · ${(last.size / 1048576).toFixed(1)} MB` : list ? 'None yet' : '…'}</dd>
         <dt>Backups kept</dt><dd>{list ? `${list.list.length} in ${list.folder}` : '…'}</dd>
-        <dt>Second copy</dt><dd>{list ? (list.copy_to ?? <span className="warn-text">Not set: add a USB or Google Drive folder below</span>) : '…'}</dd>
-        <dt>Backup key</dt><dd>{list?.recovery_key ? <><code className="key-code">{list.recovery_key}</code><div className="muted small">Backups are encrypted. Write this key down and keep it safe: you need it to open a backup on another PC. Nuskha HQ keeps a copy too.</div></> : '…'}</dd>
-        <dt>Other counters open</dt><dd>{status ? (status.addresses.join(', ') || 'No shop network found') : '…'}</dd>
+        <dt>Second copy</dt><dd>{list ? (list.copy_to ?? <span className="warn-text">Not set</span>) : '…'}</dd>
+        <dt>Backup key <Info text="Backups are encrypted. Write this key down and keep it safe: you need it to open a backup on another PC. Nuskha HQ keeps a copy too." /></dt><dd>{list?.recovery_key ? <code className="key-code">{list.recovery_key}</code> : '…'}</dd>
       </dl>
-      <p className="muted small">A backup is made every night at 11 pm and kept for 30 days in the folder above (desktop icon "Nuskha Backups"). On another PC of the shop, open the address above in Chrome or Edge and link it with your PIN.</p>
-      <label className="field"><span>Second copy of every backup (USB drive, Google Drive or OneDrive folder)</span>
+      <label className="field"><span>Second copy (USB or Google Drive folder) <Info text="If this PC is lost, stolen or broken, this copy brings your pharmacy back on a new PC." /></span>
         <input value={copy ?? list?.copy_to ?? ''} placeholder="e.g. E:\Nuskha backups  or  G:\My Drive\Nuskha" onChange={(e) => { setCopy(e.target.value); setSaved(null); }} /></label>
-      <p className="muted small">If this PC is lost, stolen or broken, the copy on the USB or in Google Drive brings your pharmacy back on a new PC.</p>
       {error && <div className="form-error">{error}</div>}
       {saved && <div className="message info">{saved}</div>}
       <div className="row-actions">
         {copy !== null && <button type="button" className="btn primary" disabled={busy} onClick={() => void saveCopy()}>Save second copy</button>}
         <button type="button" className="btn" disabled={busy} onClick={() => void now()}>{busy ? 'Backing up…' : 'Back up now'}</button>
       </div>
+      </>)}
     </section>
   );
 }
@@ -203,13 +210,12 @@ export function OwnerViewPanel(props: PageProps) {
   return (
     <section className="panel">
       <div className="panel-title">Owner's laptop · live view</div>
-      <p className="muted small">See this pharmacy's dashboard, sales, stock and udhaar from home or anywhere. The shop keeps working without internet;
-        whenever it has internet, Nuskha sends a read-only copy every minute. With your owner PIN you can also make changes from there; they reach this PC whenever it is online.</p>
+      <p className="muted">Open this shop from home with the code and your owner PIN. <Info text="The shop keeps working without internet. Whenever it has internet, Nuskha sends a copy every minute. Changes made from home reach this PC whenever it is online." /></p>
       {st?.enabled ? (
         <>
           <dl className="facts">
-            <dt>Pharmacy code</dt><dd><code className="key-code">{st.view_code}</code><div className="muted small">On your home laptop install Nuskha from the website, choose "I am the owner, at home", and type this code and your owner PIN. Keep it private, like a password.</div></dd>
-            <dt>Last sent</dt><dd>{st.last_ok ? timeOf(st.last_ok) : 'Not yet'}{st.last_error ? <div className="warn-text small">No internet right now; Nuskha keeps trying every minute. The shop is not affected.</div> : null}</dd>
+            <dt>Pharmacy code <Info text='On the home laptop install Nuskha, choose "I am the owner, at home", then type this code and your owner PIN. Keep it private, like a password.' /></dt><dd><code className="key-code">{st.view_code}</code></dd>
+            <dt>Last sent</dt><dd>{st.last_ok ? timeOf(st.last_ok) : 'Not yet'}{st.last_error ? <div className="warn-text small">No internet right now. Selling is not affected.</div> : null}</dd>
           </dl>
           <div className="row-actions">
             <button type="button" className="btn" disabled={busy} onClick={() => void act(() => db.mirrorEnable(true))}>New pharmacy code (old laptops stop)</button>

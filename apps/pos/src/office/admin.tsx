@@ -4,6 +4,7 @@ import { toPaisa } from '../util.ts';
 import { isServer, LicencePanel, LocalServerPanel, OwnerViewPanel } from './localserver.tsx';
 import { RolePermissions } from './roles.tsx';
 import { Modal, money, PageHead, Stat, Table, timeOf, useLoad, useSubmit, type PageProps } from './ui.tsx';
+import { Info } from './ui.tsx';
 
 // ---- Approvals & alerts ----------------------------------------------------------------------
 interface Approval { id: string; kind: string; permission_code: string; amount: number | null; details: { summary?: string }; created_at: string; who: string; expires_at: string | null }
@@ -135,13 +136,22 @@ function SetPin(props: PageProps & { member: Member; onClose: () => void; onSave
 }
 
 // ---- Settings --------------------------------------------------------------------------------
-const LS = { theme: 'medflow.theme', contrast: 'medflow.contrast' };
+// Display on this PC: light, dark or like Windows (1.1.1), and contrast. Kept in this PC's browser storage.
+const LS = { theme: 'nuskha.theme', contrast: 'medflow.contrast' };
+export type ThemeChoice = 'light' | 'dark' | 'system';
+const darkQuery = () => (typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null);
+let followingSystem = false;
+export function themeChoice(): ThemeChoice {
+  try { const t = localStorage.getItem(LS.theme); return t === 'dark' || t === 'system' ? t : 'light'; } catch { return 'light'; }
+}
 export function applyDisplayPrefs() {
   try {
-    const theme = localStorage.getItem(LS.theme);
+    const choice = themeChoice();
+    const dark = choice === 'dark' || (choice === 'system' && !!darkQuery()?.matches);
+    if (dark) document.documentElement.dataset.theme = 'dark'; else delete document.documentElement.dataset.theme;
+    // "Like Windows" follows Windows when it switches between light and dark.
+    if (choice === 'system' && !followingSystem) { followingSystem = true; darkQuery()?.addEventListener('change', () => { if (themeChoice() === 'system') applyDisplayPrefs(); }); }
     const contrast = localStorage.getItem(LS.contrast);
-    if (theme) localStorage.removeItem(LS.theme); // light only now; forget an old dark choice
-    delete document.documentElement.dataset.theme;
     if (contrast === 'high') document.documentElement.dataset.contrast = 'high'; else delete document.documentElement.dataset.contrast;
   } catch { /* private window */ }
 }
@@ -161,6 +171,8 @@ export function Settings(props: PageProps) {
   const biz = useLoad(() => props.db.office<{ business: { name: string; owner_name: string; owner_phone: string; city: string; status: string; trial_ends_at: string | null;
     branch: string; address: string; phone: string | null; footer: string | null; width: number | null; rounding: number | null }; rules: Array<{ kind: string; enabled: boolean; threshold: number | null }>; devices: Array<{ name: string; last_seen_at: string | null; last_sync_at: string | null; app_version: string | null; status: string }> }>('settings', props.branchId), []);
   const [contrast, setContrast] = useState(() => { try { return localStorage.getItem(LS.contrast) ?? 'normal'; } catch { return 'normal'; } });
+  const [theme, setTheme] = useState<ThemeChoice>(() => themeChoice());
+  const pickTheme = (t: ThemeChoice) => { try { localStorage.setItem(LS.theme, t); } catch { /* ignore */ } setTheme(t); applyDisplayPrefs(); };
   const b = biz.data?.business;
   const rules = { data: biz.data?.rules ?? null, reload: biz.reload };
   const devices = { data: biz.data?.devices ?? null };
@@ -182,68 +194,118 @@ export function Settings(props: PageProps) {
     await props.db.ownerCall('set_alert_rule', kind, enabled, threshold);
     rules.reload();
   };
+  const local = isServer(props.db);
+  type Sec = 'pharmacy' | 'bills' | 'licence' | 'backups' | 'counters' | 'owner' | 'alerts' | 'display';
+  const SECTIONS: Array<[Sec, string, string, boolean]> = [
+    ['pharmacy', 'Pharmacy', 'Your shop, owner and plan', true],
+    ['bills', 'Bills & receipts', 'What prints on every bill', true],
+    ['licence', 'Licence & updates', 'Nuskha licence, invoices and version', local],
+    ['backups', 'Backups', 'Nightly backup, second copy, backup key', local],
+    ['counters', 'Counter PCs', 'Other PCs of the shop and their sync', true],
+    ['owner', "Owner's laptop", 'See and run the shop from home', local],
+    ['alerts', 'Alerts', 'What Nuskha tells you about', true],
+    ['display', 'Display & keys', 'Contrast and keyboard shortcuts', true],
+  ];
+  const shown = SECTIONS.filter((x) => x[3]);
+  const [sec, setSec] = useState<Sec>(() => { try { return (sessionStorage.getItem('nuskha.settings.sec') as Sec) || 'pharmacy'; } catch { return 'pharmacy'; } });
+  const pick = (k: Sec) => { setSec(k); try { sessionStorage.setItem('nuskha.settings.sec', k); } catch { /* ignore */ } };
+  const cur = shown.find((x) => x[0] === sec) ?? shown[0]!;
   return (
     <>
-      <PageHead title="Settings" sub="Your pharmacy, receipts, display, alerts, hot keys and sync" />
-      <div className="grid-2">
-        {isServer(props.db) && <LicencePanel {...props} />}
-        {isServer(props.db) && <LocalServerPanel {...props} />}
-        {isServer(props.db) && <OwnerViewPanel {...props} />}
-        <section className="panel">
-          <div className="panel-title">Business</div>
-          {b ? (
-            <dl className="facts">
-              <dt>Pharmacy</dt><dd>{b.name}</dd><dt>Owner</dt><dd>{[b.owner_name, b.owner_phone].filter(Boolean).join(' · ') || '—'}</dd>
-              <dt>Branch</dt><dd>{[b.branch, b.address].filter(Boolean).join(', ') || '—'}</dd><dt>Phone</dt><dd>{b.phone || '—'}</dd>
-              <dt>Plan</dt><dd>{b.status === 'trial' ? `Free trial until ${timeOf(b.trial_ends_at)}` : b.status === 'active' ? 'Active' : b.status}</dd>
-            </dl>
-          ) : <div className="loading-row"><span className="spinner small" /></div>}
-        </section>
-        <section className="panel">
-          <div className="panel-title">Counter & receipts</div>
-          <form className="stack" onSubmit={save.submit}>
-            <label className="field"><span>Line at the bottom of every receipt</span><input value={footer ?? b?.footer ?? ''} onChange={(e) => setFooter(e.target.value)} /></label>
-            <div className="form-grid">
-              <label className="field"><span>Paper width</span><select value={width ?? String(b?.width ?? 80)} onChange={(e) => setWidth(e.target.value)}><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
-              <label className="field"><span>Bill rounding</span><select value={rounding ?? String(b?.rounding ?? 100)} onChange={(e) => setRounding(e.target.value)}><option value="100">To the nearest Re 1</option><option value="0">No rounding</option></select></label>
-            </div>
-            {save.error && <div className="form-error">{save.error}</div>}
-            {saved && <div className="message info">{saved}</div>}
-            <div className="row-actions"><button className="btn primary" disabled={save.busy}>Save</button></div>
-          </form>
-        </section>
-        <section className="panel">
-          <div className="panel-title">Display (this PC)</div>
-          <div className="seg"><span>Contrast</span>{['normal', 'high'].map((v) => <button key={v} type="button" className={`chip${contrast === v ? ' on' : ''}`} onClick={() => pref('contrast', v)}>{v}</button>)}</div>
-          <p className="muted small">High contrast makes text darker and borders stronger, for older staff or bright shops.</p>
-        </section>
-        <section className="panel">
-          <div className="panel-title">Alerts to your phone</div>
-          <ul className="attention">
-            {ALERTS.map(([kind, label, unit]) => {
-              const r = (rules.data ?? []).find((x) => x.kind === kind);
-              const on = r?.enabled ?? true;
-              return (
-                <li key={kind}>
-                  <label className="check"><input type="checkbox" checked={on} onChange={(e) => void setRule(kind, e.target.checked, r?.threshold ?? null)} /> {label}</label>
-                  {unit && <input className="threshold" inputMode="decimal" placeholder="default" defaultValue={r?.threshold ? (unit === 'Rs' ? r.threshold / 100 : r.threshold) : ''}
-                                  onBlur={(e) => { const v = e.target.value.trim(); void setRule(kind, on, v ? (unit === 'Rs' ? toPaisa(v) : Number(v)) : null); }} aria-label={`${label} (${unit})`} />}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-        <section className="panel">
-          <div className="panel-title">Hot keys</div>
-          <table className="table hotkeys"><tbody>{HOTKEYS.map(([k, v]) => <tr key={k}><td><kbd>{k}</kbd></td><td>{v}</td></tr>)}</tbody></table>
-        </section>
-        <section className="panel">
-          <div className="panel-title">Sync & backup</div>
-          <ul className="attention">
-            {(devices.data ?? []).map((d) => <li key={d.name}><span>{d.name} {d.app_version ? `· v${d.app_version}` : ''}</span><span className="muted small">last sync {timeOf(d.last_sync_at ?? d.last_seen_at)}</span></li>)}
-          </ul>
-          <p className="muted small">Every sale is saved on the counter first and sent to the cloud when online. Cloud backups run daily; you can export everything from Reports at any time.</p>
-        </section>
+      <PageHead title="Settings" sub="Everything about your pharmacy's Nuskha, in one place" />
+      <div className="settings-layout">
+        <nav className="settings-nav" aria-label="Settings sections">
+          {shown.map(([k, label]) => (
+            <button key={k} type="button" className={`settings-tab${cur[0] === k ? ' on' : ''}`} onClick={() => pick(k)}>
+              <strong>{label}</strong>
+            </button>
+          ))}
+        </nav>
+        <div className="settings-body">
+          <header className="settings-head"><h2>{cur[1]}</h2></header>
+          {cur[0] === 'pharmacy' && (
+            <section className="panel">
+              <div className="panel-title">Business</div>
+              {b ? (
+                <dl className="facts">
+                  <dt>Pharmacy</dt><dd><strong>{b.name}</strong></dd><dt>Owner</dt><dd>{[b.owner_name, b.owner_phone].filter(Boolean).join(' · ') || '—'}</dd>
+                  <dt>Branch</dt><dd>{[b.branch, b.address].filter(Boolean).join(', ') || '—'}</dd><dt>Shop phone</dt><dd>{b.phone || '—'}</dd>
+                  <dt>Plan</dt><dd>{b.status === 'trial' ? `Free trial until ${timeOf(b.trial_ends_at)}` : b.status === 'active' ? 'Active' : b.status}</dd>
+                </dl>
+              ) : <div className="loading-row"><span className="spinner small" /></div>}
+            </section>
+          )}
+          {cur[0] === 'bills' && (
+            <section className="panel">
+              <div className="panel-title">Bills & receipts</div>
+              <form className="stack" onSubmit={save.submit}>
+                <label className="field"><span>Line at the bottom of every receipt</span><input value={footer ?? b?.footer ?? ''} onChange={(e) => setFooter(e.target.value)} placeholder="e.g. Medicines are returned within 7 days with the bill" /></label>
+                <div className="form-grid">
+                  <label className="field"><span>Paper width</span><select value={width ?? String(b?.width ?? 80)} onChange={(e) => setWidth(e.target.value)}><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
+                  <label className="field"><span>Bill rounding</span><select value={rounding ?? String(b?.rounding ?? 100)} onChange={(e) => setRounding(e.target.value)}><option value="100">To the nearest Re 1</option><option value="0">No rounding</option></select></label>
+                </div>
+                {save.error && <div className="form-error">{save.error}</div>}
+                {saved && <div className="message info">{saved}</div>}
+                <div className="row-actions"><button className="btn primary" disabled={save.busy}>Save</button></div>
+              </form>
+            </section>
+          )}
+          {cur[0] === 'licence' && <LicencePanel {...props} />}
+          {cur[0] === 'backups' && <LocalServerPanel {...props} part="backups" />}
+          {cur[0] === 'counters' && (
+            <>
+              {local && <LocalServerPanel {...props} part="counters" />}
+              <section className="panel">
+                <div className="panel-title">Counters and their last sync</div>
+                {(devices.data ?? []).length ? (
+                  <table className="table"><thead><tr><th>PC</th><th>Version</th><th>Last sync</th></tr></thead><tbody>
+                    {(devices.data ?? []).map((d) => <tr key={d.name}><td>{d.name}</td><td>{d.app_version ?? '—'}</td><td>{timeOf(d.last_sync_at ?? d.last_seen_at)}</td></tr>)}
+                  </tbody></table>
+                ) : <p className="muted">No counter PCs yet.</p>}
+              </section>
+            </>
+          )}
+          {cur[0] === 'owner' && <OwnerViewPanel {...props} />}
+          {cur[0] === 'alerts' && (
+            <section className="panel">
+              <div className="panel-title">Alerts</div>
+              <ul className="attention settings-alerts">
+                {ALERTS.map(([kind, label, unit]) => {
+                  const r = (rules.data ?? []).find((x) => x.kind === kind);
+                  const on = r?.enabled ?? true;
+                  return (
+                    <li key={kind}>
+                      <label className="check"><input type="checkbox" checked={on} onChange={(e) => void setRule(kind, e.target.checked, r?.threshold ?? null)} /> {label}</label>
+                      {unit && <span className="threshold-wrap"><input className="threshold" inputMode="decimal" placeholder="default" defaultValue={r?.threshold ? (unit === 'Rs' ? r.threshold / 100 : r.threshold) : ''}
+                                      onBlur={(e) => { const v = e.target.value.trim(); void setRule(kind, on, v ? (unit === 'Rs' ? toPaisa(v) : Number(v)) : null); }} aria-label={`${label} (${unit})`} /><span className="muted small">{unit}</span></span>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+          {cur[0] === 'display' && (
+            <>
+              <section className="panel">
+                <div className="panel-title">Display on this PC</div>
+                <div className="theme-picks" role="radiogroup" aria-label="Theme">
+                  {([['light', 'Light', 'Bright, for daytime'], ['dark', 'Dark', 'Easy on the eyes at night'], ['system', 'Like Windows', 'Follows this PC']] as Array<[ThemeChoice, string, string]>).map(([k, label, hint]) => (
+                    <button key={k} type="button" role="radio" aria-checked={theme === k} className={`theme-pick ${k}${theme === k ? ' on' : ''}`} onClick={() => pickTheme(k)}>
+                      <span className="theme-swatch" aria-hidden><i /><i /><i /></span>
+                      <strong>{label}</strong><span className="muted small">{hint}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="seg"><span>Contrast <Info text="High contrast makes text darker and borders stronger, for older staff or bright shops." /></span>{['normal', 'high'].map((v) => <button key={v} type="button" className={`chip${contrast === v ? ' on' : ''}`} onClick={() => pref('contrast', v)}>{v === 'normal' ? 'Normal' : 'High'}</button>)}</div>
+              </section>
+              <section className="panel">
+                <div className="panel-title">Keyboard shortcuts at the counter</div>
+                <table className="table hotkeys"><tbody>{HOTKEYS.map(([k, v]) => <tr key={k}><td><kbd>{k}</kbd></td><td>{v}</td></tr>)}</tbody></table>
+                <p className="muted small">Back office: press ? for its shortcuts.</p>
+              </section>
+            </>
+          )}
+        </div>
       </div>
     </>
   );

@@ -123,6 +123,7 @@ try {
   // ---- HQ sees the PC and keeps its backup key ----
   await page.getByRole('button', { name: 'Back office' }).click();
   await page.getByRole('button', { name: 'Settings' }).first().click();
+  await page.locator('.settings-tab', { hasText: 'Backups' }).click();
   const shownKey = (await page.locator('code.key-code').first().textContent({ timeout: 15_000 }))?.trim() ?? '';
   check('owner sees the backup key in Settings', /^MFBK-[0-9A-F]{8}(-[0-9A-F]{8}){7}$/.test(shownKey));
   const d1 = await hq('platform_pharmacy', made.tenant_id);
@@ -132,6 +133,7 @@ try {
 
   // ---- Billing: invoice → "I have paid" → approve ----
   await hq('platform_start_subscription', made.tenant_id, 'basic', 'monthly', 250000);
+  await page.locator('.settings-tab', { hasText: 'Licence & updates' }).click();
   await page.getByRole('button', { name: 'Check now' }).click();
   const payBtn = page.getByRole('button', { name: 'I have paid' }).first();
   const gotInvoice = await payBtn.waitFor({ timeout: 20_000 }).then(() => true, () => false);
@@ -175,6 +177,7 @@ try {
   await shot('journey-settings');
 
   // ---- The PC dies: a new PC restores the encrypted backup with the key from HQ ----
+  await page.locator('.settings-tab', { hasText: 'Backups' }).click();
   await page.getByRole('button', { name: 'Back up now' }).click();
   await page.waitForTimeout(4000);
   const bk = fs.readdirSync(path.join(pc1, 'backups')).filter((f) => f.endsWith('.enc')).sort().pop();

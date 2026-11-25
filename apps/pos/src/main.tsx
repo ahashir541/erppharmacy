@@ -8,6 +8,7 @@ import { applyDisplayPrefs } from './office/admin.tsx';
 import './tokens.css';
 import './styles.css';
 import './office/office.css';
+import './theme-dark.css';
 
 applyDisplayPrefs();
 // Nuskha Local on the shop PCs is always software; Nuskha Cloud only in an app window.

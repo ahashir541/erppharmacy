@@ -142,3 +142,8 @@ export const dateOf = (v: unknown) => (v ? new Date(String(v)).toLocaleDateStrin
 export const timeOf = (v: unknown) => (v ? new Date(String(v)).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
 export const monthStart = (today: string) => `${today.slice(0, 8)}01`;
 export const daysAgo = (today: string, n: number) => new Date(Date.parse(today) - n * 86_400_000).toISOString().slice(0, 10);
+
+/** A small (i) next to a label: the explanation shows on hover or keyboard focus, not as a paragraph. */
+export function Info(props: { text: string }) {
+  return <span className="info-tip" tabIndex={0} aria-label={props.text}>i<span role="tooltip">{props.text}</span></span>;
+}

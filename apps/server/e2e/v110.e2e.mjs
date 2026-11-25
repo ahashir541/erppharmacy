@@ -58,7 +58,8 @@ const signIn = async () => {
   await page.keyboard.press('Enter');
   await page.getByRole('heading', { name: 'Dashboard' }).waitFor({ timeout: 30_000 });
 };
-const ownerPanel = () => page.locator('section.panel', { hasText: "Owner's laptop" });
+// Settings > Owner's laptop (a section of its own since 1.1.0).
+const ownerPanel = () => page.locator('.settings-body section.panel').first();
 let code = '';
 let viewer = null;
 
@@ -89,9 +90,31 @@ try {
   await page.getByRole('button', { name: 'Done' }).click();
 
   await page.getByRole('button', { name: 'Settings' }).first().click();
+  await page.locator('.settings-tab', { hasText: "Owner's laptop" }).click();
   await ownerPanel().getByRole('button', { name: 'Turn on live view' }).click();
   await ownerPanel().locator('code').waitFor({ timeout: 60_000 });
   code = (await ownerPanel().locator('code').innerText()).trim();
+  if (shots) {
+    for (const [tab, file] of [["Owner's laptop", 'settings-owner'], ['Backups', 'settings-backups'], ['Licence & updates', 'settings-licence'], ['Pharmacy', 'settings-pharmacy'], ['Alerts', 'settings-alerts']]) {
+      const t = page.locator('.settings-tab', { hasText: tab });
+      if (await t.count()) { await t.click(); await page.waitForTimeout(800); await page.screenshot({ path: path.join(shots, `110-${file}.png`) }); }
+    }
+    // Dark mode: Settings, Dashboard and Products, then back to light.
+    await page.locator('.settings-tab', { hasText: 'Display & keys' }).click();
+    await page.locator('.theme-pick.dark').click();
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: path.join(shots, '110-dark-settings.png') });
+    await page.getByRole('button', { name: 'Dashboard' }).first().click();
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: path.join(shots, '110-dark-dashboard.png') });
+    await page.getByRole('button', { name: 'Products & stock' }).first().click();
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: path.join(shots, '110-dark-products.png') });
+    await page.getByRole('button', { name: 'Settings' }).first().click();
+    await page.locator('.settings-tab', { hasText: 'Display & keys' }).click();
+    await page.locator('.theme-pick.light').click();
+    await page.locator('.settings-tab', { hasText: "Owner's laptop" }).click();
+  }
   check('live view turns on and shows a view code', /^NSK(-[A-Z2-9]{4}){4}$/.test(code), code);
   check('Settings says there is no internet right now', await ownerPanel().getByText(/No internet right now/).waitFor({ timeout: 15_000 }).then(() => true, () => false));
 
@@ -112,6 +135,7 @@ try {
   await startServer(false);
   await signIn();
   await page.getByRole('button', { name: 'Settings' }).first().click();
+  await page.locator('.settings-tab', { hasText: "Owner's laptop" }).click();
   const sent = await ownerPanel().getByText(/Last sent/).waitFor({ timeout: 10_000 }).then(async () => {
     // The panel refreshes itself every 30 s; the first push goes 15 s after Nuskha starts.
     for (let i = 0; i < 40; i++) {
@@ -171,6 +195,7 @@ try {
   }
   check("the owner's laptop shows the change too", homeShows);
   await page.getByRole('button', { name: 'Settings' }).first().click();
+  await page.locator('.settings-tab', { hasText: "Owner's laptop" }).click();
 
   // ---- 3. New code, then off ----
   await ownerPanel().getByRole('button', { name: /New pharmacy code/ }).click();

@@ -1,6 +1,6 @@
 {
   "name": "@medflow/server",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "type": "module",
   "description": "MedFlow Local: the pharmacy's own server on the shop PC. Data on disk, counters over the shop network, nightly backups.",

@@ -136,6 +136,13 @@ try {
   const ok = await page.getByText('Sale complete').waitFor({ timeout: 15_000 }).then(() => true, () => false);
   const bill = ok ? ((await page.getByText(/^Bill FB-/).first().textContent()) ?? '') : await page.locator('.message, .form-error').first().innerText().catch(() => '');
   check('the next sale still completes, with the next free number', ok && /FB-C1-0+3/.test(bill), bill.trim());
+  // Return: just the last digits find the bill.
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('F11');
+  await page.getByPlaceholder(/last digits/).fill('3');
+  await page.getByRole('button', { name: 'Find bill' }).click();
+  check('return finds a bill from its last digits (3 -> FB-C1-000003)', await page.getByText(/FB-C1-0+3/).first().waitFor({ timeout: 15_000 }).then(() => true, () => false));
+  await page.keyboard.press('Escape');
   check('no errors in the browser', problems.length === 0, problems.join(' | '));
 } catch (e) {
   check('run', false, e.message);

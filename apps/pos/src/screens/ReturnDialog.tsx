@@ -67,7 +67,7 @@ export function ReturnDialog(props: AppProps & { session: Session; seq: number; 
       <div className="card wide-card">
         <h2>Return</h2>
         <form className="row-inline" onSubmit={(e) => { e.preventDefault(); void find(); }}>
-          <input ref={billInput} placeholder="Bill number, e.g. KHI1-C1-000012" value={invoice} onChange={(e) => setInvoice(e.target.value)} />
+          <input ref={billInput} placeholder="Bill number, or just its last digits (e.g. 12)" value={invoice} onChange={(e) => setInvoice(e.target.value)} />
           <button className="btn">Find bill</button>
         </form>
         {bill && (

@@ -1,0 +1,107 @@
+/* Nuskha dark theme (1.1.1). Deep navy, soft violet glows, the same layout. Chosen in Settings →
+   Display & keys (Light, Dark, or like Windows). Printed receipts always stay black on white. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-brand: #7c6cff;
+  --color-brand-hover: #8f82ff;
+  --color-brand-ink: #ffffff;
+  --color-brand-soft: rgba(124, 108, 255, 0.16);
+
+  --color-bg: #0a0c1d;
+  --color-surface: #13162c;
+  --color-surface-2: #1a1e3a;
+  --color-border: #262b4d;
+  --color-text: #e9ebfa;
+  --color-text-2: #bcc1de;
+  --color-text-muted: #8b91b5;
+
+  --color-success: #34d399;
+  --color-success-soft: rgba(52, 211, 153, 0.13);
+  --color-warning: #fbbf24;
+  --color-warning-soft: rgba(251, 191, 36, 0.13);
+  --color-danger: #f87171;
+  --color-danger-soft: rgba(248, 113, 113, 0.13);
+  --color-info: #60a5fa;
+  --color-info-soft: rgba(96, 165, 250, 0.13);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45), 0 24px 60px rgba(0, 0, 0, 0.35);
+  --pay-hover: #2bb886;
+  --surface-2: var(--color-surface-2);
+}
+
+/* The page: a quiet violet glow in the corners. */
+:root[data-theme='dark'] body,
+:root[data-theme='dark'] .office-main,
+:root[data-theme='dark'] .pos {
+  background:
+    radial-gradient(1100px 600px at -5% -10%, rgba(124, 108, 255, 0.16), transparent 60%),
+    radial-gradient(900px 500px at 110% 0%, rgba(56, 189, 248, 0.07), transparent 60%),
+    radial-gradient(900px 600px at 50% 120%, rgba(245, 166, 35, 0.05), transparent 60%),
+    var(--color-bg);
+}
+:root[data-theme='dark'] .office-content { background: transparent; }
+
+/* Cards and panels: a faint top light, a thin border. */
+:root[data-theme='dark'] .panel,
+:root[data-theme='dark'] .card,
+:root[data-theme='dark'] .stat,
+:root[data-theme='dark'] .boot-card,
+:root[data-theme='dark'] .settings-nav,
+:root[data-theme='dark'] .table-wrap {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 60%), var(--color-surface);
+  border-color: var(--color-border);
+}
+:root[data-theme='dark'] .office-top { background: rgba(10, 12, 29, 0.75); backdrop-filter: blur(10px); border-bottom-color: var(--color-border); }
+
+/* Sidebar: the deepest navy, the open page glows. */
+:root[data-theme='dark'] .sidebar { background: linear-gradient(180deg, #110d2e 0%, #080920 100%); border-inline-end: 1px solid #1d2142; }
+:root[data-theme='dark'] .sidebar .nav-item.on {
+  background: linear-gradient(90deg, rgba(124, 108, 255, 0.45), rgba(124, 108, 255, 0.12));
+  color: #fff; box-shadow: inset 3px 0 0 #a99dff, 0 4px 18px rgba(124, 108, 255, 0.25);
+}
+
+/* Buttons: a violet gradient for the main action, glass for the rest. */
+:root[data-theme='dark'] .btn { background: rgba(255, 255, 255, 0.04); border-color: var(--color-border); color: var(--color-text); }
+:root[data-theme='dark'] .btn:hover:not(:disabled) { border-color: #4b4f8a; background: rgba(255, 255, 255, 0.07); }
+:root[data-theme='dark'] .btn.primary {
+  background: linear-gradient(135deg, #6d5dfc 0%, #8b5cf6 55%, #a855f7 100%); border-color: transparent; color: #fff;
+  box-shadow: 0 4px 18px rgba(124, 92, 255, 0.35);
+}
+:root[data-theme='dark'] .btn.primary:hover:not(:disabled) { background: linear-gradient(135deg, #7a6bff 0%, #9a6dff 55%, #b56cff 100%); }
+:root[data-theme='dark'] .btn.pay { background: linear-gradient(135deg, #10b981, #34d399); color: #052e1f; box-shadow: 0 6px 22px rgba(16, 185, 129, 0.3); }
+:root[data-theme='dark'] .btn.pay:hover:not(:disabled) { background: linear-gradient(135deg, #14c98f, #4ee0ab); }
+:root[data-theme='dark'] .btn.danger { background: #dc2626; color: #fff; border-color: transparent; }
+:root[data-theme='dark'] .btn.ghost { background: transparent; }
+
+/* Fields. */
+:root[data-theme='dark'] input, :root[data-theme='dark'] select, :root[data-theme='dark'] textarea {
+  background: #0f1226; border-color: #2a2f55; color: var(--color-text);
+}
+:root[data-theme='dark'] input::placeholder, :root[data-theme='dark'] textarea::placeholder { color: #6b7199; }
+
+/* Tables. */
+:root[data-theme='dark'] .table th { background: #171a33; color: var(--color-text-muted); border-color: var(--color-border); }
+:root[data-theme='dark'] .table td { border-color: #1f2342; }
+:root[data-theme='dark'] .table tbody tr:hover td { background: rgba(124, 108, 255, 0.07); }
+
+/* Overlays. */
+:root[data-theme='dark'] .modal-backdrop { background: rgba(3, 4, 14, 0.7); backdrop-filter: blur(3px); }
+:root[data-theme='dark'] .results { background: #151935; border-color: var(--color-border); }
+:root[data-theme='dark'] kbd { background: #1d2140; border-color: #31365e; color: var(--color-text); }
+:root[data-theme='dark'] .info-tip { border-color: #3a3f6b; color: #a9aed2; }
+
+/* Coloured notes. */
+:root[data-theme='dark'] .live-banner { background: rgba(52, 211, 153, 0.12); color: #6ee7b7; }
+:root[data-theme='dark'] .live-banner.stale { background: rgba(251, 191, 36, 0.12); color: #fcd34d; }
+
+/* Paper stays paper: receipts and QR codes are black on white in both themes. */
+:root[data-theme='dark'] .receipt, :root[data-theme='dark'] .receipt * { color: #111; }
+:root[data-theme='dark'] .receipt-stage { background: #1a1d36; }
+
+/* Login and setup screens. */
+:root[data-theme='dark'] .boot, :root[data-theme='dark'] .center-screen, :root[data-theme='dark'] .signin, :root[data-theme='dark'] .owner-view-gate {
+  background:
+    radial-gradient(900px 500px at 0% 0%, rgba(124, 108, 255, 0.22), transparent 60%),
+    radial-gradient(900px 500px at 100% 100%, rgba(56, 189, 248, 0.08), transparent 60%), var(--color-bg);
+}

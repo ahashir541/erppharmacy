@@ -48,7 +48,13 @@ $lnk.WorkingDirectory = $Target
 $lnk.IconLocation = $(if (Test-Path "$Target\Nuskha HQ.exe") { "$Target\Nuskha HQ.exe,0" } else { "$Target\MedFlowHQ.ico,0" })
 $lnk.Description = 'Nuskha HQ console'
 $lnk.Save()
-Write-Host '  Desktop icon: Nuskha HQ'
+
+# Start menu: so Windows Search finds Nuskha HQ as an app (all users when allowed, else this user).
+$startDirs = @([Environment]::GetFolderPath('CommonPrograms'), [Environment]::GetFolderPath('Programs'))
+foreach ($dir in $startDirs) {
+  try { Copy-Item -LiteralPath (Join-Path $desktop 'Nuskha HQ.lnk') -Destination (Join-Path $dir 'Nuskha HQ.lnk') -Force -ErrorAction Stop; break } catch { }
+}
+Write-Host '  Desktop icon: Nuskha HQ (also in the Start menu)'
 
 # 5. Start now
 Start-ScheduledTask -TaskName 'Nuskha HQ'

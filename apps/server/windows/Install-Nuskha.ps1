@@ -82,7 +82,13 @@ $lnk.Save()
 $b = $shell.CreateShortcut((Join-Path $desktop 'Nuskha Backups.lnk'))
 $b.TargetPath = (Join-Path $Target 'backups'); $b.Save()
 New-Item -ItemType Directory -Force -Path (Join-Path $Target 'backups') | Out-Null
-Write-Host '  Desktop icons: Nuskha, Nuskha Backups'
+
+# Start menu: so Windows Search finds Nuskha as an app (all users when allowed, else this user).
+$startDirs = @([Environment]::GetFolderPath('CommonPrograms'), [Environment]::GetFolderPath('Programs'))
+foreach ($dir in $startDirs) {
+  try { Copy-Item -LiteralPath (Join-Path $desktop 'Nuskha.lnk') -Destination (Join-Path $dir 'Nuskha.lnk') -Force -ErrorAction Stop; break } catch { }
+}
+Write-Host '  Desktop icons: Nuskha, Nuskha Backups (Nuskha is also in the Start menu)'
 
 # 6. Start now and open
 Start-ScheduledTask -TaskName 'Nuskha Local'

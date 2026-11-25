@@ -10,7 +10,7 @@ const codeFrom = (city: string, branch: string) => {
   return letters.length >= 2 ? `${letters}1` : 'MF1';
 };
 
-export function SetupWizard(props: { status: ServerStatus; onDone: () => void }) {
+export function SetupWizard(props: { status: ServerStatus; onDone: () => void; onOwnerHome?: () => void }) {
   const [step, setStep] = useState<'choose' | 'shop' | 'owner' | 'counter'>('choose');
   const [f, setF] = useState({ pharmacy: '', address: '', city: '', phone: '', branch_name: 'Main branch', branch_code: '', owner_name: '', owner_phone: '',
     pin: '', pin2: '', counter_name: 'Counter 1', licence_key: '', footer: 'Get well soon. Medicines once sold can be returned within 7 days with the bill.' });
@@ -95,6 +95,11 @@ export function SetupWizard(props: { status: ServerStatus; onDone: () => void })
               <button type="button" className="setup-choice" onClick={() => setStep('shop')}>
                 <strong>Set up my pharmacy</strong><span className="muted small">Your shop name, owner and PIN. Takes 2 minutes.</span>
               </button>
+              {props.onOwnerHome && (
+                <button type="button" className="setup-choice" onClick={props.onOwnerHome}>
+                  <strong>I am the owner, at home: open my shop</strong><span className="muted small">Your shop already runs Nuskha. See it live and make changes from here with the view code and your owner PIN.</span>
+                </button>
+              )}
             </div>
           </>
         )}

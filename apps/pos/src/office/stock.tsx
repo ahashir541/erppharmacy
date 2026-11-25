@@ -12,6 +12,7 @@ export function Products(props: PageProps) {
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
   const [stockFor, setStockFor] = useState<ProductRow | null>(null);
+  const [editing, setEditing] = useState<ProductRow | null>(null);
   const [detail, setDetail] = useState<ProductRow | null>(null);
   const [importing, setImporting] = useState(false);
   const { data, error, reload } = useLoad(() => props.db.office<ProductRow[]>('products', props.branchId, q.trim()), [q]);
@@ -23,7 +24,11 @@ export function Products(props: PageProps) {
     { label: 'Price (biggest pack)', value: (r) => money(r.box_price), num: true, csv: (r) => (r.box_price ?? 0) / 100 },
     { label: 'In stock (smallest unit)', value: (r) => <span className={r.reorder_level !== null && r.sellable <= r.reorder_level ? 'bad-text' : ''}>{r.sellable}</span>, num: true, csv: (r) => r.sellable },
     { label: 'Nearest expiry', value: (r) => dateOf(r.nearest_expiry), csv: (r) => r.nearest_expiry },
-    { label: '', value: (r) => <button type="button" className="btn small-btn" onClick={(e) => { e.stopPropagation(); setStockFor(r); }}>Add stock</button>, csv: () => null },
+    { label: '', value: (r) => (
+      <div className="row-actions">
+        <button type="button" className="btn small-btn" onClick={(e) => { e.stopPropagation(); setEditing(r); }}>Edit</button>
+        <button type="button" className="btn small-btn" onClick={(e) => { e.stopPropagation(); setStockFor(r); }}>Add stock</button>
+      </div>), csv: () => null },
   ];
   return (
     <>
@@ -42,6 +47,7 @@ export function Products(props: PageProps) {
       {importing && <ImportProducts {...props} onClose={() => setImporting(false)} onDone={() => { setImporting(false); reload(); }} />}
       {detail && <ProductDrawer {...props} productId={detail.id} name={detail.brand_name} onClose={() => setDetail(null)} />}
       {adding && <AddMedicine {...props} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); reload(); }} />}
+      {editing && <EditProduct {...props} product={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); }} />}
       {stockFor && <AddStock {...props} product={stockFor} onClose={() => setStockFor(null)} onSaved={() => { setStockFor(null); reload(); }} />}
     </>
   );
@@ -88,6 +94,69 @@ function AddMedicine(props: PageProps & { onClose: () => void; onSaved: () => vo
         {error && <div className="form-error span-2">{error}</div>}
         <div className="row-actions span-2"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>Save product</button></div>
       </form>
+    </Modal>
+  );
+}
+
+interface EditData { id: string; brand_name: string; strength: string | null; rack_location: string | null; reorder_level: number | null;
+  rx_required: boolean; is_controlled: boolean; stock: number; base_unit: string | null; units: Array<{ id: string; name: string; factor: number; price: number | null }> }
+
+/** Fix a product entered wrong: name, rack, prices, the stock on the shelf, or delete it. */
+function EditProduct(props: PageProps & { product: ProductRow; onClose: () => void; onSaved: () => void }) {
+  const { data: d, error: loadError } = useLoad(() => props.db.office<EditData>('product_edit', props.product.id, props.branchId), []);
+  const [f, setF] = useState<null | { name: string; strength: string; rack: string; reorder: string; rx: boolean; controlled: boolean; stock: string; reason: string; prices: Record<string, string> }>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  if (d && !f) {
+    setF({ name: d.brand_name, strength: d.strength ?? '', rack: d.rack_location ?? '', reorder: d.reorder_level == null ? '' : String(d.reorder_level),
+           rx: d.rx_required, controlled: d.is_controlled, stock: String(d.stock), reason: '',
+           prices: Object.fromEntries(d.units.map((u) => [u.id, u.price == null ? '' : String(u.price / 100)])) });
+  }
+  const set = (k: string, v: unknown) => setF((x) => (x ? { ...x, [k]: v } : x));
+  const { busy, error, submit } = useSubmit(async () => {
+    if (!d || !f) return;
+    if (!f.name.trim()) throw new Error('The product needs a name');
+    await props.db.ownerCall('update_product', d.id, {
+      brand_name: f.name.trim(), strength: f.strength.trim() || null, rack_location: f.rack.trim() || null,
+      reorder_level: f.reorder.trim() === '' ? null : Number(f.reorder), rx_required: f.rx || f.controlled, is_controlled: f.controlled }, null);
+    for (const u of d.units) {
+      const want = f.prices[u.id]?.trim() ?? '';
+      const paisa = want === '' ? null : toPaisa(want);
+      if (paisa != null && paisa !== u.price) await props.db.ownerCall('set_price', u.id, 'retail', paisa, 'Edited in Products', null, null);
+    }
+    const stock = Number(f.stock);
+    if (!Number.isInteger(stock) || stock < 0) throw new Error('Stock must be a whole number, 0 or more');
+    if (stock !== Number(d.stock)) await props.db.ownerCall('set_product_stock', props.branchId, d.id, stock, f.reason.trim() || 'Corrected in Products', null);
+  }, props.onSaved);
+  const del = useSubmit(() => props.db.ownerCall('remove_product', props.product.id, 'Deleted in Products', null), props.onSaved);
+  return (
+    <Modal title={`Edit · ${props.product.brand_name}`} onClose={props.onClose} wide>
+      {!f ? <p className="muted">{loadError ?? 'Loading…'}</p> : (
+        <form className="form-grid" onSubmit={submit}>
+          <label className="field span-2"><span>Product name *</span><input autoFocus required value={f.name} onChange={(e) => set('name', e.target.value)} /></label>
+          <label className="field"><span>Strength</span><input value={f.strength} onChange={(e) => set('strength', e.target.value)} placeholder="500mg" /></label>
+          <label className="field"><span>Rack</span><input value={f.rack} onChange={(e) => set('rack', e.target.value)} placeholder="R1-S2" /></label>
+          {d!.units.map((u) => (
+            <label key={u.id} className="field"><span>Selling price of one {u.name}{u.factor > 1 ? ` (${u.factor})` : ''} (Rs)</span>
+              <input inputMode="decimal" value={f.prices[u.id] ?? ''} onChange={(e) => set('prices', { ...f.prices, [u.id]: e.target.value })} /></label>
+          ))}
+          <label className="field"><span>Stock on the shelf now ({d!.base_unit ?? 'smallest unit'})</span>
+            <input inputMode="numeric" value={f.stock} onChange={(e) => set('stock', e.target.value.replace(/[^0-9]/g, ''))} /></label>
+          <label className="field"><span>Why the stock changed (optional)</span><input value={f.reason} onChange={(e) => set('reason', e.target.value)} placeholder="Entered wrong, broken, counted again…" /></label>
+          <label className="field"><span>Reorder at ({d!.base_unit ?? 'smallest unit'})</span><input inputMode="numeric" value={f.reorder} onChange={(e) => set('reorder', e.target.value.replace(/[^0-9]/g, ''))} /></label>
+          <label className="check"><input type="checkbox" checked={f.rx} onChange={(e) => set('rx', e.target.checked)} /> Needs a prescription</label>
+          <label className="check"><input type="checkbox" checked={f.controlled} onChange={(e) => set('controlled', e.target.checked)} /> Controlled drug</label>
+          <p className="muted small span-2">A stock change is saved as a stock correction with its reason (Stock movements), so the history stays true.</p>
+          {(error || del.error) && <div className="form-error span-2">{error ?? del.error}</div>}
+          <div className="row-between span-2">
+            {confirmDelete ? (
+              <span className="row-actions"><span className="bad-text small">Delete {props.product.brand_name}? Its stock goes to 0. Old bills keep its name.</span>
+                <button type="button" className="btn danger" disabled={del.busy} onClick={() => void del.submit()}>{del.busy ? 'Deleting…' : 'Yes, delete'}</button>
+                <button type="button" className="btn ghost" onClick={() => setConfirmDelete(false)}>No</button></span>
+            ) : <button type="button" className="btn ghost bad-text" onClick={() => setConfirmDelete(true)}>Delete product</button>}
+            <span className="row-actions"><button type="button" className="btn ghost" onClick={props.onClose}>Cancel</button><button className="btn primary" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button></span>
+          </div>
+        </form>
+      )}
     </Modal>
   );
 }

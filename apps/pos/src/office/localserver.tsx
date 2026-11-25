@@ -204,15 +204,15 @@ export function OwnerViewPanel(props: PageProps) {
     <section className="panel">
       <div className="panel-title">Owner's laptop · live view</div>
       <p className="muted small">See this pharmacy's dashboard, sales, stock and udhaar from home or anywhere. The shop keeps working without internet;
-        whenever it has internet, Nuskha sends a read-only copy every minute. Nobody can change anything from the owner's laptop.</p>
+        whenever it has internet, Nuskha sends a read-only copy every minute. With your owner PIN you can also make changes from there; they reach this PC whenever it is online.</p>
       {st?.enabled ? (
         <>
           <dl className="facts">
-            <dt>View code</dt><dd><code className="key-code">{st.view_code}</code><div className="muted small">Type this in Nuskha Owner on your laptop (download from the Nuskha website), or open app-nuskha.vercel.app/#/view. Keep it private, like a password.</div></dd>
+            <dt>Pharmacy code</dt><dd><code className="key-code">{st.view_code}</code><div className="muted small">On your home laptop install Nuskha from the website, choose "I am the owner, at home", and type this code and your owner PIN. Keep it private, like a password.</div></dd>
             <dt>Last sent</dt><dd>{st.last_ok ? timeOf(st.last_ok) : 'Not yet'}{st.last_error ? <div className="warn-text small">No internet right now; Nuskha keeps trying every minute. The shop is not affected.</div> : null}</dd>
           </dl>
           <div className="row-actions">
-            <button type="button" className="btn" disabled={busy} onClick={() => void act(() => db.mirrorEnable(true))}>New code (old laptops stop)</button>
+            <button type="button" className="btn" disabled={busy} onClick={() => void act(() => db.mirrorEnable(true))}>New pharmacy code (old laptops stop)</button>
             <button type="button" className="btn ghost" disabled={busy} onClick={() => void act(() => db.mirrorDisable())}>Turn off and delete the copy</button>
           </div>
         </>

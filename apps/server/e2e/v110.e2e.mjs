@@ -3,7 +3,7 @@
 //  2. internet back (restart with the real cloud): the copy arrives; the owner's view page opens
 //     with the code and shows the pharmacy, today's sales and "Live view";
 //  3. a new code locks the old one out; "Turn off" deletes the copy.
-// Run after `node build.mjs`: node e2e/v110.e2e.mjs [--site https://app-nuskha.vercel.app] (E2E_SHOTS=<folder>)
+// Run after `node build.mjs`: node e2e/v110.e2e.mjs (E2E_SHOTS=<folder>). The owner's laptop is a second, fresh Nuskha.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -15,7 +15,6 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const release = path.resolve(here, '../release/Nuskha');
 const fixture = path.join(here, 'fixtures', 'inventory-karachi.csv');
 const argv = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? process.argv[i + 1] : d; };
-const site = argv('site', 'https://app-nuskha.vercel.app');
 const port = 5191;
 const base = `http://localhost:${port}`;
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'nuskha-110-'));
@@ -39,6 +38,13 @@ async function startServer(offline) {
     await new Promise((r) => setTimeout(r, 1000));
   }
 }
+// The owner's home laptop: the same Nuskha, installed fresh (no pharmacy on it).
+const homePort = 5192;
+const homeDir = path.join(scratch, 'HomeNuskha');
+fs.cpSync(release, homeDir, { recursive: true });
+const homeServer = spawn(process.execPath, ['medflow-server.mjs', '--port', String(homePort), '--data', path.join(scratch, 'home-data'), '--backups', path.join(scratch, 'home-backups')],
+  { cwd: homeDir, stdio: 'ignore' });
+process.on('exit', () => { try { homeServer.kill(); } catch { /* gone */ } });
 const stopServer = async () => { try { server?.kill(); } catch { /* gone */ } await new Promise((r) => setTimeout(r, 2500)); };
 process.on('exit', () => { try { server?.kill(); } catch { /* gone */ } });
 
@@ -119,7 +125,8 @@ try {
 
   viewer = await browser.newPage({ viewport: { width: 1366, height: 800 } });
   viewer.on('pageerror', (e) => problems.push(`view: ${e.message}`));
-  await viewer.goto(`${site}/#/view`);
+  await viewer.goto(`http://localhost:${homePort}`);
+  await viewer.getByText('I am the owner, at home').click({ timeout: 90_000 });
   await viewer.getByPlaceholder('NSK-XXXX-XXXX-XXXX-XXXX').fill(code.toLowerCase());
   await viewer.getByRole('button', { name: 'Open my pharmacy' }).click();
   const live = viewer.locator('.live-banner');
@@ -133,8 +140,40 @@ try {
   await viewer.getByRole('button', { name: 'Products & stock' }).first().click();
   check('owner sees products and stock', await viewer.locator('table tbody tr', { hasText: 'Panadol' }).first().waitFor({ timeout: 15_000 }).then(() => true, () => false));
 
+  // ---- 2b. Owner signs in with the PIN from home and changes a price; the shop PC has it ----
+  await viewer.getByRole('button', { name: /Make changes/ }).click();
+  await viewer.getByPlaceholder('Owner PIN').fill('2580');
+  await viewer.getByRole('button', { name: 'Sign in' }).click();
+  check('owner signs in from home with the PIN', await viewer.getByText('Owner, from home').waitFor({ timeout: 60_000 }).then(() => true, () => false));
+  await viewer.getByRole('button', { name: 'Products & stock' }).first().click();
+  const prow = viewer.locator('table tbody tr', { hasText: 'Panadol Tablets' }).first();
+  await prow.waitFor({ timeout: 60_000 });
+  await prow.getByRole('button', { name: 'Edit' }).click();
+  const stockBox = viewer.getByLabel(/Stock on the shelf now/);
+  await stockBox.waitFor({ timeout: 60_000 });
+  await stockBox.fill('123');
+  await viewer.getByLabel(/Why the stock changed/).fill('changed from home');
+  await viewer.getByRole('button', { name: 'Save changes' }).click();
+  const saved = await viewer.getByLabel(/Stock on the shelf now/).waitFor({ state: 'detached', timeout: 90_000 }).then(() => true, () => false);
+  if (shots) await viewer.screenshot({ path: path.join(shots, '110-owner-home-edit.png') });
+  // At the shop: Products shows the new stock.
+  await page.getByRole('button', { name: 'Products & stock' }).first().click();
+  const shopRow = page.locator('table tbody tr', { hasText: 'Panadol Tablets' }).first();
+  await shopRow.waitFor({ timeout: 20_000 });
+  check('a change made from home is on the shop PC', saved && /\b123\b/.test(await shopRow.innerText()), (await shopRow.innerText()).replace(/\s+/g, ' ').slice(0, 90));
+  let homeShows = false;
+  for (let i = 0; i < 20 && !homeShows; i++) {
+    await viewer.getByRole('button', { name: 'Dashboard' }).first().click();
+    await viewer.getByRole('button', { name: 'Products & stock' }).first().click();
+    const r = viewer.locator('table tbody tr', { hasText: 'Panadol Tablets' }).first();
+    homeShows = await r.waitFor({ timeout: 30_000 }).then(async () => /\b123\b/.test(await r.innerText()), () => false);
+    if (!homeShows) await viewer.waitForTimeout(3000);
+  }
+  check("the owner's laptop shows the change too", homeShows);
+  await page.getByRole('button', { name: 'Settings' }).first().click();
+
   // ---- 3. New code, then off ----
-  await ownerPanel().getByRole('button', { name: /New code/ }).click();
+  await ownerPanel().getByRole('button', { name: /New pharmacy code/ }).click();
   let newCode = code;
   for (let i = 0; i < 30 && newCode === code; i++) { await page.waitForTimeout(2000); newCode = (await ownerPanel().locator('code').innerText()).trim(); }
   await viewer.reload();
@@ -150,6 +189,7 @@ try {
 } finally {
   await browser.close();
   await stopServer();
+  try { homeServer.kill(); } catch { /* gone */ }
   console.log(`\n${results.filter(Boolean).length} passed, ${results.filter((x) => !x).length} failed`);
   process.exit(results.every(Boolean) ? 0 : 1);
 }

@@ -286,3 +286,6 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .view-only .office-content .page-head .btn, .view-only .office-content .row-actions, .view-only .office-content td .btn,
 .view-only .office-content .wa-actions { display: none !important; }
 .view-only .office-content table tbody tr { cursor: default; pointer-events: none; }
+.live-banner .pin-inline { display: inline-flex; gap: 6px; margin-left: auto; }
+.live-banner .pin-inline input { width: 120px; padding: 4px 8px; }
+.live-banner > .btn { margin-left: auto; }

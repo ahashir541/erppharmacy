@@ -39,32 +39,3 @@ export function buildSetup(zip, outExe) {
   return outExe;
 }
 
-/** NuskhaOwnerSetup.exe: the owner's laptop program ("Nuskha Owner", the live view from Nuskha Cloud). No administrator needed. */
-export function buildOwnerSetup(outExe) {
-  if (process.platform !== 'win32') return null;
-  const csc = path.join(process.env.WINDIR ?? 'C:\Windows', 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe');
-  const icon = path.join(here, 'windows', 'MedFlow.ico');
-  const wv = path.join(here, 'windows', 'webview2');
-  const stage = path.join(path.dirname(outExe), 'NuskhaOwner');
-  fs.rmSync(stage, { recursive: true, force: true });
-  fs.mkdirSync(stage, { recursive: true });
-  execFileSync(csc, ['-nologo', '-target:winexe', '-platform:x64', '-optimize+', '-define:OWNER',
-    `-out:${path.join(stage, 'Nuskha Owner.exe')}`, `-win32icon:${icon}`, `-win32manifest:${path.join(here, 'windows', 'desktop', 'app.manifest')}`,
-    `-r:${path.join(wv, 'Microsoft.Web.WebView2.Core.dll')}`, `-r:${path.join(wv, 'Microsoft.Web.WebView2.WinForms.dll')}`,
-    '-r:System.Windows.Forms.dll', '-r:System.Drawing.dll', path.join(here, 'windows', 'desktop', 'NuskhaWindow.cs')], { stdio: 'pipe' });
-  for (const f of WEBVIEW2) fs.copyFileSync(path.join(wv, f), path.join(stage, f));
-  const zip = path.join(path.dirname(outExe), 'NuskhaOwner.zip');
-  fs.rmSync(zip, { force: true });
-  const files = fs.readdirSync(stage).map((f) => `'${path.join(stage, f)}'`).join(',');
-  execFileSync('powershell', ['-NoProfile', '-Command', `Compress-Archive -LiteralPath ${files} -DestinationPath '${zip}'`], { stdio: 'pipe' });
-  fs.rmSync(outExe, { force: true });
-  execFileSync(csc, ['-nologo', '-target:winexe', '-platform:anycpu', '-optimize+', `-out:${outExe}`,
-    `-win32icon:${icon}`, `-win32manifest:${path.join(here, 'windows', 'desktop', 'app.manifest')}`,
-    `-resource:${zip},NuskhaOwner.zip`, '-r:System.Windows.Forms.dll', '-r:System.Drawing.dll',
-    '-r:System.IO.Compression.dll', '-r:System.IO.Compression.FileSystem.dll',
-    path.join(here, 'windows', 'desktop', 'NuskhaOwnerSetup.cs')], { stdio: 'pipe' });
-  fs.rmSync(zip, { force: true });
-  fs.rmSync(stage, { recursive: true, force: true });
-  console.log(`Owner setup: ${outExe} (${(fs.statSync(outExe).size / 1048576).toFixed(1)} MB)`);
-  return outExe;
-}

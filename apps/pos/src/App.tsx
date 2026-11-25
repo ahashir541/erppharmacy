@@ -12,6 +12,7 @@ import { LinkThisPc, SetupWizard } from './screens/LocalSetup.tsx';
 import { LicenceBar } from './screens/LicenceBar.tsx';
 import { savedToken, ServerBackend, serverMode, serverStatus, type ServerStatus } from './backend/server.ts';
 import { errorText } from './util.ts';
+import { OwnerView, ownerAtHome } from './screens/OwnerView.tsx';
 
 export interface Session {
   staff: Staff;
@@ -46,6 +47,8 @@ export function App() {
   const [linking, setLinking] = useState(false);
   // Nuskha Local: the pharmacy's server is not set up yet, or this PC is not linked.
   const [local, setLocal] = useState<{ status: ServerStatus; need: 'setup' | 'link' } | null>(null);
+  // The same Nuskha on the owner's home laptop: no pharmacy here; it opens the shop through Nuskha Cloud.
+  const [home, setHome] = useState(() => serverMode && ownerAtHome());
 
   useEffect(() => {
     if (started.current) return;
@@ -118,7 +121,8 @@ export function App() {
 
   if (local) {
     const done = () => window.location.reload();
-    return local.need === 'setup' ? <SetupWizard status={local.status} onDone={done} /> : <LinkThisPc status={local.status} onDone={done} />;
+    if (home && local.need === 'setup') return <OwnerView onLeave={() => setHome(false)} />;
+    return local.need === 'setup' ? <SetupWizard status={local.status} onDone={done} onOwnerHome={() => setHome(true)} /> : <LinkThisPc status={local.status} onDone={done} />;
   }
   if (fatal) {
     return <div className="boot"><div className="boot-card error">{fatal}</div></div>;

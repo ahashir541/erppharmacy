@@ -82,7 +82,7 @@ export const SECURITY_HEADERS: Record<string, string> = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https://*.googleusercontent.com",
-    "connect-src 'self' https://accounts.google.com/gsi/",
+    "connect-src 'self' https://accounts.google.com/gsi/ https://*.supabase.co",   // owner at home reads the shop through Nuskha Cloud
     "frame-src https://accounts.google.com/gsi/",
     "worker-src 'self' blob:",
     "object-src 'none'",

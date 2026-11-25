@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { PGlite } from '@electric-sql/pglite';
+import { verifyPin } from '@medflow/core';
 import { asPrincipal, callFunction } from './db.ts';
 
 declare const __NUSKHA_CLOUD__: { url: string; anon_key: string } | undefined;
@@ -15,6 +16,11 @@ interface State { push_key: string; view_code: string; enabled: boolean }
 export interface MirrorStatus { available: boolean; enabled: boolean; view_code: string | null; last_ok: string | null; last_error: string | null; online: boolean }
 
 const SLOW = new Set(['office_products', 'office_movements', 'office_customers']);   // big lists: every 10 minutes
+
+// Owner working from home: what the laptop may run here. Everything the owner can do at the shop's
+// back office, never counter selling, device, licence, HQ or platform functions.
+const NEVER = /^(post_sale|post_return|apply_device_commands|start_staff_session|end_staff_session|link_|register_|platform_|hq_|mirror_|relay_|set_staff_pin|create_owner|setup_|licence|device_)/;
+interface RelayBody { kind: 'login' | 'call' | 'table'; fn?: string; args?: unknown[]; token?: string; pin?: string }
 
 /** A code people can read out on the phone: NSK-XXXX-XXXX-XXXX-XXXX (no 0/O/1/I). */
 function newViewCode() {
@@ -33,6 +39,11 @@ export class Mirror {
   private lastError: string | null = null;
   private timer: NodeJS.Timeout | null = null;
   private busy = false;
+  private relayTimer: NodeJS.Timeout | null = null;
+  private ownerActive = false;
+  private tokens = new Map<string, number>();          // owner's laptop sessions: token -> expiry
+  private pinFails = { n: 0, until: 0 };
+  private argsAll: Record<string, unknown[]> = {};
 
   constructor(private readonly db: PGlite, private readonly file: string, private readonly version: string, private readonly log: (s: string) => void) {
     try { this.state = JSON.parse(fs.readFileSync(file, 'utf8')) as State; } catch { this.state = null; }
@@ -49,6 +60,68 @@ export class Mirror {
     if (this.timer) return;
     this.timer = setInterval(() => { void this.tick(); }, 60_000);
     setTimeout(() => { void this.tick(); }, 15_000);
+    const loop = async () => {
+      await this.relay().catch(() => {});
+      // Every 3 s while the owner has the laptop open, otherwise every 20 s.
+      this.relayTimer = setTimeout(() => { void loop(); }, this.ownerActive ? 3_000 : 20_000);
+    };
+    this.relayTimer = setTimeout(() => { void loop(); }, 5_000);
+  }
+
+  /** The owner's requests from home: check the PIN once, then run them as the owner signed in here. */
+  private async relay() {
+    if (!CLOUD || !this.state?.enabled) return;
+    const r = await this.rpc('relay_take', { p_push_key: this.state.push_key }) as { requests: Array<{ id: string; body: RelayBody }>; owner_active: boolean };
+    this.ownerActive = r.owner_active;
+    let changed = false;
+    for (const q of r.requests) {
+      let ok = true; let result: unknown = null;
+      try {
+        const out = await this.run(q.body);
+        result = out.result; changed ||= out.write;
+      } catch (e) { ok = false; result = (e as Error).message; }
+      await this.rpc('relay_reply', { p_push_key: this.state.push_key, p_id: q.id, p_ok: ok, p_result: result ?? null })
+        .catch((e: Error) => this.log(`Owner from home: answer not sent (${e.message})`));
+    }
+    if (changed) void this.tick(true);   // the owner's change shows in the live copy straight away (big lists too)
+  }
+
+  private async run(b: RelayBody): Promise<{ result: unknown; write: boolean }> {
+    const now = Date.now();
+    if (b.kind === 'login') {
+      if (this.pinFails.until > now) throw new Error(`Too many wrong PINs. Try again in ${Math.ceil((this.pinFails.until - now) / 60000)} minutes.`);
+      const hash = (await this.db.query<{ pin_hash: string }>(`
+        select p.pin_hash from users u join user_pins p on p.user_id = u.id where u.is_primary_owner and u.status = 'active' limit 1`)).rows[0]?.pin_hash;
+      if (!hash || !(await verifyPin(String(b.pin ?? ''), hash))) {
+        this.pinFails.n++;
+        if (this.pinFails.n >= 5) { this.pinFails = { n: 0, until: now + 5 * 60_000 }; }
+        this.log('Owner from home: wrong owner PIN');
+        throw new Error("That is not the owner's PIN");
+      }
+      this.pinFails = { n: 0, until: 0 };
+      const token = crypto.randomBytes(24).toString('hex');
+      this.tokens.set(sha(token), now + 12 * 3600_000);
+      this.log('Owner signed in from home (live view)');
+      return { result: { token }, write: false };
+    }
+    const exp = this.tokens.get(sha(String(b.token ?? '')));
+    if (!exp || exp < now) throw new Error('Please sign in again with your owner PIN');
+    const fn = String(b.fn ?? '');
+    if (!/^[a-z][a-z0-9_]{0,62}$/.test(fn) || NEVER.test(fn)) throw new Error('That cannot be done from home; do it at the shop');
+    const owner = await this.owner();
+    if (!owner) throw new Error('This pharmacy has no owner yet');
+    const claims = { sub: owner.auth_user_id, role: 'authenticated', aal: 'aal2', tenant_id: owner.tenant_id };
+    const result = await asPrincipal(this.db, claims, (tx) => callFunction(tx, fn, Array.isArray(b.args) ? b.args : [], b.kind === 'table'));
+    const write = !/^(office_|owner_dashboard$|party_|report_|trial_balance$|get_receipt$)/.test(fn);
+    if (write) this.log(`Owner from home: ${fn}`);
+    return { result, write };
+  }
+
+  private async owner() {
+    return (await this.db.query<{ auth_user_id: string; tenant_id: string; pharmacy: string; branch_id: string; branch: string; today: string }>(`
+      select u.auth_user_id, u.tenant_id, t.name pharmacy, b.id branch_id, b.name branch, app.business_date(b.id)::text today
+      from users u join tenants t on t.id = u.tenant_id join branches b on b.tenant_id = t.id
+      where u.kind = 'owner' and u.status = 'active' order by u.is_primary_owner desc, b.created_at limit 1`)).rows[0];
   }
 
   private save() {
@@ -60,7 +133,7 @@ export class Mirror {
   async enable(newCode = false) {
     if (!CLOUD) throw new Error('This Nuskha was built without Nuskha Cloud');
     if (!this.state) this.state = { push_key: crypto.randomBytes(32).toString('hex'), view_code: newViewCode(), enabled: true };
-    if (newCode) this.state.view_code = newViewCode();
+    if (newCode) { this.state.view_code = newViewCode(); this.tokens.clear(); }
     this.state.enabled = true;
     this.save();
     this.lastSent.clear(); this.lastSlow = 0;
@@ -74,6 +147,7 @@ export class Mirror {
       await this.rpc('mirror_forget', { p_push_key: this.state.push_key }).catch((e: Error) => this.log(`Owner view: could not delete the cloud copy now (${e.message})`));
     }
     if (this.state) { this.state.enabled = false; this.save(); }
+    this.tokens.clear();
     this.lastSent.clear();
     this.log('Owner view: sharing turned off');
     return this.status();
@@ -95,10 +169,7 @@ export class Mirror {
 
   /** The owner's screens, read on this PC exactly as the back office reads them. */
   private async snapshot(includeSlow: boolean) {
-    const owner = (await this.db.query<{ auth_user_id: string; tenant_id: string; pharmacy: string; branch_id: string; branch: string; today: string }>(`
-      select u.auth_user_id, u.tenant_id, t.name pharmacy, b.id branch_id, b.name branch, app.business_date(b.id)::text today
-      from users u join tenants t on t.id = u.tenant_id join branches b on b.tenant_id = t.id
-      where u.kind = 'owner' and u.status = 'active' order by b.created_at limit 1`)).rows[0];
+    const owner = await this.owner();
     if (!owner) return null;
     const claims = { sub: owner.auth_user_id, role: 'authenticated', aal: 'aal2', tenant_id: owner.tenant_id };
     const t = owner.today; const br = owner.branch_id;
@@ -106,7 +177,8 @@ export class Mirror {
     const calls: Array<[string, string, unknown[], boolean]> = [
       ['owner_dashboard', 'owner_dashboard', [], false],
       ['office_sales_trend', 'office_sales_trend', [t], false],
-      ['office_invoices', 'office_invoices', [from, t, 'all', ''], false],
+      ['office_invoices', 'office_invoices', [t, t, 'all', ''], false],
+      ['office_invoices:30', 'office_invoices', [from, t, 'all', ''], false],
       ['office_shifts', 'office_shifts', [from, t], false],
       ['office_expiry', 'office_expiry', [br], false],
       ['office_suppliers', 'office_suppliers', [], false],
@@ -122,12 +194,15 @@ export class Mirror {
       ['office_customers', 'office_customers', [''], false],
     ];
     const parts: Record<string, unknown> = {};
+    const argsOf: Record<string, unknown[]> = {};
     for (const [key, fn, args, rows] of calls) {
       if (SLOW.has(key) && !includeSlow) continue;
+      argsOf[key] = args;
       try { parts[key] = await asPrincipal(this.db, claims, (tx) => callFunction(tx, fn, args, rows)); }
       catch (e) { this.log(`Owner view: ${fn} skipped (${(e as Error).message})`); }
     }
-    const meta = { pharmacy: owner.pharmacy, branch: owner.branch, branch_id: br, today: t, version: this.version };
+    // args: what each copied screen was asked, so the laptop knows when the copy answers a page as it is.
+    const meta = { pharmacy: owner.pharmacy, branch: owner.branch, branch_id: br, today: t, version: this.version, args: (this.argsAll = { ...this.argsAll, ...argsOf }), can_change: true };
     return { meta, parts };
   }
 

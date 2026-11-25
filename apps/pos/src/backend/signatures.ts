@@ -798,5 +798,39 @@ export const SIGNATURES: Record<string, string[]> = {
   ],
   "mirror_read": [
     "p_view_code"
+  ],
+  "relay_ask": [
+    "p_view_code",
+    "p_id",
+    "p_body"
+  ],
+  "relay_answer": [
+    "p_view_code",
+    "p_id"
+  ],
+  "relay_take": [
+    "p_push_key"
+  ],
+  "relay_reply": [
+    "p_push_key",
+    "p_id",
+    "p_ok",
+    "p_result"
+  ],
+  "set_product_stock": [
+    "p_branch",
+    "p_product",
+    "p_qty_base",
+    "p_reason",
+    "p_session"
+  ],
+  "remove_product": [
+    "p_product",
+    "p_reason",
+    "p_session"
+  ],
+  "office_product_edit": [
+    "p_product",
+    "p_branch"
   ]
 };

@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { buildOwnerSetup, buildSetup, buildWindow } from './desktop-build.mjs';
+import { buildSetup, buildWindow } from './desktop-build.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -69,7 +69,9 @@ fs.cpSync(pglite, pgOut, { recursive: true, dereference: true });
 if (!flag('--server-only')) {
   step('Nuskha app (for Nuskha Local)');
   const pos = path.join(root, 'apps/pos');
-  const env = { ...process.env, VITE_MEDFLOW_SERVER: '1', VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' };
+  const env = { ...process.env, VITE_MEDFLOW_SERVER: '1', VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '',
+    // The same Nuskha on the owner's home laptop opens the shop through Nuskha Cloud.
+    VITE_OWNER_CLOUD_URL: cloud?.url ?? '', VITE_OWNER_CLOUD_KEY: cloud?.anon_key ?? '' };
   execSync('node scripts/gen-signatures.mjs', { cwd: pos, stdio: 'inherit', env });
   execSync(`npx vite build --outDir "${path.join(out, 'public')}" --emptyOutDir`, { cwd: pos, stdio: 'inherit', env });
 }
@@ -116,8 +118,6 @@ if (flag('--zip') && process.platform === 'win32') {
   console.log(`Done: ${zip}`);
   step('Setup');
   buildSetup(zip, path.join(here, 'release', 'NuskhaSetup.exe'));
-  step('Owner setup');
-  buildOwnerSetup(path.join(here, 'release', 'NuskhaOwnerSetup.exe'));
 } else {
   console.log(`Done: ${out}`);
 }

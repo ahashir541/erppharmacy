@@ -21,9 +21,6 @@ static class Program
 #if HQ
     public const string Title = "Nuskha HQ";
     const string Profile = "NuskhaHQ";
-#elif OWNER
-    public const string Title = "Nuskha Owner";
-    const string Profile = "NuskhaOwner";
 #else
     public const string Title = "Nuskha";
     const string Profile = "Nuskha";
@@ -42,9 +39,6 @@ static class Program
         string url = Arg(args, "--url");
 #if HQ
         if (url == null) url = "http://localhost:" + Port(Path.Combine(dir, "hq.json"), 5299) + "/";
-#elif OWNER
-        // The owner's live view of the shop, read from Nuskha Cloud.
-        if (url == null) url = "https://app-nuskha.vercel.app/#/view";
 #else
         if (url == null) url = "http://localhost:" + Port(Path.Combine(dir, "config.json"), 5199) + "/";
 #endif
@@ -229,16 +223,10 @@ class MainWindow : Form
     {
         // Nuskha's server may still be starting (just after the PC was switched on).
         tries++;
-#if OWNER
-        waiting.Text = "No internet. Nuskha Owner tries again by itself…";
-#else
         waiting.Text = tries < 60 ? "Starting " + Program.Title + "…" : Program.Title + " is not running on this PC. Restart the PC, or ask for help.";
-#endif
         waiting.Visible = true;
         waiting.BringToFront();
-#if !OWNER
         if (tries >= 90) return;
-#endif
         System.Windows.Forms.Timer t = new System.Windows.Forms.Timer { Interval = 2000 };
         t.Tick += (o, e) => { t.Stop(); t.Dispose(); if (web.CoreWebView2 != null) web.CoreWebView2.Navigate(url); };
         t.Start();

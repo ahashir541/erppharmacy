@@ -42,8 +42,9 @@ const NAV: NavItem[] = [
 const VIEW_PAGES = new Set(['dashboard', 'invoices', 'customers', 'shifts', 'products', 'expiry', 'movements', 'suppliers', 'purchases']);
 
 export function Office(props: AppProps & { session: Session; onOpenPos: () => void; onSignOut: () => void; onToggleLang: () => void;
-                                           viewOnly?: { banner: ReactNode } }) {
-  const NAV_HERE = props.viewOnly ? NAV.filter((n) => VIEW_PAGES.has(n.key)) : NAV;
+                                           viewOnly?: { banner: ReactNode; readOnly?: boolean } }) {
+  // Owner laptop: read-only shows a few pages; signed in with the PIN, everything but the counter.
+  const NAV_HERE = props.viewOnly ? NAV.filter((n) => (props.viewOnly!.readOnly === false ? n.key !== 'pos' && n.key !== 'counts' : VIEW_PAGES.has(n.key))) : NAV;
   const [page, setPage] = useState('dashboard');
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1200);
   const [palette, setPalette] = useState(false);
@@ -83,7 +84,7 @@ export function Office(props: AppProps & { session: Session; onOpenPos: () => vo
   const current = NAV_HERE.find((n) => n.key === page) ?? NAV_HERE[0]!;
   const groups = [...new Set(NAV_HERE.map((n) => n.group))];
   return (
-    <div className={`office${collapsed ? ' collapsed' : ''}${props.viewOnly ? ' view-only' : ''}`}>
+    <div className={`office${collapsed ? ' collapsed' : ''}${props.viewOnly ? (props.viewOnly.readOnly === false ? ' remote' : ' view-only') : ''}`}>
       <aside className="sidebar" aria-label="Main menu">
         <div className="sidebar-head">
           <button type="button" className="brand-home" title="Dashboard" onClick={() => go('dashboard')}>
